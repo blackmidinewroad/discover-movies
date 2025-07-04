@@ -16,17 +16,15 @@ class TMDB:
             'Authorization': f'Bearer {os.getenv("TMDB_ACCESS_TOKEN")}',
         }
 
-    def _build_url(self, path, params=None):
+    def _build_url(self, path: str, params: dict = None) -> str:
         """Build URL"""
 
         if params is None:
             params = {}
 
-        url = f'{urljoin(self.BASE_URL, path)}?{urlencode(params)}'
-        print(url)
-        return url
+        return f'{urljoin(self.BASE_URL, path)}?{urlencode(params)}'
 
-    def _fetch_data(self, path, params=None):
+    def _fetch_data(self, path: str, params: dict = None) -> {}:
         """Fetch data"""
 
         url = self._build_url(path, params)
@@ -51,7 +49,7 @@ class TMDB:
         params = {'language': language}
         data = self._fetch_data(path, params)
 
-        return data.get('genres', {})
+        return data.get('genres', [])
 
     def _fetch_details(self, path: str, language: str, append_to_response: list[str] = None) -> dict:
         """Fetch details"""
