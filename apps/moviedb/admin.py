@@ -7,14 +7,14 @@ from .models import Country, Genre, Language, Movie, ProductionCompany
 class GenreAdmin(admin.ModelAdmin):
     """Admin panel for genre"""
 
-    list_display = ['name', 'slug']
+    list_display = ['name']
 
 
 @admin.register(ProductionCompany)
 class ProductionCompanyAdmin(admin.ModelAdmin):
     """Admin panel for production company"""
 
-    list_display = ['name', 'slug']
+    list_display = ['name', 'origin_country']
 
 
 @admin.register(Country)

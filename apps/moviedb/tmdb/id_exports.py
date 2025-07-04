@@ -16,7 +16,7 @@ class IDExport:
         'collection': 'collection',
         'network': 'tv_network',
         'keyword': 'keyword',
-        'prod': 'production_company',
+        'company': 'production_company',
     }
 
     def _build_url(self, media_type: str, published_date: str) -> str:
@@ -35,7 +35,7 @@ class IDExport:
         url = self._build_url(media_type, published_date)
 
         try:
-            response = requests.get(url, timeout=10)
+            response = requests.get(url, timeout=20)
             response.raise_for_status()
             return response.content
         except RequestException as e:
@@ -64,7 +64,7 @@ class IDExport:
                 - 'collection': For collection IDs
                 - 'network': For TV network IDs
                 - 'keyword': For keyword IDs
-                - 'prod': For production company IDs
+                - 'company': For production company IDs
             published_date (str, optional): date of the export file in 'DD_MM_YYYY' format. Defaults to None.
                 If not provided, uses the most recent available file.
 
@@ -82,7 +82,7 @@ class IDExport:
                     - 'collection': For collection IDs
                     - 'network': For TV network IDs
                     - 'keyword': For keyword IDs
-                    - 'prod': For production company IDs'''
+                    - 'company': For production company IDs'''
             )
 
         id_file = self._fetch_file(media_type, published_date)

@@ -86,10 +86,10 @@ class ProductionCompany(models.Model):
     """Production company model"""
 
     tmdb_id = models.IntegerField(unique=True)
-    name = models.CharField(max_length=64)
-    slug = models.SlugField(max_length=70, unique=True, blank=True)
+    name = models.CharField(max_length=128)
+    slug = models.SlugField(max_length=130, unique=True, blank=True)
     logo_path = models.URLField(blank=True, default='')
-    origin_country = models.ManyToManyField(Country, blank=True, related_name='origin_country_company')
+    origin_country = models.ForeignKey(Country, on_delete=models.SET_NULL, null=True, blank=True, related_name='origin_country_company')
 
     class Meta:
         verbose_name_plural = 'production companies'

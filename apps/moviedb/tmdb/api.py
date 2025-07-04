@@ -51,10 +51,12 @@ class TMDB:
 
         return data.get('genres', [])
 
-    def _fetch_details(self, path: str, language: str, append_to_response: list[str] = None) -> dict:
+    def _fetch_details(self, path: str, language: str = None, append_to_response: list[str] = None) -> dict:
         """Fetch details"""
 
-        params = {'language': language}
+        params = {}
+        if language is not None:
+            params['language'] = language
         if append_to_response is not None:
             params['append_to_response'] = ','.join(append_to_response)
 
@@ -91,6 +93,20 @@ class TMDB:
         path = f'person/{person_id}'
 
         return self._fetch_details(path=path, language=language, append_to_response=append_to_response)
+
+    def fetch_company_by_id(self, company_id: int) -> dict:
+        """Fetch production company details by ID.
+
+        Args:
+            company_id (int): TMDB ID of a production company
+
+        Returns:
+            dict: dict with company details
+        """
+
+        path = f'company/{company_id}'
+
+        return self._fetch_details(path=path)
 
     def _discover(self, path: str, first_page: int, last_page: int, language: str, region: str = None) -> list[dict]:
         """Discover"""
