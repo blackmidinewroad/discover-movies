@@ -72,6 +72,19 @@ class IDExport:
             list[int]: list of TMDB IDs
         """
 
+        if media_type not in self.MEDIA_TYPES:
+            raise ValueError(
+                '''Invalid media type. 
+                Must be one of:
+                    - 'movie': For movie IDs
+                    - 'tv': For TV series IDs
+                    - 'people': For person IDs
+                    - 'collection': For collection IDs
+                    - 'network': For TV network IDs
+                    - 'keyword': For keyword IDs
+                    - 'prod': For production company IDs'''
+            )
+
         id_file = self._fetch_file(media_type, published_date)
         ids = self._get_ids(id_file)
         return ids
