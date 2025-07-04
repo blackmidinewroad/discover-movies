@@ -10,6 +10,7 @@ pillow = "*"
 dotenv = "*"
 django-extensions = "*"
 requests = "*"
+pycountry = "*"
 
 [dev-packages]
 

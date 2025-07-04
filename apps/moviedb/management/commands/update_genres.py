@@ -23,5 +23,4 @@ class Command(BaseCommand):
         for genre in genres:
             _, created = Genre.objects.update_or_create(tmdb_genre_id=genre['id'], defaults={'name': genre['name']})
             action = 'Created' if created else 'Updated'
-            if created:
-                self.stdout.write(self.style.SUCCESS(f'{action} genre: {genre["name"]}'))
+            self.stdout.write(self.style.SUCCESS(f'{action} genre: {genre["name"]}'))

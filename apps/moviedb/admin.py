@@ -1,24 +1,38 @@
 from django.contrib import admin
 
-from .models import Genre, Movie, ProductionCompany
+from .models import Country, Genre, Language, Movie, ProductionCompany
 
 
 @admin.register(Genre)
-class CategoryAdmin(admin.ModelAdmin):
+class GenreAdmin(admin.ModelAdmin):
     """Admin panel for genre"""
 
-    pass
+    list_display = ['name', 'slug']
 
 
 @admin.register(ProductionCompany)
-class CategoryAdmin(admin.ModelAdmin):
+class ProductionCompanyAdmin(admin.ModelAdmin):
     """Admin panel for production company"""
 
-    pass
+    list_display = ['name', 'slug']
+
+
+@admin.register(Country)
+class CountryAdmin(admin.ModelAdmin):
+    """Admin panel for movie"""
+
+    list_display = ['name', 'code']
+
+
+@admin.register(Language)
+class LanguageAdmin(admin.ModelAdmin):
+    """Admin panel for movie"""
+
+    list_display = ['name', 'code']
 
 
 @admin.register(Movie)
-class CategoryAdmin(admin.ModelAdmin):
+class MovieAdmin(admin.ModelAdmin):
     """Admin panel for movie"""
 
-    pass
+    list_display = ['title', 'slug', 'release_date']
