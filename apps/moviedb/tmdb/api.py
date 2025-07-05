@@ -2,6 +2,7 @@ import os
 from urllib.parse import urlencode, urljoin
 
 import requests
+from ratelimit import limits, sleep_and_retry
 from requests.exceptions import RequestException
 
 
@@ -9,12 +10,17 @@ class TMDB:
     """TMDB API wrapper"""
 
     BASE_URL = 'https://api.themoviedb.org/3/'
+    CALLS = 50
+    RATE_LIMIT = 1
 
     def __init__(self):
-        self.headers = {
-            'accept': 'application/json',
-            'Authorization': f'Bearer {os.getenv("TMDB_ACCESS_TOKEN")}',
-        }
+        self.session = requests.Session()
+        self.session.headers.update(
+            {
+                'accept': 'application/json',
+                'Authorization': f'Bearer {os.getenv("TMDB_ACCESS_TOKEN")}',
+            }
+        )
 
     def _build_url(self, path: str, params: dict = None) -> str:
         """Build URL"""
@@ -24,12 +30,14 @@ class TMDB:
 
         return f'{urljoin(self.BASE_URL, path)}?{urlencode(params)}'
 
+    @sleep_and_retry
+    @limits(calls=CALLS, period=RATE_LIMIT)
     def _fetch_data(self, path: str, params: dict = None) -> {}:
         """Fetch data"""
 
         url = self._build_url(path, params)
         try:
-            response = requests.get(url, headers=self.headers, timeout=10)
+            response = self.session.get(url, timeout=10)
             response.raise_for_status()
             return response.json()
         except RequestException as e:
@@ -50,6 +58,36 @@ class TMDB:
         data = self._fetch_data(path, params)
 
         return data.get('genres', [])
+
+    def _fetch_configuration(self, config_for: str, language: str = None) -> list[dict]:
+        """Fetch TMDB configuration"""
+
+        path = f'configuration/{config_for}'
+        params = {'language': language} if language is not None else {}
+        return self._fetch_data(path, params)
+
+    def fetch_countries(self, language: str = 'en-US') -> list[dict]:
+        """Get the list of countries (ISO 3166-1 tags) used throughout TMDB.
+
+        Args:
+            language (str, optional): locale (ISO 639-1-ISO 3166-1) code (e.g. en-UD, fr-CA, de_DE). Defaults to 'en-US'.
+
+        Returns:
+            list[dict]: list of countries with ISO 3166-1 tags, names and english names.
+        """
+
+        config_for = 'countries'
+        return self._fetch_configuration(config_for, language=language)
+
+    def fetch_languages(self) -> list[dict]:
+        """Get the list of languages (ISO 639-1 tags) used throughout TMDB.
+
+        Returns:
+            list[dict]: list of languages with ISO 639-1 tags, names and english names.
+        """
+
+        config_for = 'languages'
+        return self._fetch_configuration(config_for)
 
     def _fetch_details(self, path: str, language: str = None, append_to_response: list[str] = None) -> dict:
         """Fetch details"""
@@ -196,3 +234,12 @@ class TMDB:
         path = f'trending/person/{time_window}'
 
         return self._discover(path=path, first_page=first_page, last_page=last_page, language=language)
+
+
+# from dotenv import load_dotenv
+
+# load_dotenv()
+
+# tmdb = TMDB()
+# data = tmdb.fetch_languages()
+# print(len(data))

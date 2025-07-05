@@ -11,6 +11,7 @@ dotenv = "*"
 django-extensions = "*"
 requests = "*"
 pycountry = "*"
+ratelimit = "*"
 
 [dev-packages]
 

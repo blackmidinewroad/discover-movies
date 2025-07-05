@@ -14,6 +14,7 @@ class Country(models.Model):
     class Meta:
         verbose_name_plural = 'countries'
         ordering = ['name']
+        indexes = [models.Index(fields=['name'])]
 
     def __str__(self):
         return self.name
@@ -40,6 +41,7 @@ class Language(models.Model):
     class Meta:
         verbose_name_plural = 'languages'
         ordering = ['name']
+        indexes = [models.Index(fields=['name'])]
 
     def __str__(self):
         return self.name
@@ -66,6 +68,7 @@ class Genre(models.Model):
     class Meta:
         verbose_name_plural = 'genres'
         ordering = ['name']
+        indexes = [models.Index(fields=['name'])]
 
     def __str__(self):
         return self.name
@@ -94,6 +97,7 @@ class ProductionCompany(models.Model):
     class Meta:
         verbose_name_plural = 'production companies'
         ordering = ['name']
+        indexes = [models.Index(fields=['name'])]
 
     def __str__(self):
         return self.name
