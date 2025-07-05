@@ -9,7 +9,7 @@ class Country(models.Model):
 
     code = models.CharField(max_length=2, primary_key=True)
     name = models.CharField(max_length=64)
-    slug = models.SlugField(max_length=70, unique=True, blank=True)
+    slug = models.SlugField(max_length=60, unique=True, blank=True)
 
     class Meta:
         verbose_name_plural = 'countries'
@@ -36,7 +36,7 @@ class Language(models.Model):
 
     code = models.CharField(max_length=2, primary_key=True)
     name = models.CharField(max_length=128)
-    slug = models.SlugField(max_length=130, unique=True, blank=True)
+    slug = models.SlugField(max_length=60, unique=True, blank=True)
 
     class Meta:
         verbose_name_plural = 'languages'
@@ -63,7 +63,7 @@ class Genre(models.Model):
 
     tmdb_genre_id = models.IntegerField(unique=True)
     name = models.CharField(max_length=32)
-    slug = models.SlugField(unique=True, blank=True)
+    slug = models.SlugField(max_length=60, unique=True, blank=True)
 
     class Meta:
         verbose_name_plural = 'genres'
@@ -89,8 +89,8 @@ class ProductionCompany(models.Model):
     """Production company model"""
 
     tmdb_id = models.IntegerField(unique=True)
-    name = models.CharField(max_length=128)
-    slug = models.SlugField(max_length=130, unique=True, blank=True)
+    name = models.CharField(max_length=256)
+    slug = models.SlugField(max_length=60, unique=True, blank=True)
     logo_path = models.URLField(blank=True, default='')
     origin_country = models.ForeignKey(Country, on_delete=models.SET_NULL, null=True, blank=True, related_name='origin_country_company')
 
@@ -117,8 +117,8 @@ class ProductionCompany(models.Model):
 class Movie(models.Model):
     """Movie model"""
 
-    title = models.CharField(max_length=256)
-    slug = models.SlugField(max_length=260, unique=True, blank=True)
+    title = models.CharField(max_length=512)
+    slug = models.SlugField(max_length=60, unique=True, blank=True)
     tmdb_id = models.IntegerField(unique=True)
     imdb_id = models.CharField(max_length=16, blank=True, default='')
 

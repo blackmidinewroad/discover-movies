@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import os
 import sys
 from math import ceil
@@ -27,6 +28,7 @@ class BaseTMDB:
 
     class colors:
         RED = '\033[0;31m'
+        YELLOW = '\033[33m'
         BLUE = '\033[0;34m'
         RESET = '\033[0m'
 
@@ -57,7 +59,7 @@ class TMDB(BaseTMDB):
 
     @sleep_and_retry
     @limits(calls=CALLS, period=RATE_LIMIT)
-    def _fetch_data(self, path: str, params: dict = None) -> {}:
+    def _fetch_data(self, path: str, params: dict = None) -> dict:
         """Fetch data"""
 
         url = self._build_url(path, params)
@@ -65,11 +67,9 @@ class TMDB(BaseTMDB):
             response = self.session.get(url, timeout=10)
             response.raise_for_status()
             return response.json()
-        except requests.exceptions.RequestException as e:
-            sys.stdout.write(
-                f'\n{self.colors.RED}Failed to fetch: {e}\n{self.colors.BLUE}path: {path}\nparams: {params}{self.colors.RESET}\n'
-            )
-            sys.stdout.flush()
+        except requests.exceptions.RequestException:
+            sys.stdout.write(f'\n{self.colors.YELLOW}')
+            logging.warning(f" Couldn't fetch\n{self.colors.BLUE}path: {path}\nparams: {params}{self.colors.RESET}")
 
     def fetch_genres(self, language: str = 'en') -> list[dict]:
         """Fetch the list of official genres for movies.
@@ -289,11 +289,9 @@ class asyncTMDB(BaseTMDB):
                     response.raise_for_status()
                     data = await response.json()
                     return data
-            except (aiohttp.ClientError, asyncio.TimeoutError) as e:
-                sys.stdout.write(
-                    f'\n{self.colors.RED}Failed to fetch: {e}\n{self.colors.BLUE}path: {path}\nparams: {params}{self.colors.RESET}\n'
-                )
-                sys.stdout.flush()
+            except (aiohttp.ClientError, asyncio.TimeoutError):
+                sys.stdout.write(f'\n{self.colors.YELLOW}')
+                logging.warning(f" Couldn't fetch\n{self.colors.BLUE}path: {path}\nparams: {params}{self.colors.RESET}")
 
     async def _batch_fetch(self, task_details: list[dict], const_params: dict = None) -> list[dict]:
         """Batch fetch data asynchronously"""

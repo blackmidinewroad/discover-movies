@@ -10,7 +10,8 @@ def unique_slugify(instance, value):
     # Transliterate the non-English words into their closest ASCII equivalents
     ascii_text = unidecode(value)
 
-    slug_field = og_slug = slugify(ascii_text)
+    # Truncate long slugs
+    slug_field = og_slug = slugify(ascii_text)[:57]
 
     counter = 1
     while model.objects.filter(slug=slug_field).exclude(pk=instance.pk).exists():

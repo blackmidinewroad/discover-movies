@@ -31,6 +31,13 @@ class Command(BaseCommand):
             help='Update specific companies.',
         )
 
+        parser.add_argument(
+            '--create',
+            action='store_true',
+            default=False,
+            help='Only create new companies.',
+        )
+
     def handle(self, *args, **kwargs):
         specific_ids = kwargs['specific_ids']
         batch_size = kwargs['batch_size']
@@ -44,13 +51,18 @@ class Command(BaseCommand):
         else:
             company_ids = specific_ids
 
+        if kwargs['create']:
+            existing_ids = set(ProductionCompany.objects.all().values_list('tmdb_id', flat=True))
+            company_ids = [id for id in company_ids if id not in existing_ids]
+
         companies = async_tmdb.batch_fetch_companies_by_id(company_ids, batch_size=batch_size)
-        total, count_processed = len(companies), 0
+        total = len(companies)
+        count_processed = 0
 
         for company in companies:
             country = None
             if company['origin_country']:
-                country = Country.objects.get_or_create(code=company['origin_country'], defaults={'name': 'unknown'})
+                country, _ = Country.objects.get_or_create(code=company['origin_country'], defaults={'name': 'unknown'})
 
             _, created = ProductionCompany.objects.update_or_create(
                 tmdb_id=company['id'],
