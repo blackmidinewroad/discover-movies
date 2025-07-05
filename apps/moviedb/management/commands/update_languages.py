@@ -6,10 +6,10 @@ from apps.moviedb.tmdb.api import TMDB
 
 class Command(BaseCommand):
     help = 'Update language table'
-    tmdb = TMDB()
 
     def handle(self, *args, **kwargs):
-        languages = self.tmdb.fetch_languages()
+        tmdb = TMDB()
+        languages = tmdb.fetch_languages()
 
         for language in languages:
             _, created = Language.objects.update_or_create(

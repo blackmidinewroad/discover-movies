@@ -5,7 +5,6 @@ from apps.moviedb.tmdb.api import TMDB
 
 class Command(BaseCommand):
     help = 'Update genre table'
-    tmdb = TMDB()
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -18,7 +17,8 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         language = kwargs['language']
 
-        genres = self.tmdb.fetch_genres(language=language)
+        tmdb = TMDB()
+        genres = tmdb.fetch_genres(language=language)
 
         for genre in genres:
             _, created = Genre.objects.update_or_create(

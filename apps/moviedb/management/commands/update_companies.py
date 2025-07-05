@@ -1,14 +1,12 @@
 from django.core.management.base import BaseCommand
 
 from apps.moviedb.models import Country, ProductionCompany
-from apps.moviedb.tmdb.api import TMDB
+from apps.moviedb.tmdb.api import asyncTMDB
 from apps.moviedb.tmdb.id_exports import IDExport
 
 
 class Command(BaseCommand):
     help = 'Update production company table'
-    id_export = IDExport()
-    tmdb = TMDB()
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -18,19 +16,44 @@ class Command(BaseCommand):
             help='Date of the export file in "DD_MM_YYYY" format.',
         )
 
+        parser.add_argument(
+            '--batch_size',
+            type=int,
+            default=100,
+            help='Number of companies to fetch per batch.',
+        )
+
+        parser.add_argument(
+            '--specific_ids',
+            type=int,
+            default=None,
+            nargs='*',
+            help='Update specific companies.',
+        )
+
     def handle(self, *args, **kwargs):
-        published_date = kwargs['date']
-        company_ids = self.id_export.fetch_ids('company', published_date=published_date)
+        specific_ids = kwargs['specific_ids']
+        batch_size = kwargs['batch_size']
 
-        for id in company_ids[20870:]:
-            company = self.tmdb.fetch_company_by_id(id)
+        async_tmdb = asyncTMDB()
 
-            country = created_country = None
+        if specific_ids is None:
+            published_date = kwargs['date']
+            id_export = IDExport()
+            company_ids = id_export.fetch_ids('company', published_date=published_date)
+        else:
+            company_ids = specific_ids
+
+        companies = async_tmdb.batch_fetch_companies_by_id(company_ids, batch_size=batch_size)
+        total, count_processed = len(companies), 0
+
+        for company in companies:
+            country = None
             if company['origin_country']:
-                country, created_country = Country.objects.get_or_create(code=company['origin_country'], defaults={'name': 'unknown'})
+                country = Country.objects.get_or_create(code=company['origin_country'], defaults={'name': 'unknown'})
 
-            _, created_company = ProductionCompany.objects.update_or_create(
-                tmdb_id=id,
+            _, created = ProductionCompany.objects.update_or_create(
+                tmdb_id=company['id'],
                 defaults={
                     'name': company['name'],
                     'logo_path': company['logo_path'] or '',
@@ -38,8 +61,6 @@ class Command(BaseCommand):
                 },
             )
 
-            if created_country:
-                self.stdout.write(self.style.NOTICE(f'Created new country: {company['origin_country']}'))
+            count_processed += created
 
-            # action = 'Created' if created_company else 'Updated'
-            # self.stdout.write(self.style.SUCCESS(f'{action} company: {company['name']}'))
+        self.stdout.write(self.style.SUCCESS(f'Processed {count_processed}/{total} companies'))

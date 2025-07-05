@@ -6,7 +6,6 @@ from apps.moviedb.tmdb.api import TMDB
 
 class Command(BaseCommand):
     help = 'Update country table'
-    tmdb = TMDB()
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -18,7 +17,9 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         language = kwargs['language']
-        countries = self.tmdb.fetch_countries(language)
+
+        tmdb = TMDB()
+        countries = tmdb.fetch_countries(language)
 
         for country in countries:
             _, created = Country.objects.update_or_create(
