@@ -7,6 +7,8 @@ from apps.moviedb.tmdb.id_exports import IDExport
 
 class Command(BaseCommand):
     help = 'Update production company table'
+    id_export = IDExport()
+    tmdb = TMDB()
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -17,14 +19,11 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **kwargs):
-        id_export = IDExport()
-        tmdb = TMDB()
-        
         published_date = kwargs['date']
-        company_ids = id_export.fetch_ids('company', published_date=published_date)
+        company_ids = self.id_export.fetch_ids('company', published_date=published_date)
 
         for id in company_ids[20870:]:
-            company = tmdb.fetch_company_by_id(id)
+            company = self.tmdb.fetch_company_by_id(id)
 
             country = created_country = None
             if company['origin_country']:

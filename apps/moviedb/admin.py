@@ -17,9 +17,9 @@ class ProductionCompanyAdmin(admin.ModelAdmin):
     """Admin panel for production company"""
 
     list_display = ('name', 'origin_country')
-    search_fields = ('name', 'origin_country')
+    search_fields = ('name',)
     prepopulated_fields = {'slug': ('name',)}
-    ordering = ['tmdb_id']
+    ordering = ['name']
 
 
 @admin.register(Country)

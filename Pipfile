@@ -12,6 +12,8 @@ django-extensions = "*"
 requests = "*"
 pycountry = "*"
 ratelimit = "*"
+unidecode = "*"
+aiolimiter = "*"
 
 [dev-packages]
 
