@@ -1,5 +1,6 @@
 import gzip
 import json
+import logging
 from datetime import datetime, timezone
 from io import BytesIO
 
@@ -38,8 +39,8 @@ class IDExport:
             response = requests.get(url, timeout=20)
             response.raise_for_status()
             return response.content
-        except RequestException as e:
-            raise RuntimeError(f'Error fetching ID file: {e}')
+        except RequestException:
+            logging.error("Couldn't fetch ID file", exc_info=True)
 
     def _get_ids(self, compressed_file: bytes) -> list[int]:
         """Get IDs from compressed file"""

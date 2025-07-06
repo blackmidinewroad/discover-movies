@@ -37,11 +37,11 @@ class TMDB(BaseTMDB):
     """TMDB API wrapper"""
 
     # 45 calls per 1 second
-    CALLS = 45
-    RATE_LIMIT = 1
+    calls = 45
+    rate_limit = 1
 
     # Requests retry strategy
-    RETRY = Retry(
+    retry = Retry(
         total=5,
         backoff_factor=2,
         status_forcelist=[429, 500, 502, 503, 504],
@@ -55,10 +55,10 @@ class TMDB(BaseTMDB):
                 'Authorization': f'Bearer {os.getenv("TMDB_ACCESS_TOKEN")}',
             }
         )
-        self.session.mount('https://', HTTPAdapter(max_retries=self.RETRY))
+        self.session.mount('https://', HTTPAdapter(max_retries=self.retry))
 
     @sleep_and_retry
-    @limits(calls=CALLS, period=RATE_LIMIT)
+    @limits(calls=calls, period=rate_limit)
     def _fetch_data(self, path: str, params: dict = None) -> dict:
         """Fetch data"""
 
@@ -268,15 +268,15 @@ class asyncTMDB(BaseTMDB):
     """TMDB API wrapper for async requests"""
 
     # 45 calls per 1 second
-    CALLS = 45
-    RATE_LIMIT = 1
+    calls = 45
+    rate_limit = 1
 
     def __init__(self):
         self.header = {
             'accept': 'application/json',
             'Authorization': f'Bearer {os.getenv("TMDB_ACCESS_TOKEN")}',
         }
-        self.limiter = AsyncLimiter(self.CALLS, self.RATE_LIMIT)
+        self.limiter = AsyncLimiter(self.calls, self.rate_limit)
 
     async def _fetch_data(self, session: aiohttp.ClientSession, path: str, params: dict = None) -> dict:
         """Fetch data asynchronously"""
@@ -297,7 +297,7 @@ class asyncTMDB(BaseTMDB):
         """Batch fetch data asynchronously"""
 
         results = []
-        connector = aiohttp.TCPConnector(limit=self.CALLS)
+        connector = aiohttp.TCPConnector(limit=self.calls)
         timeout = aiohttp.ClientTimeout(total=20)
 
         async with aiohttp.ClientSession(headers=self.header, connector=connector, timeout=timeout) as session:
@@ -373,8 +373,6 @@ class asyncTMDB(BaseTMDB):
                 batch_size=batch_size,
             )
         )
-
-        # return self._batch_fetch_details(paths=paths, language=language, append_to_response=append_to_response, batch_size=batch_size)
 
     def batch_fetch_persons_by_id(
         self,
@@ -586,3 +584,25 @@ class asyncTMDB(BaseTMDB):
                 batch_size=batch_size,
             )
         )
+
+
+# import time
+
+# from dotenv import load_dotenv
+
+# load_dotenv()
+
+# start = time.perf_counter()
+# async_tmdb = asyncTMDB()
+# data = async_tmdb.fetch_trending_people(last_page=2, batch_size=3)
+# # print(data)
+# print(len(data))
+# runtime = round(time.perf_counter() - start, 2)
+# print(f'Async runtime: {runtime}')
+
+# start = time.perf_counter()
+# tmdb = TMDB()
+# data = tmdb.fetch_movie_by_id(1233413)
+# print(len(data))
+# runtime = round(time.perf_counter() - start, 2)
+# print(f'Sync runtime: {runtime}')
