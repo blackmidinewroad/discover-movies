@@ -14,7 +14,7 @@ class Country(models.Model):
     class Meta:
         verbose_name_plural = 'countries'
         ordering = ['name']
-        indexes = [models.Index(fields=['name'])]
+        indexes = [models.Index(fields=['name']), models.Index(fields=['slug'])]
 
     def __str__(self):
         return self.name
@@ -41,7 +41,7 @@ class Language(models.Model):
     class Meta:
         verbose_name_plural = 'languages'
         ordering = ['name']
-        indexes = [models.Index(fields=['name'])]
+        indexes = [models.Index(fields=['name']), models.Index(fields=['slug'])]
 
     def __str__(self):
         return self.name
@@ -68,7 +68,7 @@ class Genre(models.Model):
     class Meta:
         verbose_name_plural = 'genres'
         ordering = ['name']
-        indexes = [models.Index(fields=['name'])]
+        indexes = [models.Index(fields=['name']), models.Index(fields=['slug'])]
 
     def __str__(self):
         return self.name
@@ -98,7 +98,7 @@ class ProductionCompany(models.Model):
         verbose_name = 'production company'
         verbose_name_plural = 'production companies'
         ordering = ['name']
-        indexes = [models.Index(fields=['name'])]
+        indexes = [models.Index(fields=['name']), models.Index(fields=['slug'])]
 
     def __str__(self):
         return self.name
@@ -128,7 +128,7 @@ class Collection(models.Model):
     class Meta:
         verbose_name_plural = 'collections'
         ordering = ['name']
-        indexes = [models.Index(fields=['name'])]
+        indexes = [models.Index(fields=['name']), models.Index(fields=['slug'])]
 
     def __str__(self):
         return self.name
@@ -206,15 +206,12 @@ class Movie(models.Model):
         ordering = ['title', '-release_date']
 
         indexes = [
-            models.Index(
-                fields=[
-                    'title',
-                    '-release_date',
-                    '-budget',
-                    '-revenue',
-                    '-runtime',
-                ]
-            )
+            models.Index(fields=['title']),
+            models.Index(fields=['-release_date']),
+            models.Index(fields=['-budget']),
+            models.Index(fields=['-revenue']),
+            models.Index(fields=['-runtime']),
+            models.Index(fields=['slug']),
         ]
 
     def __str__(self):
@@ -261,16 +258,12 @@ class MovieEngagement(models.Model):
         ordering = ['-lb_rating']
 
         indexes = [
-            models.Index(
-                fields=[
-                    '-tmdb_popularity',
-                    '-imdb_popularity',
-                    '-lb_rating',
-                    '-lb_watched',
-                    '-imdb_rating',
-                    '-kp_rating',
-                ]
-            )
+            models.Index(fields=['-tmdb_popularity']),
+            models.Index(fields=['-imdb_popularity']),
+            models.Index(fields=['-lb_rating']),
+            models.Index(fields=['-lb_watched']),
+            models.Index(fields=['-imdb_rating']),
+            models.Index(fields=['-kp_rating']),
         ]
 
     def __str__(self):
