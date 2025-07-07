@@ -8,7 +8,7 @@ class GenreAdmin(admin.ModelAdmin):
     """Admin panel for genre"""
 
     list_display = ('name',)
-    search_fields = ('name',)
+    search_fields = ('name', 'tmdb_id')
     prepopulated_fields = {'slug': ('name',)}
 
 

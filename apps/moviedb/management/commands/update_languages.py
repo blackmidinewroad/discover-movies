@@ -16,5 +16,6 @@ class Command(BaseCommand):
                 code=language['iso_639_1'],
                 defaults={'name': language['english_name']},
             )
-            action = 'Created' if created else 'Updated'
-            self.stdout.write(self.style.SUCCESS(f'{action} language: {language['english_name']}'))
+
+            if created:
+                self.stdout.write(self.style.SUCCESS(f'Created new language: {language['english_name']}'))

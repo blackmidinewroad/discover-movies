@@ -26,5 +26,6 @@ class Command(BaseCommand):
                 code=country['iso_3166_1'],
                 defaults={'name': country['english_name']},
             )
-            action = 'Created' if created else 'Updated'
-            self.stdout.write(self.style.SUCCESS(f'{action} country: {country['english_name']}'))
+
+            if created:
+                self.stdout.write(self.style.SUCCESS(f'Created new country: {country['english_name']}'))

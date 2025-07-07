@@ -61,7 +61,7 @@ class Language(models.Model):
 class Genre(models.Model):
     """Genre of movies model"""
 
-    tmdb_genre_id = models.IntegerField(unique=True)
+    tmdb_id = models.IntegerField(primary_key=True)
     name = models.CharField(max_length=32)
     slug = models.SlugField(max_length=60, unique=True, blank=True)
 
@@ -88,13 +88,14 @@ class Genre(models.Model):
 class ProductionCompany(models.Model):
     """Production company model"""
 
-    tmdb_id = models.IntegerField(unique=True)
+    tmdb_id = models.IntegerField(primary_key=True)
     name = models.CharField(max_length=256)
     slug = models.SlugField(max_length=60, unique=True, blank=True)
-    logo_path = models.URLField(blank=True, default='')
-    origin_country = models.ForeignKey(Country, on_delete=models.SET_NULL, null=True, blank=True, related_name='origin_country_company')
+    logo_path = models.CharField(max_length=64, blank=True, default='')
+    origin_country = models.ForeignKey(Country, on_delete=models.SET_NULL, null=True, blank=True, related_name='companies')
 
     class Meta:
+        verbose_name = 'production company'
         verbose_name_plural = 'production companies'
         ordering = ['name']
         indexes = [models.Index(fields=['name'])]
@@ -114,31 +115,69 @@ class ProductionCompany(models.Model):
         super().save(*args, **kwargs)
 
 
+class Collection(models.Model):
+    """Collection of movies model"""
+
+    tmdb_id = models.IntegerField(primary_key=True)
+    name = models.CharField(max_length=256)
+    slug = models.SlugField(max_length=60, unique=True, blank=True)
+    overview = models.TextField(blank=True, default='')
+    poster_path = models.CharField(max_length=64, blank=True, default='')
+    backdrop_path = models.CharField(max_length=64, blank=True, default='')
+
+    class Meta:
+        verbose_name_plural = 'collections'
+        ordering = ['name']
+        indexes = [models.Index(fields=['name'])]
+
+    def __str__(self):
+        return self.name
+
+    def get_absolute_url(self):
+        """Get collection url"""
+
+        return reverse('movie_collection', kwargs={'slug': self.slug})
+
+    def save(self, *args, **kwargs):
+        """Create unique slug on save"""
+
+        self.slug = unique_slugify(self, self.name)
+        super().save(*args, **kwargs)
+
+
 class Movie(models.Model):
     """Movie model"""
 
+    tmdb_id = models.IntegerField(primary_key=True)
     title = models.CharField(max_length=512)
     slug = models.SlugField(max_length=60, unique=True, blank=True)
-    tmdb_id = models.IntegerField(unique=True)
     imdb_id = models.CharField(max_length=16, blank=True, default='')
 
     release_date = models.DateField(null=True, blank=True)
 
-    genres = models.ManyToManyField(Genre, blank=True)
+    genres = models.ManyToManyField(Genre, blank=True, related_name='movies')
 
-    original_title = models.CharField(max_length=256, blank=True, default='')
-    original_language = models.ForeignKey(Language, on_delete=models.SET_NULL, null=True, blank=True, related_name='original_language')
-    spoken_languages = models.ManyToManyField(Language, blank=True, related_name='spoken_languages')
-    origin_country = models.ManyToManyField(Country, blank=True, related_name='origin_country_movie')
+    original_title = models.CharField(max_length=512, blank=True, default='')
+    original_language = models.ForeignKey(
+        Language,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='movies_as_original_language',
+    )
+    spoken_languages = models.ManyToManyField(Language, blank=True, related_name='movies_spoken_in')
+    origin_country = models.ManyToManyField(Country, blank=True, related_name='movies_originating_from')
 
-    overview = models.CharField(max_length=1024, blank=True, default='')
+    overview = models.TextField(blank=True, default='')
     tagline = models.CharField(max_length=256, blank=True, default='')
 
-    poster_path = models.URLField(blank=True, default='')
-    backdrop_path = models.URLField(blank=True, default='')
+    collection = models.ForeignKey(Collection, on_delete=models.SET_NULL, null=True, blank=True, related_name='movies')
 
-    production_companies = models.ManyToManyField(ProductionCompany, blank=True)
-    production_countries = models.ManyToManyField(Country, blank=True, related_name='production_countries')
+    poster_path = models.CharField(max_length=64, blank=True, default='')
+    backdrop_path = models.CharField(max_length=64, blank=True, default='')
+
+    production_companies = models.ManyToManyField(ProductionCompany, blank=True, related_name='movies')
+    production_countries = models.ManyToManyField(Country, blank=True, related_name='movies_produced_in')
 
     STATUS_OPTIONS = (
         ('Rumored', 'Rumored'),
@@ -147,36 +186,20 @@ class Movie(models.Model):
         ('Post Production', 'Post Production'),
         ('Released', 'Released'),
         ('Canceled', 'Canceled'),
-        ('undefined', 'undefined'),
     )
 
-    status = models.CharField(max_length=32, choices=STATUS_OPTIONS)
+    status = models.CharField(max_length=32, choices=STATUS_OPTIONS, blank=True, default='')
 
-    budget = models.PositiveIntegerField()
-    revenue = models.PositiveIntegerField()
+    budget = models.PositiveIntegerField(blank=True, default=0)
+    revenue = models.PositiveIntegerField(blank=True, default=0)
 
-    runtime = models.PositiveIntegerField()
+    # Runtime in minutes
+    runtime = models.PositiveIntegerField(blank=True, default=0)
 
-    tmdb_popularity = models.PositiveIntegerField()
-    tmdb_rating = models.FloatField()
-    tmdb_vote_count = models.PositiveIntegerField()
-    tmdb_url = models.URLField(null=True, blank=True)
-
-    lb_rating = models.FloatField(null=True, blank=True)
-    lb_vote_count = models.PositiveIntegerField(null=True, blank=True)
-    lb_fans = models.PositiveIntegerField(null=True, blank=True)
-    lb_watched = models.PositiveIntegerField(null=True, blank=True)
-    lb_liked = models.PositiveIntegerField(null=True, blank=True)
-    lb_url = models.URLField(null=True, blank=True)
-
-    imdb_rating = models.FloatField(null=True, blank=True)
-    imdb_vote_count = models.PositiveIntegerField(null=True, blank=True)
-    immdb_popularity = models.PositiveIntegerField(null=True, blank=True)
-    imdb_url = models.URLField(null=True, blank=True)
-
-    kp_rating = models.FloatField(null=True, blank=True)
-    kp_vote_count = models.PositiveIntegerField(null=True, blank=True)
-    kp_url = models.URLField(null=True, blank=True)
+    tmdb_url = models.URLField(max_length=256, null=True, blank=True)
+    imdb_url = models.URLField(max_length=256, null=True, blank=True)
+    lb_url = models.URLField(max_length=256, null=True, blank=True)
+    kp_url = models.URLField(max_length=256, null=True, blank=True)
 
     class Meta:
         verbose_name_plural = 'movies'
@@ -185,14 +208,11 @@ class Movie(models.Model):
         indexes = [
             models.Index(
                 fields=[
+                    'title',
                     '-release_date',
                     '-budget',
-                    '-tmdb_popularity',
-                    '-immdb_popularity',
-                    '-lb_rating',
-                    '-lb_watched',
-                    '-imdb_rating',
-                    '-kp_rating',
+                    '-revenue',
+                    '-runtime',
                 ]
             )
         ]
@@ -210,3 +230,48 @@ class Movie(models.Model):
 
         self.slug = unique_slugify(self, self.title)
         super().save(*args, **kwargs)
+
+
+class MovieEngagement(models.Model):
+    """Movie engagement model with ratings and popularity scores from TMDB, IMDB, letterboxd and Kinopoisk"""
+
+    movie = models.OneToOneField(Movie, on_delete=models.CASCADE, related_name='engagement')
+
+    tmdb_rating = models.FloatField(blank=True, default=0.0)
+    tmdb_vote_count = models.PositiveIntegerField(blank=True, default=0)
+    tmdb_popularity = models.PositiveIntegerField(blank=True, default=0)
+
+    lb_rating = models.FloatField(null=True, blank=True)
+    lb_vote_count = models.PositiveIntegerField(null=True, blank=True)
+    lb_fans = models.PositiveIntegerField(null=True, blank=True)
+    lb_watched = models.PositiveIntegerField(null=True, blank=True)
+    lb_liked = models.PositiveIntegerField(null=True, blank=True)
+
+    imdb_rating = models.FloatField(null=True, blank=True)
+    imdb_vote_count = models.PositiveIntegerField(null=True, blank=True)
+    imdb_popularity = models.PositiveIntegerField(null=True, blank=True)
+
+    kp_rating = models.FloatField(null=True, blank=True)
+    kp_vote_count = models.PositiveIntegerField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = 'movie engagement'
+        verbose_name_plural = 'movie engagements'
+
+        ordering = ['-lb_rating']
+
+        indexes = [
+            models.Index(
+                fields=[
+                    '-tmdb_popularity',
+                    '-imdb_popularity',
+                    '-lb_rating',
+                    '-lb_watched',
+                    '-imdb_rating',
+                    '-kp_rating',
+                ]
+            )
+        ]
+
+    def __str__(self):
+        return f'{self.movie} engagement'
