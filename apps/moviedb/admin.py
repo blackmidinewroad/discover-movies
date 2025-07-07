@@ -1,6 +1,25 @@
 from django.contrib import admin
 
-from .models import Country, Genre, Language, Movie, ProductionCompany
+from .models import Collection, Country, Genre, Language, Movie, MovieEngagement, ProductionCompany
+
+
+@admin.register(MovieEngagement)
+class MovieEngagementAdmin(admin.ModelAdmin):
+    """Admin panel for movie engagement"""
+
+    list_display = ('movie', 'lb_rating')
+    search_fields = ('movie',)
+    ordering = ['movie']
+
+
+@admin.register(Collection)
+class CollectionAdmin(admin.ModelAdmin):
+    """Admin panel for collection"""
+
+    list_display = ('name',)
+    search_fields = ('name', 'tmdb_id')
+    prepopulated_fields = {'slug': ('name',)}
+    ordering = ['name']
 
 
 @admin.register(Genre)
@@ -24,7 +43,7 @@ class ProductionCompanyAdmin(admin.ModelAdmin):
 
 @admin.register(Country)
 class CountryAdmin(admin.ModelAdmin):
-    """Admin panel for movie"""
+    """Admin panel for country"""
 
     list_display = ('name', 'code')
     search_fields = ('name', 'code')
@@ -33,7 +52,7 @@ class CountryAdmin(admin.ModelAdmin):
 
 @admin.register(Language)
 class LanguageAdmin(admin.ModelAdmin):
-    """Admin panel for movie"""
+    """Admin panel for language"""
 
     list_display = ('name', 'code')
     search_fields = ('name', 'code')
