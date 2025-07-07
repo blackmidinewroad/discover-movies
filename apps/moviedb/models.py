@@ -268,3 +268,74 @@ class MovieEngagement(models.Model):
 
     def __str__(self):
         return f'{self.movie} engagement'
+
+
+class Person(models.Model):
+    """Any people invovlved in making movies (e. g. actors, directors, writers)"""
+
+    tmdb_id = models.IntegerField(primary_key=True)
+    name = models.CharField(max_length=128)
+    slug = models.SlugField(max_length=60, unique=True, blank=True)
+    imdb_id = models.CharField(max_length=16, blank=True, default='')
+
+    known_for_department = models.CharField(max_length=64, blank=True, default='')
+    biography = models.TextField(blank=True, default='')
+    place_of_birth = models.CharField(max_length=256, blank=True, default='')
+
+    GENDER_OPTIONS = (
+        ('F', 'Female'),
+        ('M', 'Male'),
+        ('NB', 'Non-binary'),
+    )
+
+    gender = models.CharField(max_length=2, choices=GENDER_OPTIONS, blank=True, default='')
+
+    birthday = models.DateField(null=True, blank=True)
+    deathday = models.DateField(null=True, blank=True)
+
+    profile_path = models.CharField(max_length=64, blank=True, default='')
+
+    tmdb_popularity = models.PositiveIntegerField(blank=True, default=0)
+
+    class Meta:
+        verbose_name_plural = 'persons'
+        ordering = ['name']
+        indexes = [models.Index(fields=['name']), models.Index(fields=['slug']), models.Index(fields=['-tmdb_popularity'])]
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        """Create unique slug on save"""
+
+        self.slug = unique_slugify(self, self.name)
+        super().save(*args, **kwargs)
+
+
+class MovieCast(models.Model):
+    """Actors in a movie"""
+
+    movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name='cast')
+    person = models.ForeignKey(Person, on_delete=models.CASCADE, related_name='cast_roles')
+    character = models.CharField(max_length=128, blank=True, default='')
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        unique_together = ('movie', 'person', 'character')
+        ordering = ['order']
+
+    def __str__(self):
+        return f'{self.person} as "{self.character}" in «{self.movie}»'
+
+
+class MovieCrew(models.Model):
+    """Crew members (e.g. director, writer) in a movie"""
+
+    movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name='crew')
+    person = models.ForeignKey(Person, on_delete=models.CASCADE, related_name='crew_roles')
+    department = models.CharField(max_length=64)
+    job = models.CharField(max_length=64)
+
+    class Meta:
+        unique_together = ('movie', 'person', 'job')
+        indexes = [models.Index(fields=['department', 'job'])]
