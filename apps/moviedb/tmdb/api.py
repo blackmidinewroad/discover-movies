@@ -174,6 +174,21 @@ class TMDB(BaseTMDB):
 
         return self._fetch_details(path=path)
 
+    def fetch_collection_by_id(self, collection_id: int, language: str = 'en-US') -> dict:
+        """Fetch collection details by ID.
+
+        Args:
+            company_id (int): TMDB ID of a collection.
+            language (str, optional): locale (ISO 639-1-ISO 3166-1) code (e.g. en-UD, fr-CA, de_DE). Defaults to 'en-US'.
+
+        Returns:
+            dict: dict with collection details.
+        """
+
+        path = f'collection/{collection_id}'
+
+        return self._fetch_details(path=path, language=language)
+
     def _discover(self, path: str, first_page: int, last_page: int, language: str, region: str = None) -> list[dict]:
         """Discover"""
 
@@ -421,6 +436,22 @@ class asyncTMDB(BaseTMDB):
 
         return asyncio.run(self._batch_fetch_details(paths=paths, batch_size=batch_size))
 
+    def batch_fetch_collections_by_id(self, collection_ids: list[int], language: str = 'en-US', batch_size: int = 100) -> list[dict]:
+        """Fetch collection details for list of IDs.
+
+        Args:
+            collection_ids (list[int]): list of TMDB collection IDs.
+            language (str, optional): locale (ISO 639-1-ISO 3166-1) code (e.g. en-UD, fr-CA, de_DE). Defaults to 'en-US'.
+            batch_size (int, optional): number of persons to fetch per batch. Defaults to 100.
+
+        Returns:
+            list[dict]: list of collections with details.
+        """
+
+        paths = tuple(f'collection/{collection_id}' for collection_id in collection_ids)
+
+        return asyncio.run(self._batch_fetch_details(paths=paths, language=language, batch_size=batch_size))
+
     async def _batch_discover(
         self,
         path: str,
@@ -584,25 +615,3 @@ class asyncTMDB(BaseTMDB):
                 batch_size=batch_size,
             )
         )
-
-
-# import time
-
-# from dotenv import load_dotenv
-
-# load_dotenv()
-
-# start = time.perf_counter()
-# async_tmdb = asyncTMDB()
-# data = async_tmdb.fetch_trending_people(last_page=2, batch_size=3)
-# # print(data)
-# print(len(data))
-# runtime = round(time.perf_counter() - start, 2)
-# print(f'Async runtime: {runtime}')
-
-# start = time.perf_counter()
-# tmdb = TMDB()
-# data = tmdb.fetch_movie_by_id(1233413)
-# print(len(data))
-# runtime = round(time.perf_counter() - start, 2)
-# print(f'Sync runtime: {runtime}')
