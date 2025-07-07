@@ -180,6 +180,7 @@ class Movie(models.Model):
     production_countries = models.ManyToManyField(Country, blank=True, related_name='movies_produced_in')
 
     STATUS_OPTIONS = (
+        ('', 'Unknown'),
         ('Rumored', 'Rumored'),
         ('Planned', 'Planned'),
         ('In Production', 'In Production'),
@@ -195,11 +196,6 @@ class Movie(models.Model):
 
     # Runtime in minutes
     runtime = models.PositiveIntegerField(blank=True, default=0)
-
-    tmdb_url = models.URLField(max_length=256, null=True, blank=True)
-    imdb_url = models.URLField(max_length=256, null=True, blank=True)
-    lb_url = models.URLField(max_length=256, null=True, blank=True)
-    kp_url = models.URLField(max_length=256, null=True, blank=True)
 
     class Meta:
         verbose_name_plural = 'movies'
@@ -236,7 +232,7 @@ class MovieEngagement(models.Model):
 
     tmdb_rating = models.FloatField(blank=True, default=0.0)
     tmdb_vote_count = models.PositiveIntegerField(blank=True, default=0)
-    tmdb_popularity = models.PositiveIntegerField(blank=True, default=0)
+    tmdb_popularity = models.FloatField(blank=True, default=0.0)
 
     lb_rating = models.FloatField(null=True, blank=True)
     lb_vote_count = models.PositiveIntegerField(null=True, blank=True)
@@ -283,6 +279,7 @@ class Person(models.Model):
     place_of_birth = models.CharField(max_length=256, blank=True, default='')
 
     GENDER_OPTIONS = (
+        ('', 'Unknown'),
         ('F', 'Female'),
         ('M', 'Male'),
         ('NB', 'Non-binary'),
@@ -295,7 +292,7 @@ class Person(models.Model):
 
     profile_path = models.CharField(max_length=64, blank=True, default='')
 
-    tmdb_popularity = models.PositiveIntegerField(blank=True, default=0)
+    tmdb_popularity = models.FloatField(blank=True, default=0.0)
 
     class Meta:
         verbose_name_plural = 'persons'
@@ -339,3 +336,6 @@ class MovieCrew(models.Model):
     class Meta:
         unique_together = ('movie', 'person', 'job')
         indexes = [models.Index(fields=['department', 'job'])]
+
+    def __str__(self):
+        return f'{self.person} worked as "{self.job}" in «{self.movie}»'

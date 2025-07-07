@@ -75,7 +75,7 @@ class PersonAdmin(admin.ModelAdmin):
     list_display = ('name', 'known_for_department')
     search_fields = ('name',)
     prepopulated_fields = {'slug': ('name',)}
-    ordering = ['name']
+    ordering = ['-tmdb_popularity']
 
 
 @admin.register(models.MovieCast)

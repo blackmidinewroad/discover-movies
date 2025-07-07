@@ -442,7 +442,7 @@ class asyncTMDB(BaseTMDB):
         Args:
             collection_ids (list[int]): list of TMDB collection IDs.
             language (str, optional): locale (ISO 639-1-ISO 3166-1) code (e.g. en-UD, fr-CA, de_DE). Defaults to 'en-US'.
-            batch_size (int, optional): number of persons to fetch per batch. Defaults to 100.
+            batch_size (int, optional): number of collections to fetch per batch. Defaults to 100.
 
         Returns:
             list[dict]: list of collections with details.

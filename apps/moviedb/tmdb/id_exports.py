@@ -13,7 +13,7 @@ class IDExport:
     MEDIA_TYPES = {
         'movie': 'movie',
         'tv': 'tv_series',
-        'people': 'person',
+        'person': 'person',
         'collection': 'collection',
         'network': 'tv_network',
         'keyword': 'keyword',
@@ -42,7 +42,7 @@ class IDExport:
         except RequestException:
             logging.error("Couldn't fetch ID file", exc_info=True)
 
-    def _get_ids(self, compressed_file: bytes) -> list[int]:
+    def _get_ids(self, compressed_file: bytes, sort_by_popularity: bool = False) -> tuple[int]:
         """Get IDs from compressed file"""
 
         ids = []
@@ -51,26 +51,31 @@ class IDExport:
                 line = line.decode('utf-8').strip()
                 if line:
                     data = json.loads(line)
-                    ids.append(data['id'])
-        return ids
+                    ids.append((data['id'], data.get('popularity', 0)))
 
-    def fetch_ids(self, media_type: str, published_date: str = None) -> list[int]:
+        if sort_by_popularity:
+            ids.sort(key=lambda el: -el[1])
+
+        return tuple(id for id, _ in ids)
+
+    def fetch_ids(self, media_type: str, published_date: str = None, sort_by_popularity: bool = False) -> tuple[int]:
         """Fetch list of a valid TMDB IDs for the specified media type and date.
 
         Args:
             media_type (str): type of media to fetch IDs for. Must be one of:
                 - 'movie': For movie IDs
                 - 'tv': For TV series IDs
-                - 'people': For person IDs
+                - 'person': For person IDs
                 - 'collection': For collection IDs
                 - 'network': For TV network IDs
                 - 'keyword': For keyword IDs
                 - 'company': For production company IDs
             published_date (str, optional): date of the export file in 'DD_MM_YYYY' format. Defaults to None.
                 If not provided, uses the most recent available file.
+            sort_by_popularity (bool, optional): sort IDs by popularity if possible. Defaults to False.
 
         Returns:
-            list[int]: list of TMDB IDs
+            tuple[int]: tuple of TMDB IDs.
         """
 
         if media_type not in self.MEDIA_TYPES:
@@ -79,7 +84,7 @@ class IDExport:
                 Must be one of:
                     - 'movie': For movie IDs
                     - 'tv': For TV series IDs
-                    - 'people': For person IDs
+                    - 'person': For person IDs
                     - 'collection': For collection IDs
                     - 'network': For TV network IDs
                     - 'keyword': For keyword IDs
@@ -87,5 +92,6 @@ class IDExport:
             )
 
         id_file = self._fetch_file(media_type, published_date)
-        ids = self._get_ids(id_file)
+        ids = self._get_ids(id_file, sort_by_popularity=sort_by_popularity)
+
         return ids

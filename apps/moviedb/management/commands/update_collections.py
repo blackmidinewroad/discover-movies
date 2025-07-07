@@ -6,7 +6,7 @@ from apps.moviedb.tmdb.id_exports import IDExport
 
 
 class Command(BaseCommand):
-    help = 'Update production collection table'
+    help = 'Update collection table'
 
     def add_arguments(self, parser):
         parser.add_argument(
