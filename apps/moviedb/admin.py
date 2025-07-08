@@ -55,7 +55,7 @@ class MovieAdmin(admin.ModelAdmin):
     """Admin panel for movie"""
 
     list_display = ('title', 'release_date')
-    search_fields = ('title',)
+    search_fields = ('title', 'tmdb_id')
     prepopulated_fields = {'slug': ('title',)}
     autocomplete_fields = [
         'genres',
@@ -66,6 +66,7 @@ class MovieAdmin(admin.ModelAdmin):
         'original_language',
         'collection',
     ]
+    ordering = ['-release_date']
 
 
 @admin.register(models.MovieEngagement)
@@ -82,7 +83,7 @@ class PersonAdmin(admin.ModelAdmin):
     """Admin panel for person"""
 
     list_display = ('name', 'known_for_department')
-    search_fields = ('name',)
+    search_fields = ('name', 'tmdb_id')
     prepopulated_fields = {'slug': ('name',)}
     ordering = ['-tmdb_popularity']
 

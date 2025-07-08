@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
 
+from apps.moviedb.integrations.tmdb.api import TMDB
 from apps.moviedb.models import Country
-from apps.moviedb.tmdb.api import TMDB
 
 
 class Command(BaseCommand):
@@ -18,8 +18,8 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         language = kwargs['language']
 
-        tmdb = TMDB()
-        countries = tmdb.fetch_countries(language)
+        countries = TMDB().fetch_countries(language)
+        count_created = count_updated = 0
 
         for country in countries:
             _, created = Country.objects.update_or_create(
@@ -28,4 +28,10 @@ class Command(BaseCommand):
             )
 
             if created:
-                self.stdout.write(self.style.SUCCESS(f'Created new country: {country['english_name']}'))
+                count_created += 1
+            else:
+                count_updated += 1
+
+        self.stdout.write(
+            self.style.SUCCESS(f'Countries proccessed: {len(countries)} (created: {count_created}, updated: {count_updated})')
+        )

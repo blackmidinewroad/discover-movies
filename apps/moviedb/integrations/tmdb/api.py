@@ -68,8 +68,9 @@ class TMDB(BaseTMDB):
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException:
-            sys.stdout.write(f'\n{self.colors.YELLOW}')
-            logging.warning(f" Couldn't fetch\n{self.colors.BLUE}path: {path}\nparams: {params}{self.colors.RESET}")
+            pass
+            # sys.stdout.write(f'\n{self.colors.YELLOW}')
+            # logging.warning(f" Couldn't fetch\n{self.colors.BLUE}path: {path}\nparams: {params}{self.colors.RESET}")
 
     def fetch_genres(self, language: str = 'en') -> list[dict]:
         """Fetch the list of official genres for movies.
@@ -305,8 +306,8 @@ class asyncTMDB(BaseTMDB):
                     data = await response.json()
                     return data
             except (aiohttp.ClientError, asyncio.TimeoutError):
-                sys.stdout.write(f'\n{self.colors.YELLOW}')
-                logging.warning(f" Couldn't fetch\n{self.colors.BLUE}path: {path}\nparams: {params}{self.colors.RESET}")
+                # sys.stdout.write(f'\n{self.colors.YELLOW}')
+                # logging.warning(f" Couldn't fetch\n{self.colors.BLUE}path: {path}\nparams: {params}{self.colors.RESET}")
                 return path.split('/')[-1]
 
     async def _batch_fetch(self, task_details: list[dict], const_params: dict = None) -> tuple[list[dict], list[int]]:
@@ -350,7 +351,7 @@ class asyncTMDB(BaseTMDB):
 
         all_results = []
         not_fetched = []
-        total_baches = ceil(len(paths) / batch_size)
+        # total_baches = ceil(len(paths) / batch_size)
 
         for i_batch, i in enumerate(range(0, len(paths), batch_size), 1):
             batch = paths[i : i + batch_size]
@@ -360,8 +361,8 @@ class asyncTMDB(BaseTMDB):
 
             await asyncio.sleep(1)
 
-            sys.stdout.write(f'\rFetched {i_batch}/{total_baches} batches{"\n" if i_batch == total_baches else ""}')
-            sys.stdout.flush()
+            # sys.stdout.write(f'\rFetched {i_batch}/{total_baches} batches{"\n" if i_batch == total_baches else ""}')
+            # sys.stdout.flush()
 
         return all_results, not_fetched
 
@@ -477,7 +478,8 @@ class asyncTMDB(BaseTMDB):
         task_details = tuple((path, {'page': page, 'language': language, 'region': region}) for page in range(first_page, last_page + 1))
 
         all_pages = []
-        total_baches = ceil(len(task_details) / batch_size)
+        # total_baches = ceil(len(task_details) / batch_size)
+
         for i_batch, i in enumerate(range(0, len(task_details), batch_size), 1):
             batch = task_details[i : i + batch_size]
             results, _ = await self._batch_fetch(task_details=batch)
@@ -485,8 +487,8 @@ class asyncTMDB(BaseTMDB):
 
             await asyncio.sleep(1)
 
-            sys.stdout.write(f'\rFetched {i_batch}/{total_baches} batches{"\n" if i_batch == total_baches else ""}')
-            sys.stdout.flush()
+            # sys.stdout.write(f'\rFetched {i_batch}/{total_baches} batches{"\n" if i_batch == total_baches else ""}')
+            # sys.stdout.flush()
 
         return all_pages
 
@@ -557,6 +559,42 @@ class asyncTMDB(BaseTMDB):
                 batch_size=batch_size,
             )
         )
+
+    def fetch_top_rated_movie_ids(
+        self,
+        first_page: int = 1,
+        last_page: int = None,
+        language: str = 'en-US',
+        region: str = None,
+        batch_size: int = 100,
+    ) -> list[int]:
+        """Fetch top rated movie IDs.
+
+        Args:
+            first_page (int, optional): first page, max=500. Defaults to 1.
+            last_page (int, optional): last page, leave blank if need 1 page, max=500. Defaults to None.
+            language (str, optional): locale (ISO 639-1-ISO 3166-1) code (e.g. en-UD, fr-CA, de_DE). Defaults to 'en-US'.
+            region (str, optional): ISO 3166-1 code (e.g. US, FR, RU). Defaults to None.
+            batch_size (int, optional): number of pages to fetch per batch. Defaults to 100.
+
+        Returns:
+            list[int]: list of IDs of top rated movies.
+        """
+
+        path = 'movie/top_rated'
+
+        pages = asyncio.run(
+            self._batch_discover(
+                path=path,
+                first_page=first_page,
+                last_page=last_page,
+                language=language,
+                region=region,
+                batch_size=batch_size,
+            )
+        )
+
+        return [movie['id'] for page in pages for movie in page['results'] if not movie['adult']]
 
     def fetch_trending_movies(
         self,

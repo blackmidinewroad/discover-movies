@@ -3,8 +3,8 @@ from datetime import date
 from django.core.management.base import BaseCommand
 
 from apps.moviedb import models
-from apps.moviedb.tmdb.api import asyncTMDB
-from apps.moviedb.tmdb.id_exports import IDExport
+from apps.moviedb.integrations.tmdb.api import asyncTMDB
+from apps.moviedb.integrations.tmdb.id_exports import IDExport
 
 
 class Command(BaseCommand):
@@ -62,6 +62,13 @@ class Command(BaseCommand):
             help='Sort IDs by popularity if possible.',
         )
 
+        parser.add_argument(
+            '--top_rated',
+            action='store_true',
+            default=False,
+            help='Fetch top rated movies on TMDB.',
+        )
+
     def handle(self, *args, **kwargs):
         specific_ids = kwargs['specific_ids']
         batch_size = kwargs['batch_size']
@@ -69,51 +76,55 @@ class Command(BaseCommand):
         limit = kwargs['limit']
         sort_by_popularity = ['sort_by_popularity']
 
-        async_tmdb = asyncTMDB()
-
-        if specific_ids is None:
-            published_date = kwargs['date']
-            id_export = IDExport()
-            movie_ids = id_export.fetch_ids('movie', published_date=published_date, sort_by_popularity=sort_by_popularity)
+        if kwargs['top_rated']:
+            movie_ids = asyncTMDB().fetch_top_rated_movie_ids(last_page=500)
         else:
-            movie_ids = specific_ids
+            if specific_ids is None:
+                published_date = kwargs['date']
+                id_export = IDExport()
+                movie_ids = id_export.fetch_ids('movie', published_date=published_date, sort_by_popularity=sort_by_popularity)
+            else:
+                movie_ids = specific_ids
 
         if kwargs['create']:
             existing_ids = set(models.Movie.objects.all().values_list('tmdb_id', flat=True))
             movie_ids = [id for id in movie_ids if id not in existing_ids]
 
-        movies, _ = async_tmdb.batch_fetch_movies_by_id(
+        movies, not_fetched_movie_ids = asyncTMDB().batch_fetch_movies_by_id(
             movie_ids[:limit],
             batch_size=batch_size,
             language=language,
             append_to_response=['credits'],
         )
 
-        total = len(movies)
-        count_processed = 0
-
         existing_genres = set(models.Genre.objects.all().values_list('tmdb_id', flat=True))
         existing_languages = set(models.Language.objects.all().values_list('code', flat=True))
         existing_countries = set(models.Country.objects.all().values_list('code', flat=True))
 
-        not_fetched_company_ids = self.create_missing_companies(movies)
+        n_created_companies, not_fetched_company_ids = self.create_missing_companies(movies)
+
+        count_created = count_updated = skipped = total_created_persons = 0
 
         for movie in movies:
             # Create missing persons before
             cast = movie['credits']['cast']
             crew = movie['credits']['crew']
 
-            missing_person_ids = self.create_missing_persons(cast + crew)
+            n_created_persons, is_missing_persons = self.create_missing_persons(cast + crew)
+
+            total_created_persons += n_created_persons
 
             # If couldn't create all people from the movie - skip movie
-            if missing_person_ids:
-                self.stdout.write(self.style.NOTICE(f"Skipped «{movie['title']}» because couldn't create all people"))
+            if is_missing_persons:
+                self.stdout.write(self.style.WARNING(f"Skipped «{movie['title']}» because couldn't create all people"))
+                skipped += 1
                 continue
 
             # If couldn't create needed production companies - skip movie
             company_ids = [company['id'] for company in movie['production_companies']]
             if not_fetched_company_ids and (set(not_fetched_company_ids) & set(company_ids)):
-                self.stdout.write(self.style.NOTICE(f"Skipped «{movie['title']}» because couldn't create all companies"))
+                self.stdout.write(self.style.WARNING(f"Skipped «{movie['title']}» because couldn't create all companies"))
+                skipped += 1
                 continue
 
             language = None
@@ -221,9 +232,22 @@ class Command(BaseCommand):
                     job=crew_member['job'] or '',
                 )
 
-            count_processed += created
+            if created:
+                count_created += 1
+            else:
+                count_updated += 1
 
-        self.stdout.write(self.style.SUCCESS(f'Created {count_processed}/{total} movies'))
+        self.stdout.write(
+            self.style.SUCCESS(f'Movies proccessed: {len(movies)} (created: {count_created}, updated: {count_updated}, skipped: {skipped})')
+        )
+        self.stdout.write(self.style.SUCCESS(f'Created persons: {total_created_persons}'))
+        self.stdout.write(self.style.SUCCESS(f'Created companies: {n_created_companies}'))
+        if not_fetched_movie_ids:
+            self.stdout.write(
+                self.style.WARNING(
+                    f"Couldn't update/create: {len(not_fetched_movie_ids)} (IDs: {', '.join(map(str, not_fetched_movie_ids))})"
+                )
+            )
 
     def get_or_create_language(self, code: str, name: str = 'unknown') -> tuple[str, bool]:
         created = False
@@ -231,24 +255,22 @@ class Command(BaseCommand):
             self.language_cache[code], created = models.Language.objects.get_or_create(code=code, defaults={'name': name})
         return self.language_cache[code], created
 
-    def create_missing_companies(self, movies: list[dict]) -> list[int] | None:
+    def create_missing_companies(self, movies: list[dict]) -> tuple[int, list[int] | None]:
         company_ids = {company['id'] for movie in movies for company in movie['production_companies']}
         existing_ids = set(models.ProductionCompany.objects.filter(tmdb_id__in=company_ids).values_list('tmdb_id', flat=True))
         missing_ids = {id for id in company_ids if id not in existing_ids}
 
         if not missing_ids:
-            return
+            return 0, None
 
-        async_tmdb = asyncTMDB()
-        companies, not_fetched = async_tmdb.batch_fetch_companies_by_id(missing_ids)
-        count_processed = 0
+        companies, not_fetched = asyncTMDB().batch_fetch_companies_by_id(missing_ids)
 
         for company in companies:
             country = None
             if company['origin_country']:
                 country, _ = models.Country.objects.get_or_create(code=company['origin_country'], defaults={'name': 'unknown'})
 
-            _, created = models.ProductionCompany.objects.update_or_create(
+            models.ProductionCompany.objects.update_or_create(
                 tmdb_id=company['id'],
                 defaults={
                     'name': company['name'],
@@ -257,13 +279,9 @@ class Command(BaseCommand):
                 },
             )
 
-            count_processed += created
+        return len(companies), not_fetched
 
-        self.stdout.write(self.style.SUCCESS(f'Created {count_processed} companies'))
-
-        return not_fetched
-
-    def create_missing_persons(self, credits: list[dict]) -> list[int] | None:
+    def create_missing_persons(self, credits: list[dict]) -> tuple[int, bool]:
         GENDERS = {0: '', 1: 'F', 2: 'M', 3: 'NB'}
 
         cast_ids = [cast_member['id'] for cast_member in credits]
@@ -271,14 +289,12 @@ class Command(BaseCommand):
         missing_ids = {id for id in cast_ids if id not in existing_ids}
 
         if not missing_ids:
-            return
+            return 0, False
 
-        async_tmdb = asyncTMDB()
-        persons, not_fetched = async_tmdb.batch_fetch_persons_by_id(missing_ids)
-        count_processed = 0
+        persons, not_fetched = asyncTMDB().batch_fetch_persons_by_id(missing_ids)
 
         for person in persons:
-            _, created = models.Person.objects.update_or_create(
+            models.Person.objects.update_or_create(
                 tmdb_id=person['id'],
                 defaults={
                     'name': person['name'],
@@ -294,8 +310,4 @@ class Command(BaseCommand):
                 },
             )
 
-            count_processed += created
-
-        self.stdout.write(self.style.SUCCESS(f'Created {count_processed} persons'))
-
-        return not_fetched
+        return len(persons), bool(not_fetched)

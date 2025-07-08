@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand
+
+from apps.moviedb.integrations.tmdb.api import TMDB
 from apps.moviedb.models import Genre
-from apps.moviedb.tmdb.api import TMDB
 
 
 class Command(BaseCommand):
@@ -17,8 +18,8 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         language = kwargs['language']
 
-        tmdb = TMDB()
-        genres = tmdb.fetch_genres(language=language)
+        genres = TMDB().fetch_genres(language=language)
+        count_created = count_updated = 0
 
         for genre in genres:
             _, created = Genre.objects.update_or_create(
@@ -27,4 +28,8 @@ class Command(BaseCommand):
             )
 
             if created:
-                self.stdout.write(self.style.SUCCESS(f'Created new genre: {genre['name']}'))
+                count_created += 1
+            else:
+                count_updated += 1
+
+        self.stdout.write(self.style.SUCCESS(f'Genres proccessed: {len(genres)} (created: {count_created}, updated: {count_updated})'))

@@ -2,9 +2,9 @@ from datetime import date
 
 from django.core.management.base import BaseCommand
 
+from apps.moviedb.integrations.tmdb.api import asyncTMDB
+from apps.moviedb.integrations.tmdb.id_exports import IDExport
 from apps.moviedb.models import Person
-from apps.moviedb.tmdb.api import asyncTMDB
-from apps.moviedb.tmdb.id_exports import IDExport
 
 
 class Command(BaseCommand):
@@ -70,8 +70,6 @@ class Command(BaseCommand):
         limit = kwargs['limit']
         sort_by_popularity = ['sort_by_popularity']
 
-        async_tmdb = asyncTMDB()
-
         if specific_ids is None:
             published_date = kwargs['date']
             id_export = IDExport()
@@ -83,9 +81,8 @@ class Command(BaseCommand):
             existing_ids = set(Person.objects.all().values_list('tmdb_id', flat=True))
             person_ids = [id for id in person_ids if id not in existing_ids]
 
-        persons, _ = async_tmdb.batch_fetch_persons_by_id(person_ids[:limit], batch_size=batch_size, language=language)
-        total = len(persons)
-        count_processed = 0
+        persons, missing_ids = asyncTMDB().batch_fetch_persons_by_id(person_ids[:limit], batch_size=batch_size, language=language)
+        count_created = count_updated = 0
 
         for person in persons:
             _, created = Person.objects.update_or_create(
@@ -104,6 +101,11 @@ class Command(BaseCommand):
                 },
             )
 
-            count_processed += created
+            if created:
+                count_created += 1
+            else:
+                count_updated += 1
 
-        self.stdout.write(self.style.SUCCESS(f'Created {count_processed}/{total} persons'))
+        self.stdout.write(self.style.SUCCESS(f'Persons proccessed: {len(persons)} (created: {count_created}, updated: {count_updated})'))
+        if missing_ids:
+            self.stdout.write(self.style.WARNING(f"Couldn't update/create: {len(missing_ids)} (IDs: {', '.join(map(str, missing_ids))})"))

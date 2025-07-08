@@ -1,15 +1,15 @@
 from django.core.management.base import BaseCommand
 
+from apps.moviedb.integrations.tmdb.api import TMDB
 from apps.moviedb.models import Language
-from apps.moviedb.tmdb.api import TMDB
 
 
 class Command(BaseCommand):
     help = 'Update language table'
 
     def handle(self, *args, **kwargs):
-        tmdb = TMDB()
-        languages = tmdb.fetch_languages()
+        languages = TMDB().fetch_languages()
+        count_created = count_updated = 0
 
         for language in languages:
             _, created = Language.objects.update_or_create(
@@ -18,4 +18,10 @@ class Command(BaseCommand):
             )
 
             if created:
-                self.stdout.write(self.style.SUCCESS(f'Created new language: {language['english_name']}'))
+                count_created += 1
+            else:
+                count_updated += 1
+
+        self.stdout.write(
+            self.style.SUCCESS(f'Languages proccessed: {len(languages)} (created: {count_created}, updated: {count_updated})')
+        )

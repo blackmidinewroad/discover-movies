@@ -1,8 +1,8 @@
 from django.core.management.base import BaseCommand
 
+from apps.moviedb.integrations.tmdb.api import asyncTMDB
+from apps.moviedb.integrations.tmdb.id_exports import IDExport
 from apps.moviedb.models import Collection
-from apps.moviedb.tmdb.api import asyncTMDB
-from apps.moviedb.tmdb.id_exports import IDExport
 
 
 class Command(BaseCommand):
@@ -50,8 +50,6 @@ class Command(BaseCommand):
         batch_size = kwargs['batch_size']
         language = kwargs['language']
 
-        async_tmdb = asyncTMDB()
-
         if specific_ids is None:
             published_date = kwargs['date']
             id_export = IDExport()
@@ -63,9 +61,8 @@ class Command(BaseCommand):
             existing_ids = set(Collection.objects.all().values_list('tmdb_id', flat=True))
             collection_ids = [id for id in collection_ids if id not in existing_ids]
 
-        collections, _ = async_tmdb.batch_fetch_collections_by_id(collection_ids, batch_size=batch_size, language=language)
-        total = len(collections)
-        count_processed = 0
+        collections, missing_ids = asyncTMDB().batch_fetch_collections_by_id(collection_ids, batch_size=batch_size, language=language)
+        count_created = count_updated = 0
 
         for collection in collections:
             _, created = Collection.objects.update_or_create(
@@ -78,6 +75,13 @@ class Command(BaseCommand):
                 },
             )
 
-            count_processed += created
+            if created:
+                count_created += 1
+            else:
+                count_updated += 1
 
-        self.stdout.write(self.style.SUCCESS(f'Processed {count_processed}/{total} collections'))
+        self.stdout.write(
+            self.style.SUCCESS(f'Collections proccessed: {len(collections)} (created: {count_created}, updated: {count_updated})')
+        )
+        if missing_ids:
+            self.stdout.write(self.style.WARNING(f"Couldn't update/create: {len(missing_ids)} (IDs: {', '.join(map(str, missing_ids))})"))

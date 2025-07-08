@@ -169,7 +169,7 @@ class Movie(models.Model):
     origin_country = models.ManyToManyField(Country, blank=True, related_name='movies_originating_from')
 
     overview = models.TextField(blank=True, default='')
-    tagline = models.CharField(max_length=256, blank=True, default='')
+    tagline = models.CharField(max_length=512, blank=True, default='')
 
     collection = models.ForeignKey(Collection, on_delete=models.SET_NULL, null=True, blank=True, related_name='movies')
 
@@ -270,7 +270,7 @@ class Person(models.Model):
     """Any people invovlved in making movies (e. g. actors, directors, writers)"""
 
     tmdb_id = models.IntegerField(primary_key=True)
-    name = models.CharField(max_length=128)
+    name = models.CharField(max_length=512)
     slug = models.SlugField(max_length=60, unique=True, blank=True)
     imdb_id = models.CharField(max_length=16, blank=True, default='')
 
@@ -314,7 +314,7 @@ class MovieCast(models.Model):
 
     movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name='cast')
     person = models.ForeignKey(Person, on_delete=models.CASCADE, related_name='cast_roles')
-    character = models.CharField(max_length=128, blank=True, default='')
+    character = models.CharField(max_length=512, blank=True, default='')
     order = models.PositiveIntegerField(default=0)
 
     class Meta:
@@ -334,8 +334,8 @@ class MovieCrew(models.Model):
     job = models.CharField(max_length=64)
 
     class Meta:
-        unique_together = ('movie', 'person', 'job')
+        unique_together = ('movie', 'person', 'department', 'job')
         indexes = [models.Index(fields=['department', 'job'])]
 
     def __str__(self):
-        return f'{self.person} worked as "{self.job}" in «{self.movie}»'
+        return f'{self.person} as "{self.job}" in «{self.movie}»'
