@@ -83,7 +83,7 @@ class Command(BaseCommand):
             existing_ids = set(Person.objects.all().values_list('tmdb_id', flat=True))
             person_ids = [id for id in person_ids if id not in existing_ids]
 
-        persons = async_tmdb.batch_fetch_persons_by_id(person_ids[:limit], batch_size=batch_size, language=language)
+        persons, _ = async_tmdb.batch_fetch_persons_by_id(person_ids[:limit], batch_size=batch_size, language=language)
         total = len(persons)
         count_processed = 0
 

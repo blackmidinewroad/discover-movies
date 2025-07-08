@@ -191,8 +191,8 @@ class Movie(models.Model):
 
     status = models.CharField(max_length=32, choices=STATUS_OPTIONS, blank=True, default='')
 
-    budget = models.PositiveIntegerField(blank=True, default=0)
-    revenue = models.PositiveIntegerField(blank=True, default=0)
+    budget = models.BigIntegerField(blank=True, default=0)
+    revenue = models.BigIntegerField(blank=True, default=0)
 
     # Runtime in minutes
     runtime = models.PositiveIntegerField(blank=True, default=0)

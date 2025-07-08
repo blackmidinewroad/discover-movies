@@ -63,7 +63,7 @@ class Command(BaseCommand):
             existing_ids = set(Collection.objects.all().values_list('tmdb_id', flat=True))
             collection_ids = [id for id in collection_ids if id not in existing_ids]
 
-        collections = async_tmdb.batch_fetch_collections_by_id(collection_ids, batch_size=batch_size, language=language)
+        collections, _ = async_tmdb.batch_fetch_collections_by_id(collection_ids, batch_size=batch_size, language=language)
         total = len(collections)
         count_processed = 0
 

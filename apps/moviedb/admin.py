@@ -54,9 +54,18 @@ class CollectionAdmin(admin.ModelAdmin):
 class MovieAdmin(admin.ModelAdmin):
     """Admin panel for movie"""
 
-    list_display = ('title', 'slug', 'release_date')
+    list_display = ('title', 'release_date')
     search_fields = ('title',)
     prepopulated_fields = {'slug': ('title',)}
+    autocomplete_fields = [
+        'genres',
+        'spoken_languages',
+        'origin_country',
+        'production_companies',
+        'production_countries',
+        'original_language',
+        'collection',
+    ]
 
 
 @admin.register(models.MovieEngagement)

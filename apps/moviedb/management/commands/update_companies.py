@@ -55,7 +55,7 @@ class Command(BaseCommand):
             existing_ids = set(ProductionCompany.objects.all().values_list('tmdb_id', flat=True))
             company_ids = [id for id in company_ids if id not in existing_ids]
 
-        companies = async_tmdb.batch_fetch_companies_by_id(company_ids, batch_size=batch_size)
+        companies, _ = async_tmdb.batch_fetch_companies_by_id(company_ids, batch_size=batch_size)
         total = len(companies)
         count_processed = 0
 
@@ -75,4 +75,4 @@ class Command(BaseCommand):
 
             count_processed += created
 
-        self.stdout.write(self.style.SUCCESS(f'Processed {count_processed}/{total} companies'))
+        self.stdout.write(self.style.SUCCESS(f'Created {count_processed}/{total} companies'))

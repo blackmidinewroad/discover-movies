@@ -293,7 +293,7 @@ class asyncTMDB(BaseTMDB):
         }
         self.limiter = AsyncLimiter(self.calls, self.rate_limit)
 
-    async def _fetch_data(self, session: aiohttp.ClientSession, path: str, params: dict = None) -> dict:
+    async def _fetch_data(self, session: aiohttp.ClientSession, path: str, params: dict = None) -> dict | int:
         """Fetch data asynchronously"""
 
         url = self._build_url(path, params)
@@ -307,11 +307,13 @@ class asyncTMDB(BaseTMDB):
             except (aiohttp.ClientError, asyncio.TimeoutError):
                 sys.stdout.write(f'\n{self.colors.YELLOW}')
                 logging.warning(f" Couldn't fetch\n{self.colors.BLUE}path: {path}\nparams: {params}{self.colors.RESET}")
+                return path.split('/')[-1]
 
-    async def _batch_fetch(self, task_details: list[dict], const_params: dict = None) -> list[dict]:
+    async def _batch_fetch(self, task_details: list[dict], const_params: dict = None) -> tuple[list[dict], list[int]]:
         """Batch fetch data asynchronously"""
 
         results = []
+        batch_not_fetched = []
         connector = aiohttp.TCPConnector(limit=self.calls)
         timeout = aiohttp.ClientTimeout(total=20)
 
@@ -324,10 +326,12 @@ class asyncTMDB(BaseTMDB):
             responses = await asyncio.gather(*tasks)
 
             for result in responses:
-                if result:
+                if isinstance(result, dict):
                     results.append(result)
+                else:
+                    batch_not_fetched.append(result)
 
-        return results
+        return results, batch_not_fetched
 
     async def _batch_fetch_details(
         self,
@@ -335,7 +339,7 @@ class asyncTMDB(BaseTMDB):
         language: str = None,
         append_to_response: list[str] = None,
         batch_size: int = 100,
-    ) -> list[dict]:
+    ) -> tuple[list[dict], list[int]]:
         """Batch fetch details"""
 
         params = {}
@@ -345,19 +349,21 @@ class asyncTMDB(BaseTMDB):
             params['append_to_response'] = ','.join(append_to_response)
 
         all_results = []
+        not_fetched = []
         total_baches = ceil(len(paths) / batch_size)
 
         for i_batch, i in enumerate(range(0, len(paths), batch_size), 1):
             batch = paths[i : i + batch_size]
-            results = await self._batch_fetch(task_details=batch, const_params=params)
+            results, batch_not_fetched = await self._batch_fetch(task_details=batch, const_params=params)
             all_results.extend(results)
+            not_fetched.extend(batch_not_fetched)
 
             await asyncio.sleep(1)
 
             sys.stdout.write(f'\rFetched {i_batch}/{total_baches} batches{"\n" if i_batch == total_baches else ""}')
             sys.stdout.flush()
 
-        return all_results
+        return all_results, not_fetched
 
     def batch_fetch_movies_by_id(
         self,
@@ -365,7 +371,7 @@ class asyncTMDB(BaseTMDB):
         language: str = 'en-US',
         append_to_response: list[str] = None,
         batch_size: int = 100,
-    ) -> list[dict]:
+    ) -> tuple[list[dict], list[int]]:
         """Fetch movie details for list of IDs.
 
         Args:
@@ -375,7 +381,7 @@ class asyncTMDB(BaseTMDB):
             batch_size (int, optional): number of movies to fetch per batch. Defaults to 100.
 
         Returns:
-            list[dict]: list of movies with details.
+            tuple[list[dict], list[int]]: list of movies with details and list of not fetched IDs.
         """
 
         paths = tuple(f'movie/{movie_id}' for movie_id in movie_ids)
@@ -395,7 +401,7 @@ class asyncTMDB(BaseTMDB):
         language: str = 'en-US',
         append_to_response: list[str] = None,
         batch_size: int = 100,
-    ) -> list[dict]:
+    ) -> tuple[list[dict], list[int]]:
         """Fetch person details for list of IDs.
 
         Args:
@@ -405,7 +411,7 @@ class asyncTMDB(BaseTMDB):
             batch_size (int, optional): number of persons to fetch per batch. Defaults to 100.
 
         Returns:
-            list[dict]: list of persons with details.
+            tuple[list[dict], list[int]]: list of persons with details and list of not fetched IDs.
         """
 
         paths = tuple(f'person/{person_id}' for person_id in person_ids)
@@ -419,7 +425,7 @@ class asyncTMDB(BaseTMDB):
             )
         )
 
-    def batch_fetch_companies_by_id(self, company_ids: list[int], batch_size: int = 100) -> list[dict]:
+    def batch_fetch_companies_by_id(self, company_ids: list[int], batch_size: int = 100) -> tuple[list[dict], list[int]]:
         """Fetch company details for list of IDs.
 
         Args:
@@ -429,14 +435,16 @@ class asyncTMDB(BaseTMDB):
             batch_size (int, optional): number of companies to fetch per batch. Defaults to 100.
 
         Returns:
-            list[dict]: list of companies with details.
+            tuple[list[dict], list[int]]: list of companies with details and list of not fetched IDs.
         """
 
         paths = tuple(f'company/{company_id}' for company_id in company_ids)
 
         return asyncio.run(self._batch_fetch_details(paths=paths, batch_size=batch_size))
 
-    def batch_fetch_collections_by_id(self, collection_ids: list[int], language: str = 'en-US', batch_size: int = 100) -> list[dict]:
+    def batch_fetch_collections_by_id(
+        self, collection_ids: list[int], language: str = 'en-US', batch_size: int = 100
+    ) -> tuple[list[dict], list[int]]:
         """Fetch collection details for list of IDs.
 
         Args:
@@ -445,7 +453,7 @@ class asyncTMDB(BaseTMDB):
             batch_size (int, optional): number of collections to fetch per batch. Defaults to 100.
 
         Returns:
-            list[dict]: list of collections with details.
+            tuple[list[dict], list[int]]: list of collections with details and list of not fetched IDs.
         """
 
         paths = tuple(f'collection/{collection_id}' for collection_id in collection_ids)
@@ -472,7 +480,7 @@ class asyncTMDB(BaseTMDB):
         total_baches = ceil(len(task_details) / batch_size)
         for i_batch, i in enumerate(range(0, len(task_details), batch_size), 1):
             batch = task_details[i : i + batch_size]
-            results = await self._batch_fetch(task_details=batch)
+            results, _ = await self._batch_fetch(task_details=batch)
             all_pages.extend(results)
 
             await asyncio.sleep(1)
