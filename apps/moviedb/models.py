@@ -187,14 +187,15 @@ class Movie(SlugMixin):
 
     imdb_id = models.CharField(max_length=16, blank=True, default='')
 
-    directors = models.ManyToManyField(Person, blank=True, related_name='directed_movies')
+    directors = models.ManyToManyField(Person, blank=True, verbose_name='Directed by', related_name='directed_movies')
 
     release_date = models.DateField(null=True, blank=True)
 
     genres = models.ManyToManyField(Genre, blank=True, related_name='movies')
 
-    is_documentary = models.BooleanField(blank=True, default=False)
-    is_tv_movie = models.BooleanField(blank=True, default=False)
+    # Is this a documentary/TV movie
+    documentary = models.BooleanField(blank=True, default=False)
+    tv_movie = models.BooleanField(blank=True, default=False)
 
     original_title = models.CharField(max_length=512, blank=True, default='')
     original_language = models.ForeignKey(
@@ -238,7 +239,7 @@ class Movie(SlugMixin):
     runtime = models.PositiveIntegerField(blank=True, default=0)
 
     # Is this a short movie (<= 40 mins)
-    is_short = models.BooleanField(blank=True, default=False)
+    short = models.BooleanField(blank=True, default=False)
 
     class Meta:
         verbose_name_plural = 'movies'
@@ -261,11 +262,18 @@ class Movie(SlugMixin):
 
         return reverse('movie_detail', kwargs={'slug': self.slug})
 
-    def save(self, *args, **kwargs):
-        """Create unique slug on save"""
+    def set_flags(self):
+        """Set documentary, tv_movie and short fields"""
 
-        self.slug = unique_slugify(self, self.title)
-        super().save(*args, **kwargs)
+        # Genre IDs of documentary and TV movie
+        DOCUMENTARY = 99
+        TV_MOVIE = 10770
+
+        genre_ids = set(self.genres.values_list('tmdb_id', flat=True))
+
+        self.documentary = DOCUMENTARY in genre_ids
+        self.tv_movie = TV_MOVIE in genre_ids
+        self.short = self.runtime and self.runtime <= 40
 
 
 class MovieEngagement(models.Model):

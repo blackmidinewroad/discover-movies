@@ -157,6 +157,7 @@ class Command(BaseCommand):
                 runtime=movie_data['runtime'],
             )
             movie.set_slug(movie.title, new_slugs)
+            movie.set_flags()
             movie_map[movie.tmdb_id] = movie
             new_slugs.add(movie.slug)
 

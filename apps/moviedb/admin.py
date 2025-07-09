@@ -54,7 +54,7 @@ class CollectionAdmin(admin.ModelAdmin):
 class MovieAdmin(admin.ModelAdmin):
     """Admin panel for movie"""
 
-    list_display = ('title', 'release_date')
+    list_display = ('title', 'get_directors', 'release_date')
     search_fields = ('title', 'tmdb_id')
     prepopulated_fields = {'slug': ('title',)}
     autocomplete_fields = [
@@ -65,8 +65,14 @@ class MovieAdmin(admin.ModelAdmin):
         'production_countries',
         'original_language',
         'collection',
+        'directors',
     ]
     ordering = ['-release_date']
+
+    def get_directors(self, obj):
+        return ", ".join(d.name for d in obj.directors.all())
+
+    get_directors.short_description = 'Directed by'
 
 
 @admin.register(models.MovieEngagement)
