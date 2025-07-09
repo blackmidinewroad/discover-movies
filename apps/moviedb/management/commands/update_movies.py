@@ -75,6 +75,7 @@ class Command(BaseCommand):
         limit = kwargs['limit']
         sort_by_popularity = kwargs['sort_by_popularity']
 
+        # Existing countreis/languages/genres in db
         self.countries = {c.code for c in models.Country.objects.all()}
         languages = {l.code for l in models.Language.objects.all()}
         genres = {g.tmdb_id for g in models.Genre.objects.all()}
@@ -101,10 +102,24 @@ class Command(BaseCommand):
         )
 
         n_created_companies, not_fetched_company_ids = self.create_missing_companies(movies)
-        movie_map = {}
+
+        # Keep track of new slugs to create unique slugs
         new_slugs = set()
 
         skipped = total_created_persons = 0
+
+        # Links to update many to many fields
+        genre_links = []
+        spoken_languages_links = []
+        origin_country_links = []
+        prod_countries_links = []
+        prod_companies_links = []
+        cast_relations = []
+        crew_relations = []
+        directors_links = []
+
+        # Store movie IDs and objects for bulk_create ({'movie_id': movie_obj})
+        movie_map = {}
 
         for movie_data in movies:
             # Create missing persons
@@ -139,8 +154,10 @@ class Command(BaseCommand):
                     defaults={'name': movie_data['belongs_to_collection']['name']},
                 )
 
+            movie_id = movie_data['id']
+
             movie = models.Movie(
-                tmdb_id=movie_data['id'],
+                tmdb_id=movie_id,
                 title=movie_data['title'],
                 imdb_id=movie_data['imdb_id'] or '',
                 release_date=date.fromisoformat(movie_data['release_date']) if movie_data['release_date'] else None,
@@ -158,50 +175,11 @@ class Command(BaseCommand):
             )
             movie.set_slug(movie.title, new_slugs)
             movie.set_flags()
-            movie_map[movie.tmdb_id] = movie
             new_slugs.add(movie.slug)
 
-            print(movie.title, movie.pk)
+            movie_map[movie_id] = movie
 
-        models.Movie.objects.bulk_create(
-            tuple(movie_map.values()),
-            update_conflicts=True,
-            update_fields=(
-                'title',
-                'slug',
-                'imdb_id',
-                'release_date',
-                'original_title',
-                'original_language',
-                'overview',
-                'tagline',
-                'collection',
-                'poster_path',
-                'backdrop_path',
-                'status',
-                'budget',
-                'revenue',
-                'runtime',
-            ),
-            unique_fields=('tmdb_id',),
-        )
-
-        # Update many to many fields
-        genre_links = []
-        spoken_languages_links = []
-        origin_country_links = []
-        prod_countries_links = []
-        prod_companies_links = []
-        cast_relations = []
-        crew_relations = []
-        directors_links = []
-
-        for movie_data in movies:
-            if movie_data['id'] not in movie_map:
-                continue
-
-            movie_id = movie_data['id']
-
+            # Create links for many to many fields
             # Genres
             for genre_data in movie_data['genres']:
                 genre_id = genre_data['id']
@@ -268,6 +246,30 @@ class Command(BaseCommand):
                     )
                 )
 
+        models.Movie.objects.bulk_create(
+            tuple(movie_map.values()),
+            update_conflicts=True,
+            update_fields=(
+                'title',
+                'slug',
+                'imdb_id',
+                'release_date',
+                'original_title',
+                'original_language',
+                'overview',
+                'tagline',
+                'collection',
+                'poster_path',
+                'backdrop_path',
+                'status',
+                'budget',
+                'revenue',
+                'runtime',
+            ),
+            unique_fields=('tmdb_id',),
+        )
+
+        # IDs of created movies
         movie_ids = set(movie_map)
 
         # Delete existing links
