@@ -7,7 +7,7 @@ from apps.moviedb.models import Language
 class Command(BaseCommand):
     help = 'Update language table'
 
-    def handle(self, *args, **kwargs):
+    def handle(self, *args, **options):
         languages = TMDB().fetch_languages()
         language_objs = []
         new_slugs = set()

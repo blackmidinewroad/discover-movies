@@ -15,8 +15,8 @@ class Command(BaseCommand):
             help='Locale (ISO 639-1-ISO 3166-1) code (e.g. en-UD, fr-CA, de_DE). Defaults to "en-US".',
         )
 
-    def handle(self, *args, **kwargs):
-        language = kwargs['language']
+    def handle(self, *args, **options):
+        language = options['language']
 
         countries = TMDB().fetch_countries(language)
         country_objs = []

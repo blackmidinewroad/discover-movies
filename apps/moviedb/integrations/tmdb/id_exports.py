@@ -42,7 +42,7 @@ class IDExport:
         except RequestException:
             logging.error("Couldn't fetch ID file", exc_info=True)
 
-    def _get_ids(self, compressed_file: bytes, sort_by_popularity: bool = False) -> tuple[int]:
+    def _get_ids(self, compressed_file: bytes, sort_by_popularity: bool = False) -> list[int]:
         """Get IDs from compressed file"""
 
         ids = []
@@ -51,14 +51,16 @@ class IDExport:
                 line = line.decode('utf-8').strip()
                 if line:
                     data = json.loads(line)
+                    
+                    # Store tuples of id and popularity
                     ids.append((data['id'], data.get('popularity', 0)))
 
         if sort_by_popularity:
             ids.sort(key=lambda el: -el[1])
 
-        return tuple(id for id, _ in ids)
+        return [id for id, _ in ids]
 
-    def fetch_ids(self, media_type: str, published_date: str = None, sort_by_popularity: bool = False) -> tuple[int]:
+    def fetch_ids(self, media_type: str, published_date: str = None, sort_by_popularity: bool = False) -> list[int]:
         """Fetch list of a valid TMDB IDs for the specified media type and date.
 
         Args:
@@ -75,7 +77,7 @@ class IDExport:
             sort_by_popularity (bool, optional): sort IDs by popularity if possible. Defaults to False.
 
         Returns:
-            tuple[int]: tuple of TMDB IDs.
+            list[int]: list of TMDB IDs.
         """
 
         if media_type not in self.MEDIA_TYPES:

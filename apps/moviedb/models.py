@@ -5,6 +5,8 @@ from apps.services.utils import unique_slugify
 
 
 class SlugMixin(models.Model):
+    """Slug Mixin to create slug field, create slug on save and to set slug manually"""
+
     slug = models.SlugField(max_length=60, unique=True, blank=True)
 
     # By default use "name" field to create slug

@@ -1,6 +1,6 @@
 from datetime import date
 
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 
 from apps.moviedb.integrations.tmdb.api import asyncTMDB
 from apps.moviedb.integrations.tmdb.id_exports import IDExport
@@ -14,6 +14,21 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
+            'operation',
+            type=str,
+            choices=['update_changed', 'daily_export', 'specific_ids'],
+            help='Operation to perform: update_changed, daily_export or specific_ids',
+        )
+
+        parser.add_argument(
+            '--ids',
+            type=int,
+            default=None,
+            nargs='*',
+            help='IDs to ceate/update (required for specific_ids operation).',
+        )
+
+        parser.add_argument(
             '--date',
             type=str,
             default=None,
@@ -25,21 +40,6 @@ class Command(BaseCommand):
             type=int,
             default=100,
             help='Number of persons to fetch per batch.',
-        )
-
-        parser.add_argument(
-            '--specific_ids',
-            type=int,
-            default=None,
-            nargs='*',
-            help='Update specific persons.',
-        )
-
-        parser.add_argument(
-            '--create',
-            action='store_true',
-            default=False,
-            help='Only create new persons.',
         )
 
         parser.add_argument(
@@ -63,22 +63,42 @@ class Command(BaseCommand):
             help='Sort IDs by popularity if possible.',
         )
 
-    def handle(self, *args, **kwargs):
-        specific_ids = kwargs['specific_ids']
-        batch_size = kwargs['batch_size']
-        language = kwargs['language']
-        limit = kwargs['limit']
-        sort_by_popularity = ['sort_by_popularity']
+        parser.add_argument(
+            '--create',
+            action='store_true',
+            default=False,
+            help="Only create new persons (can't be used with update_changed operation).",
+        )
 
-        if specific_ids is None:
-            published_date = kwargs['date']
-            id_export = IDExport()
-            person_ids = id_export.fetch_ids('person', published_date=published_date, sort_by_popularity=sort_by_popularity)
-        else:
-            person_ids = specific_ids
+    def handle(self, *args, **options):
+        operation = options['operation']
+        published_date = options['date']
+        ids = options['ids']
+        batch_size = options['batch_size']
+        language = options['language']
+        limit = options['limit']
+        sort_by_popularity = options['sort_by_popularity']
+        only_create = options['create']
 
-        if kwargs['create']:
-            existing_ids = set(Person.objects.only('tmdb_id').values_list('tmdb_id', flat=True))
+        # IDs of persons already in db
+        existing_ids = set(Person.objects.only('tmdb_id').values_list('tmdb_id', flat=True))
+
+        match operation:
+            case 'update_changed':
+                if only_create:
+                    raise CommandError("Can't use --create with update_changed operation")
+                person_ids = []
+                person_ids = [id for id in person_ids if id in existing_ids]
+            case 'daily_export':
+                person_ids = IDExport().fetch_ids('person', published_date=published_date, sort_by_popularity=sort_by_popularity)
+            case 'specific_ids':
+                if ids is None:
+                    raise CommandError('Must provide --ids using specific_ids operation')
+                person_ids = ids
+            case _:
+                raise CommandError("Invalid operation. Choose from 'update_changed', 'daily_export', 'specific_ids'")
+
+        if only_create:
             person_ids = [id for id in person_ids if id not in existing_ids]
 
         persons, missing_ids = asyncTMDB().batch_fetch_persons_by_id(person_ids[:limit], batch_size=batch_size, language=language)

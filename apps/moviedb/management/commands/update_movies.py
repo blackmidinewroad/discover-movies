@@ -1,6 +1,6 @@
 from datetime import date
 
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 
 from apps.moviedb import models
 from apps.moviedb.integrations.tmdb.api import asyncTMDB
@@ -12,10 +12,25 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
+            'operation',
+            type=str,
+            choices=['update_changed', 'daily_export', 'add_top_rated', 'specific_ids'],
+            help='Operation to perform: update_changed, daily_export, add_top_rated or specific_ids',
+        )
+
+        parser.add_argument(
+            '--ids',
+            type=int,
+            default=None,
+            nargs='*',
+            help='IDs to ceate/update (required for specific_ids operation).',
+        )
+
+        parser.add_argument(
             '--date',
             type=str,
             default=None,
-            help='Date of the export file in "MM_DD_YYYY" format.',
+            help='Date of the export file in "MM_DD_YYYY" format (only works with daily_export operation).',
         )
 
         parser.add_argument(
@@ -23,21 +38,6 @@ class Command(BaseCommand):
             type=int,
             default=100,
             help='Number of movies to fetch per batch.',
-        )
-
-        parser.add_argument(
-            '--specific_ids',
-            type=int,
-            default=None,
-            nargs='*',
-            help='Update specific movies.',
-        )
-
-        parser.add_argument(
-            '--create',
-            action='store_true',
-            default=False,
-            help='Only create new movies.',
         )
 
         parser.add_argument(
@@ -51,47 +51,54 @@ class Command(BaseCommand):
             '--limit',
             type=int,
             default=None,
-            help='Limit number of movies added.',
+            help='Limit number of movies updated/created.',
         )
 
         parser.add_argument(
             '--sort_by_popularity',
             action='store_true',
             default=False,
-            help='Sort IDs by popularity if possible.',
+            help='Sort IDs by popularity (only works with daily_export).',
         )
 
         parser.add_argument(
-            '--top_rated',
+            '--create',
             action='store_true',
             default=False,
-            help='Fetch top rated movies on TMDB.',
+            help="Only create new movies (can't be used with update_changed operation).",
         )
 
-    def handle(self, *args, **kwargs):
-        specific_ids = kwargs['specific_ids']
-        batch_size = kwargs['batch_size']
-        language = kwargs['language']
-        limit = kwargs['limit']
-        sort_by_popularity = kwargs['sort_by_popularity']
+    def handle(self, *args, **options):
+        operation = options['operation']
+        ids = options['ids']
+        published_date = options['date']
+        batch_size = options['batch_size']
+        language = options['language']
+        limit = options['limit']
+        sort_by_popularity = options['sort_by_popularity']
+        only_create = options['create']
 
-        # Existing countreis/languages/genres in db
-        self.countries = {c.code for c in models.Country.objects.all()}
-        languages = {l.code for l in models.Language.objects.all()}
-        genres = {g.tmdb_id for g in models.Genre.objects.all()}
+        # IDs of movies already in db
+        existing_ids = set(models.Movie.objects.only('tmdb_id').values_list('tmdb_id', flat=True))
 
-        if kwargs['top_rated']:
-            movie_ids = asyncTMDB().fetch_top_rated_movie_ids(last_page=500)
-        else:
-            if specific_ids is None:
-                published_date = kwargs['date']
-                id_export = IDExport()
-                movie_ids = id_export.fetch_ids('movie', published_date=published_date, sort_by_popularity=sort_by_popularity)
-            else:
-                movie_ids = specific_ids
+        match operation:
+            case 'update_changed':
+                if only_create:
+                    raise CommandError("Can't use --create with update_changed operation")
+                movie_ids = []
+                movie_ids = [id for id in movie_ids if id in existing_ids]
+            case 'daily_export':
+                movie_ids = IDExport().fetch_ids('movie', published_date=published_date, sort_by_popularity=sort_by_popularity)
+            case 'add_top_rated':
+                movie_ids = asyncTMDB().fetch_top_rated_movie_ids(last_page=500)
+            case 'specific_ids':
+                if ids is None:
+                    raise CommandError('Must provide --ids using specific_ids operation')
+                movie_ids = ids
+            case _:
+                raise CommandError("Invalid operation. Choose from 'update_changed', 'daily_export', 'add_top_rated', 'specific_ids'")
 
-        if kwargs['create']:
-            existing_ids = set(models.Movie.objects.only('tmdb_id').values_list('tmdb_id', flat=True))
+        if only_create:
             movie_ids = [id for id in movie_ids if id not in existing_ids]
 
         movies, not_fetched_movie_ids = asyncTMDB().batch_fetch_movies_by_id(
@@ -100,6 +107,11 @@ class Command(BaseCommand):
             language=language,
             append_to_response=['credits'],
         )
+
+        # Existing countreis/languages/genres in db
+        self.countries = {c.code for c in models.Country.objects.all()}
+        languages = {l.code for l in models.Language.objects.all()}
+        genres = {g.tmdb_id for g in models.Genre.objects.all()}
 
         n_created_companies, not_fetched_company_ids = self.create_missing_companies(movies)
 
@@ -118,7 +130,7 @@ class Command(BaseCommand):
         crew_relations = []
         directors_links = []
 
-        # Store movie IDs and objects for bulk_create ({'movie_id': movie_obj})
+        # Store movie IDs and objects for bulk_create {'movie_id': movie_obj}
         movie_map = {}
 
         for movie_data in movies:

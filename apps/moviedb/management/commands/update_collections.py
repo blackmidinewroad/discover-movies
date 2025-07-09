@@ -24,6 +24,13 @@ class Command(BaseCommand):
         )
 
         parser.add_argument(
+            '--language',
+            type=str,
+            default='en-US',
+            help='Locale (ISO 639-1-ISO 3166-1) code (e.g. en-UD, fr-CA, de_DE). Defaults to "en-US".',
+        )
+
+        parser.add_argument(
             '--specific_ids',
             type=int,
             default=None,
@@ -38,26 +45,16 @@ class Command(BaseCommand):
             help='Only create new collections.',
         )
 
-        parser.add_argument(
-            '--language',
-            type=str,
-            default='en-US',
-            help='Locale (ISO 639-1-ISO 3166-1) code (e.g. en-UD, fr-CA, de_DE). Defaults to "en-US".',
-        )
+    def handle(self, *args, **options):
+        published_date = options['date']
+        batch_size = options['batch_size']
+        language = options['language']
+        specific_ids = options['specific_ids']
+        only_create = options['create']
 
-    def handle(self, *args, **kwargs):
-        specific_ids = kwargs['specific_ids']
-        batch_size = kwargs['batch_size']
-        language = kwargs['language']
+        collection_ids = specific_ids or IDExport().fetch_ids('collection', published_date=published_date)
 
-        if specific_ids is None:
-            published_date = kwargs['date']
-            id_export = IDExport()
-            collection_ids = id_export.fetch_ids('collection', published_date=published_date)
-        else:
-            collection_ids = specific_ids
-
-        if kwargs['create']:
+        if only_create:
             existing_ids = set(Collection.objects.only('tmdb_id').values_list('tmdb_id', flat=True))
             collection_ids = [id for id in collection_ids if id not in existing_ids]
 

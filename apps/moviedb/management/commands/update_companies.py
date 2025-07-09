@@ -38,18 +38,15 @@ class Command(BaseCommand):
             help='Only create new companies.',
         )
 
-    def handle(self, *args, **kwargs):
-        specific_ids = kwargs['specific_ids']
-        batch_size = kwargs['batch_size']
+    def handle(self, *args, **options):
+        published_date = options['date']
+        batch_size = options['batch_size']
+        specific_ids = options['specific_ids']
+        only_create = options['create']
 
-        if specific_ids is None:
-            published_date = kwargs['date']
-            id_export = IDExport()
-            company_ids = id_export.fetch_ids('company', published_date=published_date)
-        else:
-            company_ids = specific_ids
+        company_ids = specific_ids or IDExport().fetch_ids('company', published_date=published_date)
 
-        if kwargs['create']:
+        if only_create:
             existing_ids = set(ProductionCompany.objects.only('tmdb_id').values_list('tmdb_id', flat=True))
             company_ids = [id for id in company_ids if id not in existing_ids]
 

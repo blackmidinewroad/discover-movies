@@ -15,8 +15,8 @@ class Command(BaseCommand):
             help='Language in ISO 639-1 code (e.g. en, fr, ru). Defaults to "en".',
         )
 
-    def handle(self, *args, **kwargs):
-        language = kwargs['language']
+    def handle(self, *args, **options):
+        language = options['language']
 
         genres = TMDB().fetch_genres(language=language)
         genre_objs = []

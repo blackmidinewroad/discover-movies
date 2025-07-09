@@ -1,8 +1,6 @@
 import asyncio
 import logging
 import os
-import sys
-from math import ceil
 from urllib.parse import urlencode, urljoin
 
 import aiohttp
@@ -348,18 +346,14 @@ class asyncTMDB(BaseTMDB):
 
         all_results = []
         not_fetched = []
-        # total_baches = ceil(len(paths) / batch_size)
 
-        for i_batch, i in enumerate(range(0, len(paths), batch_size), 1):
+        for i in range(0, len(paths), batch_size):
             batch = paths[i : i + batch_size]
             results, batch_not_fetched = await self._batch_fetch(task_details=batch, const_params=params)
             all_results.extend(results)
             not_fetched.extend(batch_not_fetched)
 
             await asyncio.sleep(1)
-
-            # sys.stdout.write(f'\rFetched {i_batch}/{total_baches} batches{"\n" if i_batch == total_baches else ""}')
-            # sys.stdout.flush()
 
         return all_results, not_fetched
 
@@ -475,17 +469,13 @@ class asyncTMDB(BaseTMDB):
         task_details = tuple((path, {'page': page, 'language': language, 'region': region}) for page in range(first_page, last_page + 1))
 
         all_pages = []
-        # total_baches = ceil(len(task_details) / batch_size)
 
-        for i_batch, i in enumerate(range(0, len(task_details), batch_size), 1):
+        for i in range(0, len(task_details), batch_size):
             batch = task_details[i : i + batch_size]
             results, _ = await self._batch_fetch(task_details=batch)
             all_pages.extend(results)
 
             await asyncio.sleep(1)
-
-            # sys.stdout.write(f'\rFetched {i_batch}/{total_baches} batches{"\n" if i_batch == total_baches else ""}')
-            # sys.stdout.flush()
 
         return all_pages
 
