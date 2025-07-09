@@ -68,9 +68,7 @@ class TMDB(BaseTMDB):
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException:
-            pass
-            # sys.stdout.write(f'\n{self.colors.YELLOW}')
-            # logging.warning(f" Couldn't fetch\n{self.colors.BLUE}path: {path}\nparams: {params}{self.colors.RESET}")
+            logging.warning(f"{self.colors.YELLOW} Couldn't fetch\n{self.colors.BLUE}path: {path}\nparams: {params}{self.colors.RESET}")
 
     def fetch_genres(self, language: str = 'en') -> list[dict]:
         """Fetch the list of official genres for movies.
@@ -306,8 +304,7 @@ class asyncTMDB(BaseTMDB):
                     data = await response.json()
                     return data
             except (aiohttp.ClientError, asyncio.TimeoutError):
-                # sys.stdout.write(f'\n{self.colors.YELLOW}')
-                # logging.warning(f" Couldn't fetch\n{self.colors.BLUE}path: {path}\nparams: {params}{self.colors.RESET}")
+                logging.warning(f"{self.colors.YELLOW} Couldn't fetch\n{self.colors.BLUE}path: {path}\nparams: {params}{self.colors.RESET}")
                 return path.split('/')[-1]
 
     async def _batch_fetch(self, task_details: list[dict], const_params: dict = None) -> tuple[list[dict], list[int]]:

@@ -3,6 +3,7 @@ from django.core.management.base import BaseCommand
 from apps.moviedb.integrations.tmdb.api import asyncTMDB
 from apps.moviedb.integrations.tmdb.id_exports import IDExport
 from apps.moviedb.models import Collection
+from apps.services.utils import unique_slugify
 
 
 class Command(BaseCommand):
@@ -13,7 +14,7 @@ class Command(BaseCommand):
             '--date',
             type=str,
             default=None,
-            help='Date of the export file in "DD_MM_YYYY" format.',
+            help='Date of the export file in "MM_DD_YYYY" format.',
         )
 
         parser.add_argument(
@@ -58,30 +59,32 @@ class Command(BaseCommand):
             collection_ids = specific_ids
 
         if kwargs['create']:
-            existing_ids = set(Collection.objects.all().values_list('tmdb_id', flat=True))
+            existing_ids = set(Collection.objects.only('tmdb_id').values_list('tmdb_id', flat=True))
             collection_ids = [id for id in collection_ids if id not in existing_ids]
 
         collections, missing_ids = asyncTMDB().batch_fetch_collections_by_id(collection_ids, batch_size=batch_size, language=language)
-        count_created = count_updated = 0
+        collection_objs = []
+        new_slugs = set()
 
-        for collection in collections:
-            _, created = Collection.objects.update_or_create(
-                tmdb_id=collection['id'],
-                defaults={
-                    'name': collection['name'],
-                    'overview': collection['overview'] or '',
-                    'poster_path': collection['poster_path'] or '',
-                    'backdrop_path': collection['backdrop_path'] or '',
-                },
+        for collection_data in collections:
+            collection = Collection(
+                tmdb_id=collection_data['id'],
+                name=collection_data['name'],
+                overview=collection_data['overview'] or '',
+                poster_path=collection_data['poster_path'] or '',
+                backdrop_path=collection_data['backdrop_path'] or '',
             )
+            collection.slug = unique_slugify(collection, collection.name, new_slugs)
+            collection_objs.append(collection)
+            new_slugs.add(collection.slug)
 
-            if created:
-                count_created += 1
-            else:
-                count_updated += 1
-
-        self.stdout.write(
-            self.style.SUCCESS(f'Collections proccessed: {len(collections)} (created: {count_created}, updated: {count_updated})')
+        Collection.objects.bulk_create(
+            collection_objs,
+            update_conflicts=True,
+            update_fields=('name', 'slug', 'overview', 'poster_path', 'backdrop_path'),
+            unique_fields=('tmdb_id',),
         )
+
+        self.stdout.write(self.style.SUCCESS(f'Collections processed: {len(collections)}'))
         if missing_ids:
             self.stdout.write(self.style.WARNING(f"Couldn't update/create: {len(missing_ids)} (IDs: {', '.join(map(str, missing_ids))})"))

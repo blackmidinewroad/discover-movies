@@ -2,6 +2,7 @@ from django.core.management.base import BaseCommand
 
 from apps.moviedb.integrations.tmdb.api import TMDB
 from apps.moviedb.models import Country
+from apps.services.utils import unique_slugify
 
 
 class Command(BaseCommand):
@@ -19,19 +20,20 @@ class Command(BaseCommand):
         language = kwargs['language']
 
         countries = TMDB().fetch_countries(language)
-        count_created = count_updated = 0
+        country_objs = []
+        new_slugs = set()
 
-        for country in countries:
-            _, created = Country.objects.update_or_create(
-                code=country['iso_3166_1'],
-                defaults={'name': country['english_name']},
-            )
+        for country_data in countries:
+            country = Country(code=country_data['iso_3166_1'], name=country_data['english_name'])
+            country.slug = unique_slugify(country, country.name, new_slugs)
+            country_objs.append(country)
+            new_slugs.add(country.slug)
 
-            if created:
-                count_created += 1
-            else:
-                count_updated += 1
-
-        self.stdout.write(
-            self.style.SUCCESS(f'Countries proccessed: {len(countries)} (created: {count_created}, updated: {count_updated})')
+        Country.objects.bulk_create(
+            country_objs,
+            update_conflicts=True,
+            update_fields=('name', 'slug'),
+            unique_fields=('code',),
         )
+
+        self.stdout.write(self.style.SUCCESS(f'Countries processed: {len(countries)}'))

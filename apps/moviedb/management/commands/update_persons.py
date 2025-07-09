@@ -5,6 +5,7 @@ from django.core.management.base import BaseCommand
 from apps.moviedb.integrations.tmdb.api import asyncTMDB
 from apps.moviedb.integrations.tmdb.id_exports import IDExport
 from apps.moviedb.models import Person
+from apps.services.utils import unique_slugify
 
 
 class Command(BaseCommand):
@@ -17,7 +18,7 @@ class Command(BaseCommand):
             '--date',
             type=str,
             default=None,
-            help='Date of the export file in "DD_MM_YYYY" format.',
+            help='Date of the export file in "MM_DD_YYYY" format.',
         )
 
         parser.add_argument(
@@ -78,34 +79,50 @@ class Command(BaseCommand):
             person_ids = specific_ids
 
         if kwargs['create']:
-            existing_ids = set(Person.objects.all().values_list('tmdb_id', flat=True))
+            existing_ids = set(Person.objects.only('tmdb_id').values_list('tmdb_id', flat=True))
             person_ids = [id for id in person_ids if id not in existing_ids]
 
         persons, missing_ids = asyncTMDB().batch_fetch_persons_by_id(person_ids[:limit], batch_size=batch_size, language=language)
-        count_created = count_updated = 0
+        person_objs = []
+        new_slugs = set()
 
-        for person in persons:
-            _, created = Person.objects.update_or_create(
-                tmdb_id=person['id'],
-                defaults={
-                    'name': person['name'],
-                    'imdb_id': person['imdb_id'] or '',
-                    'known_for_department': person['known_for_department'] or '',
-                    'biography': person['biography'] or '',
-                    'place_of_birth': person['place_of_birth'] or '',
-                    'gender': self.GENDERS[person['gender']],
-                    'birthday': date.fromisoformat(person['birthday']) if person['birthday'] else None,
-                    'deathday': date.fromisoformat(person['deathday']) if person['deathday'] else None,
-                    'profile_path': person['profile_path'] or '',
-                    'tmdb_popularity': person['popularity'],
-                },
+        for person_data in persons:
+            person = Person(
+                tmdb_id=person_data['id'],
+                name=person_data['name'],
+                imdb_id=person_data['imdb_id'] or '',
+                known_for_department=person_data['known_for_department'] or '',
+                biography=person_data['biography'] or '',
+                place_of_birth=person_data['place_of_birth'] or '',
+                gender=self.GENDERS[person_data['gender']],
+                birthday=date.fromisoformat(person_data['birthday']) if person_data['birthday'] else None,
+                deathday=date.fromisoformat(person_data['deathday']) if person_data['deathday'] else None,
+                profile_path=person_data['profile_path'] or '',
+                tmdb_popularity=person_data['popularity'],
             )
+            person.slug = unique_slugify(person, person.name, new_slugs)
+            person_objs.append(person)
+            new_slugs.add(person.slug)
 
-            if created:
-                count_created += 1
-            else:
-                count_updated += 1
+        Person.objects.bulk_create(
+            person_objs,
+            update_conflicts=True,
+            update_fields=(
+                'name',
+                'slug',
+                'imdb_id',
+                'known_for_department',
+                'biography',
+                'place_of_birth',
+                'gender',
+                'birthday',
+                'deathday',
+                'profile_path',
+                'tmdb_popularity',
+            ),
+            unique_fields=('tmdb_id',),
+        )
 
-        self.stdout.write(self.style.SUCCESS(f'Persons proccessed: {len(persons)} (created: {count_created}, updated: {count_updated})'))
+        self.stdout.write(self.style.SUCCESS(f'Persons processed: {len(persons)}'))
         if missing_ids:
             self.stdout.write(self.style.WARNING(f"Couldn't update/create: {len(missing_ids)} (IDs: {', '.join(map(str, missing_ids))})"))

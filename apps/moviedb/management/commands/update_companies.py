@@ -3,6 +3,7 @@ from django.core.management.base import BaseCommand
 from apps.moviedb.integrations.tmdb.api import asyncTMDB
 from apps.moviedb.integrations.tmdb.id_exports import IDExport
 from apps.moviedb.models import Country, ProductionCompany
+from apps.services.utils import unique_slugify
 
 
 class Command(BaseCommand):
@@ -13,7 +14,7 @@ class Command(BaseCommand):
             '--date',
             type=str,
             default=None,
-            help='Date of the export file in "DD_MM_YYYY" format.',
+            help='Date of the export file in "MM_DD_YYYY" format.',
         )
 
         parser.add_argument(
@@ -49,34 +50,41 @@ class Command(BaseCommand):
         else:
             company_ids = specific_ids
 
+        company_ids = company_ids[:10]
+        print(company_ids)
+
         if kwargs['create']:
-            existing_ids = set(ProductionCompany.objects.all().values_list('tmdb_id', flat=True))
+            existing_ids = set(ProductionCompany.objects.only('tmdb_id').values_list('tmdb_id', flat=True))
             company_ids = [id for id in company_ids if id not in existing_ids]
 
         companies, missing_ids = asyncTMDB().batch_fetch_companies_by_id(company_ids, batch_size=batch_size)
-        count_created = count_updated = 0
+        countries = {c.code for c in Country.objects.all()}
+        company_objs = []
+        new_slugs = set()
 
-        for company in companies:
-            country = None
-            if company['origin_country']:
-                country, _ = Country.objects.get_or_create(code=company['origin_country'], defaults={'name': 'unknown'})
+        for company_data in companies:
+            origin_country_code = company_data['origin_country']
+            if origin_country_code and origin_country_code not in countries:
+                Country.objects.create(code=origin_country_code, name='unknown')
+                countries.add(origin_country_code)
 
-            _, created = ProductionCompany.objects.update_or_create(
-                tmdb_id=company['id'],
-                defaults={
-                    'name': company['name'],
-                    'logo_path': company['logo_path'] or '',
-                    'origin_country': country,
-                },
+            company = ProductionCompany(
+                tmdb_id=company_data['id'],
+                name=company_data['name'],
+                logo_path=company_data['logo_path'] or '',
+                origin_country_id=origin_country_code or None,
             )
+            company.slug = unique_slugify(company, company.name, new_slugs)
+            company_objs.append(company)
+            new_slugs.add(company.slug)
 
-            if created:
-                count_created += 1
-            else:
-                count_updated += 1
-
-        self.stdout.write(
-            self.style.SUCCESS(f'Companies proccessed: {len(companies)} (created: {count_created}, updated: {count_updated})')
+        ProductionCompany.objects.bulk_create(
+            company_objs,
+            update_conflicts=True,
+            update_fields=('name', 'slug', 'logo_path', 'origin_country'),
+            unique_fields=('tmdb_id',),
         )
+
+        self.stdout.write(self.style.SUCCESS(f'Companies processed: {len(companies)}'))
         if missing_ids:
             self.stdout.write(self.style.WARNING(f"Couldn't update/create: {len(missing_ids)} (IDs: {', '.join(map(str, missing_ids))})"))

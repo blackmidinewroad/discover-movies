@@ -5,18 +5,18 @@ from django.core.management.base import BaseCommand
 from apps.moviedb import models
 from apps.moviedb.integrations.tmdb.api import asyncTMDB
 from apps.moviedb.integrations.tmdb.id_exports import IDExport
+from apps.services.utils import unique_slugify
 
 
 class Command(BaseCommand):
     help = 'Update movie table'
-    language_cache = {}
 
     def add_arguments(self, parser):
         parser.add_argument(
             '--date',
             type=str,
             default=None,
-            help='Date of the export file in "DD_MM_YYYY" format.',
+            help='Date of the export file in "MM_DD_YYYY" format.',
         )
 
         parser.add_argument(
@@ -74,7 +74,11 @@ class Command(BaseCommand):
         batch_size = kwargs['batch_size']
         language = kwargs['language']
         limit = kwargs['limit']
-        sort_by_popularity = ['sort_by_popularity']
+        sort_by_popularity = kwargs['sort_by_popularity']
+
+        self.countries = {c.code for c in models.Country.objects.all()}
+        languages = {l.code for l in models.Language.objects.all()}
+        genres = {g.tmdb_id for g in models.Genre.objects.all()}
 
         if kwargs['top_rated']:
             movie_ids = asyncTMDB().fetch_top_rated_movie_ids(last_page=500)
@@ -87,7 +91,7 @@ class Command(BaseCommand):
                 movie_ids = specific_ids
 
         if kwargs['create']:
-            existing_ids = set(models.Movie.objects.all().values_list('tmdb_id', flat=True))
+            existing_ids = set(models.Movie.objects.only('tmdb_id').values_list('tmdb_id', flat=True))
             movie_ids = [id for id in movie_ids if id not in existing_ids]
 
         movies, not_fetched_movie_ids = asyncTMDB().batch_fetch_movies_by_id(
@@ -97,149 +101,188 @@ class Command(BaseCommand):
             append_to_response=['credits'],
         )
 
-        existing_genres = set(models.Genre.objects.all().values_list('tmdb_id', flat=True))
-        existing_languages = set(models.Language.objects.all().values_list('code', flat=True))
-        existing_countries = set(models.Country.objects.all().values_list('code', flat=True))
-
         n_created_companies, not_fetched_company_ids = self.create_missing_companies(movies)
+        movie_map = {}
+        new_slugs = set()
 
-        count_created = count_updated = skipped = total_created_persons = 0
+        skipped = total_created_persons = 0
 
-        for movie in movies:
-            # Create missing persons before
-            cast = movie['credits']['cast']
-            crew = movie['credits']['crew']
-
-            n_created_persons, is_missing_persons = self.create_missing_persons(cast + crew)
+        for movie_data in movies:
+            # Create missing persons
+            n_created_persons, is_missing_persons = self.create_missing_persons(
+                movie_data['credits']['cast'] + movie_data['credits']['crew']
+            )
 
             total_created_persons += n_created_persons
 
             # If couldn't create all people from the movie - skip movie
             if is_missing_persons:
-                self.stdout.write(self.style.WARNING(f"Skipped «{movie['title']}» because couldn't create all people"))
+                self.stdout.write(self.style.WARNING(f"Skipped «{movie_data['title']}» because couldn't create all people"))
                 skipped += 1
                 continue
 
             # If couldn't create needed production companies - skip movie
-            company_ids = [company['id'] for company in movie['production_companies']]
+            company_ids = [company['id'] for company in movie_data['production_companies']]
             if not_fetched_company_ids and (set(not_fetched_company_ids) & set(company_ids)):
-                self.stdout.write(self.style.WARNING(f"Skipped «{movie['title']}» because couldn't create all companies"))
+                self.stdout.write(self.style.WARNING(f"Skipped «{movie_data['title']}» because couldn't create all companies"))
                 skipped += 1
                 continue
 
-            language = None
-            if movie['original_language']:
-                language, created = self.get_or_create_language(movie['original_language'])
-                if created:
-                    existing_languages.add(movie['original_language'])
+            origin_language_code = movie_data['original_language']
+            if origin_language_code and origin_language_code not in languages:
+                models.Language.objects.create(code=origin_language_code, name='unknown')
+                languages.add(origin_language_code)
 
             collection = None
-            if movie['belongs_to_collection']:
+            if movie_data['belongs_to_collection']:
                 collection, _ = models.Collection.objects.get_or_create(
-                    tmdb_id=movie['belongs_to_collection']['id'],
-                    defaults={'name': movie['belongs_to_collection']['name']},
+                    tmdb_id=movie_data['belongs_to_collection']['id'],
+                    defaults={'name': movie_data['belongs_to_collection']['name']},
                 )
 
-            movie_obj, created = models.Movie.objects.update_or_create(
-                tmdb_id=movie['id'],
-                defaults={
-                    'title': movie['title'],
-                    'imdb_id': movie['imdb_id'] or '',
-                    'release_date': date.fromisoformat(movie['release_date']) if movie['release_date'] else None,
-                    'original_title': movie['original_title'] or '',
-                    'original_language': language,
-                    'overview': movie['overview'] or '',
-                    'tagline': movie['tagline'] or '',
-                    'collection': collection,
-                    'poster_path': movie['poster_path'] or '',
-                    'backdrop_path': movie['backdrop_path'] or '',
-                    'status': movie['status'] or '',
-                    'budget': movie['budget'],
-                    'revenue': movie['revenue'],
-                    'runtime': movie['runtime'],
-                },
+            movie = models.Movie(
+                tmdb_id=movie_data['id'],
+                title=movie_data['title'],
+                imdb_id=movie_data['imdb_id'] or '',
+                release_date=date.fromisoformat(movie_data['release_date']) if movie_data['release_date'] else None,
+                original_title=movie_data['original_title'] or '',
+                original_language_id=origin_language_code or None,
+                overview=movie_data['overview'] or '',
+                tagline=movie_data['tagline'] or '',
+                collection=collection,
+                poster_path=movie_data['poster_path'] or '',
+                backdrop_path=movie_data['backdrop_path'] or '',
+                status=movie_data['status'] or '',
+                budget=movie_data['budget'],
+                revenue=movie_data['revenue'],
+                runtime=movie_data['runtime'],
             )
+            movie.slug = unique_slugify(movie, movie.title, new_slugs)
+            movie_map[movie.tmdb_id] = movie
+            new_slugs.add(movie.slug)
 
-            # Update many to many fields
+        models.Movie.objects.bulk_create(
+            tuple(movie_map.values()),
+            update_conflicts=True,
+            update_fields=(
+                'title',
+                'slug',
+                'imdb_id',
+                'release_date',
+                'original_title',
+                'original_language',
+                'overview',
+                'tagline',
+                'collection',
+                'poster_path',
+                'backdrop_path',
+                'status',
+                'budget',
+                'revenue',
+                'runtime',
+            ),
+            unique_fields=('tmdb_id',),
+        )
+
+        # Update many to many fields
+        genre_links = []
+        spoken_languages_links = []
+        origin_country_links = []
+        prod_countries_links = []
+        prod_companies_links = []
+        cast_relations = []
+        crew_relations = []
+
+        for movie_data in movies:
+            if movie_data['id'] not in movie_map:
+                continue
+
+            movie_id = movie_data['id']
+
             # Genres
-            genre_ids = []
-            for genre in movie['genres']:
-                if genre['id'] not in existing_genres:
-                    models.Genre.objects.create(tmdb_id=genre['id'], name=genre['name'])
-                    existing_genres.add(genre['id'])
+            for genre_data in movie_data['genres']:
+                genre_id = genre_data['id']
+                if genre_id not in genres:
+                    models.Genre.objects.create(tmdb_id=genre_id, name=genre_data['name'])
+                    genres.add(genre_id)
 
-                genre_ids.append(genre['id'])
-
-            movie_obj.genres.set(genre_ids)
+                genre_links.append(models.Movie.genres.through(movie_id=movie_id, genre_id=genre_id))
 
             # Spoken languages
-            spoken_language_codes = []
-            for spoken_language in movie['spoken_languages']:
-                if spoken_language['iso_639_1'] not in existing_languages:
-                    models.Language.objects.create(code=spoken_language['iso_639_1'], name=spoken_language['english_name'])
-                    existing_languages.add(spoken_language['iso_639_1'])
+            for spoken_language_data in movie_data['spoken_languages']:
+                spoken_language_code = spoken_language_data['iso_639_1']
+                if spoken_language_code not in languages:
+                    models.Language.objects.create(code=spoken_language_code, name=spoken_language_data['english_name'])
+                    languages.add(spoken_language_code)
 
-                spoken_language_codes.append(spoken_language['iso_639_1'])
-
-            movie_obj.spoken_languages.set(spoken_language_codes)
+                spoken_languages_links.append(models.Movie.spoken_languages.through(movie_id=movie_id, language_id=spoken_language_code))
 
             # Origin countries
-            origin_country_codes = []
-            for origin_country_code in movie['origin_country']:
-                if origin_country_code not in existing_countries:
+            for origin_country_code in movie_data['origin_country']:
+                if origin_country_code not in self.countries:
                     models.Country.objects.create(code=origin_country_code, name='unknown')
-                    existing_countries.add(origin_country_code)
+                    self.countries.add(origin_country_code)
 
-                origin_country_codes.append(origin_country_code)
-
-            movie_obj.origin_country.set(origin_country_codes)
-
-            # Production companies
-            movie_obj.production_companies.set(company_ids)
+                origin_country_links.append(models.Movie.origin_country.through(movie_id=movie_id, country_id=origin_country_code))
 
             # Production countries
-            prod_countries_codes = []
-            for prod_country in movie['production_countries']:
-                if prod_country['iso_3166_1'] not in existing_countries:
-                    models.Country.objects.create(code=prod_country['iso_3166_1'], name=prod_country['name'])
-                    existing_countries.add(prod_country['iso_3166_1'])
+            for prod_country in movie_data['production_countries']:
+                prod_country_code = prod_country['iso_3166_1']
+                if prod_country_code not in self.countries:
+                    models.Country.objects.create(code=prod_country_code, name=prod_country['name'])
+                    self.countries.add(prod_country_code)
 
-                prod_countries_codes.append(prod_country['iso_3166_1'])
+                prod_countries_links.append(models.Movie.production_countries.through(movie_id=movie_id, country_id=prod_country_code))
 
-            movie_obj.production_countries.set(prod_countries_codes)
-
-            # Update cast
-            models.MovieCast.objects.filter(movie=movie_obj).delete()
-
-            for cast_member in cast:
-                person = models.Person.objects.get(tmdb_id=cast_member['id'])
-                models.MovieCast.objects.create(
-                    movie=movie_obj,
-                    person=person,
-                    character=cast_member['character'] or '',
-                    order=cast_member['order'],
+            # Production companies
+            for prod_company in movie_data['production_companies']:
+                prod_companies_links.append(
+                    models.Movie.production_companies.through(movie_id=movie_id, productioncompany_id=prod_company['id'])
                 )
 
-            # Update crew
-            models.MovieCrew.objects.filter(movie=movie_obj).delete()
-
-            for crew_member in crew:
-                person = models.Person.objects.get(tmdb_id=crew_member['id'])
-                models.MovieCrew.objects.create(
-                    movie=movie_obj,
-                    person=person,
-                    department=crew_member['department'] or '',
-                    job=crew_member['job'] or '',
+            # Cast
+            for cast_member in movie_data['credits']['cast']:
+                cast_relations.append(
+                    models.MovieCast(
+                        movie_id=movie_id,
+                        person_id=cast_member['id'],
+                        character=cast_member['character'] or '',
+                        order=cast_member['order'],
+                    )
                 )
 
-            if created:
-                count_created += 1
-            else:
-                count_updated += 1
+            # Crew
+            for crew_member in movie_data['credits']['crew']:
+                crew_relations.append(
+                    models.MovieCrew(
+                        movie_id=movie_id,
+                        person_id=crew_member['id'],
+                        department=crew_member['department'] or '',
+                        job=crew_member['job'] or '',
+                    )
+                )
 
-        self.stdout.write(
-            self.style.SUCCESS(f'Movies proccessed: {len(movies)} (created: {count_created}, updated: {count_updated}, skipped: {skipped})')
-        )
+        movie_ids = set(movie_map)
+
+        # Delete existing links
+        models.Movie.genres.through.objects.filter(movie_id__in=movie_ids).delete()
+        models.Movie.spoken_languages.through.objects.filter(movie_id__in=movie_ids).delete()
+        models.Movie.origin_country.through.objects.filter(movie_id__in=movie_ids).delete()
+        models.Movie.production_countries.through.objects.filter(movie_id__in=movie_ids).delete()
+        models.Movie.production_companies.through.objects.filter(movie_id__in=movie_ids).delete()
+        models.MovieCast.objects.filter(movie_id__in=movie_ids).delete()
+        models.MovieCrew.objects.filter(movie_id__in=movie_ids).delete()
+
+        # Create new relations in bulk
+        models.Movie.genres.through.objects.bulk_create(genre_links)
+        models.Movie.spoken_languages.through.objects.bulk_create(spoken_languages_links)
+        models.Movie.origin_country.through.objects.bulk_create(origin_country_links)
+        models.Movie.production_countries.through.objects.bulk_create(prod_countries_links)
+        models.Movie.production_companies.through.objects.bulk_create(prod_companies_links)
+        models.MovieCast.objects.bulk_create(cast_relations)
+        models.MovieCrew.objects.bulk_create(crew_relations)
+
+        self.stdout.write(self.style.SUCCESS(f'Movies processed: {len(movies)} (skipped: {skipped})'))
         self.stdout.write(self.style.SUCCESS(f'Created persons: {total_created_persons}'))
         self.stdout.write(self.style.SUCCESS(f'Created companies: {n_created_companies}'))
         if not_fetched_movie_ids:
@@ -248,12 +291,6 @@ class Command(BaseCommand):
                     f"Couldn't update/create: {len(not_fetched_movie_ids)} (IDs: {', '.join(map(str, not_fetched_movie_ids))})"
                 )
             )
-
-    def get_or_create_language(self, code: str, name: str = 'unknown') -> tuple[str, bool]:
-        created = False
-        if code not in self.language_cache:
-            self.language_cache[code], created = models.Language.objects.get_or_create(code=code, defaults={'name': name})
-        return self.language_cache[code], created
 
     def create_missing_companies(self, movies: list[dict]) -> tuple[int, list[int] | None]:
         company_ids = {company['id'] for movie in movies for company in movie['production_companies']}
@@ -264,20 +301,31 @@ class Command(BaseCommand):
             return 0, None
 
         companies, not_fetched = asyncTMDB().batch_fetch_companies_by_id(missing_ids)
+        company_objs = []
+        new_slugs = set()
 
-        for company in companies:
-            country = None
-            if company['origin_country']:
-                country, _ = models.Country.objects.get_or_create(code=company['origin_country'], defaults={'name': 'unknown'})
+        for company_data in companies:
+            origin_country_code = company_data['origin_country']
+            if origin_country_code and origin_country_code not in self.countries:
+                models.Country.objects.create(code=origin_country_code, name='unknown')
+                self.countries.add(origin_country_code)
 
-            models.ProductionCompany.objects.update_or_create(
-                tmdb_id=company['id'],
-                defaults={
-                    'name': company['name'],
-                    'logo_path': company['logo_path'] or '',
-                    'origin_country': country,
-                },
+            company = models.ProductionCompany(
+                tmdb_id=company_data['id'],
+                name=company_data['name'],
+                logo_path=company_data['logo_path'] or '',
+                origin_country_id=origin_country_code or None,
             )
+            company.slug = unique_slugify(company, company.name, new_slugs)
+            company_objs.append(company)
+            new_slugs.add(company.slug)
+
+        models.ProductionCompany.objects.bulk_create(
+            company_objs,
+            update_conflicts=True,
+            update_fields=('name', 'slug', 'logo_path', 'origin_country'),
+            unique_fields=('tmdb_id',),
+        )
 
         return len(companies), not_fetched
 
@@ -292,22 +340,44 @@ class Command(BaseCommand):
             return 0, False
 
         persons, not_fetched = asyncTMDB().batch_fetch_persons_by_id(missing_ids)
+        person_objs = []
+        new_slugs = set()
 
-        for person in persons:
-            models.Person.objects.update_or_create(
-                tmdb_id=person['id'],
-                defaults={
-                    'name': person['name'],
-                    'imdb_id': person['imdb_id'] or '',
-                    'known_for_department': person['known_for_department'] or '',
-                    'biography': person['biography'] or '',
-                    'place_of_birth': person['place_of_birth'] or '',
-                    'gender': GENDERS[person['gender']],
-                    'birthday': date.fromisoformat(person['birthday']) if person['birthday'] else None,
-                    'deathday': date.fromisoformat(person['deathday']) if person['deathday'] else None,
-                    'profile_path': person['profile_path'] or '',
-                    'tmdb_popularity': person['popularity'],
-                },
+        for person_data in persons:
+            person = models.Person(
+                tmdb_id=person_data['id'],
+                name=person_data['name'],
+                imdb_id=person_data['imdb_id'] or '',
+                known_for_department=person_data['known_for_department'] or '',
+                biography=person_data['biography'] or '',
+                place_of_birth=person_data['place_of_birth'] or '',
+                gender=GENDERS[person_data['gender']],
+                birthday=date.fromisoformat(person_data['birthday']) if person_data['birthday'] else None,
+                deathday=date.fromisoformat(person_data['deathday']) if person_data['deathday'] else None,
+                profile_path=person_data['profile_path'] or '',
+                tmdb_popularity=person_data['popularity'],
             )
+            person.slug = unique_slugify(person, person.name, new_slugs)
+            person_objs.append(person)
+            new_slugs.add(person.slug)
+
+        models.Person.objects.bulk_create(
+            person_objs,
+            update_conflicts=True,
+            update_fields=(
+                'name',
+                'slug',
+                'imdb_id',
+                'known_for_department',
+                'biography',
+                'place_of_birth',
+                'gender',
+                'birthday',
+                'deathday',
+                'profile_path',
+                'tmdb_popularity',
+            ),
+            unique_fields=('tmdb_id',),
+        )
 
         return len(persons), bool(not_fetched)

@@ -70,7 +70,7 @@ class IDExport:
                 - 'network': For TV network IDs
                 - 'keyword': For keyword IDs
                 - 'company': For production company IDs
-            published_date (str, optional): date of the export file in 'DD_MM_YYYY' format. Defaults to None.
+            published_date (str, optional): date of the export file in 'MM_DD_YYYY' format. Defaults to None.
                 If not provided, uses the most recent available file.
             sort_by_popularity (bool, optional): sort IDs by popularity if possible. Defaults to False.
 

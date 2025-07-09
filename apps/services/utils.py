@@ -2,8 +2,11 @@ from django.template.defaultfilters import slugify
 from unidecode import unidecode
 
 
-def unique_slugify(instance, value):
+def unique_slugify(instance, value: str, cur_bulk_slugs: set[str] = None):
     """Generate unique slug for models"""
+
+    if cur_bulk_slugs is None:
+        cur_bulk_slugs = set()
 
     model = instance.__class__
 
@@ -14,7 +17,7 @@ def unique_slugify(instance, value):
     slug_field = og_slug = slugify(ascii_text)[:57]
 
     counter = 1
-    while model.objects.filter(slug=slug_field).exclude(pk=instance.pk).exists():
+    while model.objects.filter(slug=slug_field).exclude(pk=instance.pk).exists() or slug_field in cur_bulk_slugs:
         slug_field = f'{og_slug}-{counter}'
         counter += 1
 

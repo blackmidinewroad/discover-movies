@@ -25,7 +25,7 @@ class LanguageAdmin(admin.ModelAdmin):
 class GenreAdmin(admin.ModelAdmin):
     """Admin panel for genre"""
 
-    list_display = ('name',)
+    list_display = ('name', 'tmdb_id')
     search_fields = ('name', 'tmdb_id')
     prepopulated_fields = {'slug': ('name',)}
 
@@ -34,7 +34,7 @@ class GenreAdmin(admin.ModelAdmin):
 class ProductionCompanyAdmin(admin.ModelAdmin):
     """Admin panel for production company"""
 
-    list_display = ('name', 'origin_country')
+    list_display = ('name', 'origin_country', 'tmdb_id')
     search_fields = ('name', 'tmdb_id')
     prepopulated_fields = {'slug': ('name',)}
     ordering = ['name']
@@ -44,7 +44,7 @@ class ProductionCompanyAdmin(admin.ModelAdmin):
 class CollectionAdmin(admin.ModelAdmin):
     """Admin panel for collection"""
 
-    list_display = ('name',)
+    list_display = ('name', 'tmdb_id')
     search_fields = ('name', 'tmdb_id')
     prepopulated_fields = {'slug': ('name',)}
     ordering = ['name']
@@ -74,7 +74,7 @@ class MovieEngagementAdmin(admin.ModelAdmin):
     """Admin panel for movie engagement"""
 
     list_display = ('movie', 'lb_rating')
-    search_fields = ('movie',)
+    search_fields = ('movie__name',)
     ordering = ['movie']
 
 
@@ -93,7 +93,7 @@ class MovieCastAdmin(admin.ModelAdmin):
     """Admin panel for casts"""
 
     list_display = ('person', 'character', 'movie')
-    search_fields = ('person', 'character', 'movie')
+    search_fields = ('person__name', 'character', 'movie__title')
     ordering = ['order']
 
 
@@ -102,5 +102,5 @@ class MovieCrewAdmin(admin.ModelAdmin):
     """Admin panel for crews"""
 
     list_display = ('person', 'movie', 'department', 'job')
-    search_fields = ('person', 'movie')
+    search_fields = ('person__name', 'movie__title')
     ordering = ['person']
