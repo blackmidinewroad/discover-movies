@@ -36,10 +36,20 @@ class Command(BaseCommand):
         )
 
         parser.add_argument(
+            '--days',
+            type=int,
+            default=None,
+            help=(
+                'Changes made in past _ days (max. 14, only works with update_changed operation).'
+                'By default changes will be fetched for the past 24 hours.'
+            ),
+        )
+
+        parser.add_argument(
             '--batch_size',
             type=int,
             default=100,
-            help='Number of persons to fetch per batch.',
+            help='Number of persons to fetch per batch. Defaults to 100.',
         )
 
         parser.add_argument(
@@ -72,8 +82,9 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         operation = options['operation']
-        published_date = options['date']
         ids = options['ids']
+        published_date = options['date']
+        days = options['days']
         batch_size = options['batch_size']
         language = options['language']
         limit = options['limit']
@@ -87,7 +98,7 @@ class Command(BaseCommand):
             case 'update_changed':
                 if only_create:
                     raise CommandError("Can't use --create with update_changed operation")
-                person_ids = []
+                person_ids = asyncTMDB().fetch_changed_ids('person', days=days)
                 person_ids = [id for id in person_ids if id in existing_ids]
             case 'daily_export':
                 person_ids = IDExport().fetch_ids('person', published_date=published_date, sort_by_popularity=sort_by_popularity)

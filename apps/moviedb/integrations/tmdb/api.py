@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+from datetime import datetime, timedelta, timezone
 from urllib.parse import urlencode, urljoin
 
 import aiohttp
@@ -305,7 +306,7 @@ class asyncTMDB(BaseTMDB):
                 logging.warning(f"{self.colors.YELLOW} Couldn't fetch\n{self.colors.BLUE}path: {path}\nparams: {params}{self.colors.RESET}")
                 return path.split('/')[-1]
 
-    async def _batch_fetch(self, task_details: list[dict], const_params: dict = None) -> tuple[list[dict], list[int]]:
+    async def _batch_fetch(self, task_details: list[str, dict] | list[str], const_params: dict = None) -> tuple[list[dict], list[int]]:
         """Batch fetch data asynchronously"""
 
         results = []
@@ -331,7 +332,7 @@ class asyncTMDB(BaseTMDB):
 
     async def _batch_fetch_details(
         self,
-        paths: tuple[str],
+        paths: list[str],
         language: str = None,
         append_to_response: list[str] = None,
         batch_size: int = 100,
@@ -376,7 +377,7 @@ class asyncTMDB(BaseTMDB):
             tuple[list[dict], list[int]]: list of movies with details and list of not fetched IDs.
         """
 
-        paths = tuple(f'movie/{movie_id}' for movie_id in movie_ids)
+        paths = [f'movie/{movie_id}' for movie_id in movie_ids]
 
         return asyncio.run(
             self._batch_fetch_details(
@@ -406,7 +407,7 @@ class asyncTMDB(BaseTMDB):
             tuple[list[dict], list[int]]: list of persons with details and list of not fetched IDs.
         """
 
-        paths = tuple(f'person/{person_id}' for person_id in person_ids)
+        paths = [f'person/{person_id}' for person_id in person_ids]
 
         return asyncio.run(
             self._batch_fetch_details(
@@ -430,7 +431,7 @@ class asyncTMDB(BaseTMDB):
             tuple[list[dict], list[int]]: list of companies with details and list of not fetched IDs.
         """
 
-        paths = tuple(f'company/{company_id}' for company_id in company_ids)
+        paths = [f'company/{company_id}' for company_id in company_ids]
 
         return asyncio.run(self._batch_fetch_details(paths=paths, batch_size=batch_size))
 
@@ -448,7 +449,7 @@ class asyncTMDB(BaseTMDB):
             tuple[list[dict], list[int]]: list of collections with details and list of not fetched IDs.
         """
 
-        paths = tuple(f'collection/{collection_id}' for collection_id in collection_ids)
+        paths = [f'collection/{collection_id}' for collection_id in collection_ids]
 
         return asyncio.run(self._batch_fetch_details(paths=paths, language=language, batch_size=batch_size))
 
@@ -457,7 +458,8 @@ class asyncTMDB(BaseTMDB):
         path: str,
         first_page: int,
         last_page: int,
-        language: str,
+        dates: dict = None,
+        language: str = 'en-US',
         region: str = None,
         batch_size: int = 100,
     ) -> list[dict]:
@@ -466,7 +468,15 @@ class asyncTMDB(BaseTMDB):
         if last_page is None:
             last_page = first_page
 
+        if dates is None:
+            dates = {}
+
         task_details = tuple((path, {'page': page, 'language': language, 'region': region}) for page in range(first_page, last_page + 1))
+        task_details = []
+        for page in range(first_page, last_page + 1):
+            detail = {'page': page, 'language': language, 'region': region}
+            detail.update(dates)
+            task_details.append((path, detail))
 
         all_pages = []
 
@@ -648,3 +658,36 @@ class asyncTMDB(BaseTMDB):
                 batch_size=batch_size,
             )
         )
+
+    def fetch_changed_ids(self, ids_type: str, days: int = None, batch_size: int = 100) -> list[int]:
+        if ids_type not in ('movie', 'person'):
+            raise ValueError("Invalid ids_type, must be 'movie' or 'person'.")
+
+        path = f'{ids_type}/changes'
+
+        if days is not None:
+            end_date = datetime.now(timezone.utc)
+            start_date = end_date - timedelta(days)
+            params = {'start_date': str(start_date.date()), 'end_date': str(end_date.date())}
+        else:
+            params = {}
+
+        first_page_data = TMDB()._fetch_data(path=path, params=params)
+        total_pages = first_page_data['total_pages']
+
+        data = asyncio.run(
+            self._batch_discover(
+                path=path,
+                first_page=1,
+                last_page=min(total_pages, 500),  # Max. page is 500
+                dates=params,
+                batch_size=batch_size,
+            )
+        )
+
+        if ids_type == 'movie':
+            ids = [movie['id'] for page in data for movie in page['results'] if not movie['adult']]
+        elif ids_type == 'person':
+            ids = [person['id'] for page in data for person in page['results']]
+
+        return ids

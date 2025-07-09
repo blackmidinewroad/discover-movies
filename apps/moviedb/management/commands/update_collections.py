@@ -20,7 +20,7 @@ class Command(BaseCommand):
             '--batch_size',
             type=int,
             default=100,
-            help='Number of collections to fetch per batch.',
+            help='Number of collections to fetch per batch. Defaults to 100.',
         )
 
         parser.add_argument(
