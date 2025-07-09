@@ -50,6 +50,16 @@ class CollectionAdmin(admin.ModelAdmin):
     ordering = ['name']
 
 
+@admin.register(models.Person)
+class PersonAdmin(admin.ModelAdmin):
+    """Admin panel for person"""
+
+    list_display = ('name', 'known_for_department')
+    search_fields = ('name', 'tmdb_id')
+    prepopulated_fields = {'slug': ('name',)}
+    ordering = ['-tmdb_popularity']
+
+
 @admin.register(models.Movie)
 class MovieAdmin(admin.ModelAdmin):
     """Admin panel for movie"""
@@ -84,22 +94,13 @@ class MovieEngagementAdmin(admin.ModelAdmin):
     ordering = ['movie']
 
 
-@admin.register(models.Person)
-class PersonAdmin(admin.ModelAdmin):
-    """Admin panel for person"""
-
-    list_display = ('name', 'known_for_department')
-    search_fields = ('name', 'tmdb_id')
-    prepopulated_fields = {'slug': ('name',)}
-    ordering = ['-tmdb_popularity']
-
-
 @admin.register(models.MovieCast)
 class MovieCastAdmin(admin.ModelAdmin):
     """Admin panel for casts"""
 
     list_display = ('person', 'character', 'movie')
     search_fields = ('person__name', 'character', 'movie__title')
+    autocomplete_fields = ['movie', 'person']
     ordering = ['order']
 
 
@@ -109,4 +110,5 @@ class MovieCrewAdmin(admin.ModelAdmin):
 
     list_display = ('person', 'movie', 'department', 'job')
     search_fields = ('person__name', 'movie__title')
+    autocomplete_fields = ['movie', 'person']
     ordering = ['person']

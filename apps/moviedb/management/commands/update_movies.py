@@ -161,6 +161,8 @@ class Command(BaseCommand):
             movie_map[movie.tmdb_id] = movie
             new_slugs.add(movie.slug)
 
+            print(movie.title, movie.pk)
+
         models.Movie.objects.bulk_create(
             tuple(movie_map.values()),
             update_conflicts=True,
@@ -192,6 +194,7 @@ class Command(BaseCommand):
         prod_companies_links = []
         cast_relations = []
         crew_relations = []
+        directors_links = []
 
         for movie_data in movies:
             if movie_data['id'] not in movie_map:
@@ -251,8 +254,11 @@ class Command(BaseCommand):
                     )
                 )
 
-            # Crew
+            # Crew and directors
             for crew_member in movie_data['credits']['crew']:
+                if crew_member['job'] == 'Director':
+                    directors_links.append(models.Movie.directors.through(movie_id=movie_id, person_id=crew_member['id']))
+
                 crew_relations.append(
                     models.MovieCrew(
                         movie_id=movie_id,
@@ -270,6 +276,7 @@ class Command(BaseCommand):
         models.Movie.origin_country.through.objects.filter(movie_id__in=movie_ids).delete()
         models.Movie.production_countries.through.objects.filter(movie_id__in=movie_ids).delete()
         models.Movie.production_companies.through.objects.filter(movie_id__in=movie_ids).delete()
+        models.Movie.directors.through.objects.filter(movie_id__in=movie_ids).delete()
         models.MovieCast.objects.filter(movie_id__in=movie_ids).delete()
         models.MovieCrew.objects.filter(movie_id__in=movie_ids).delete()
 
@@ -279,6 +286,7 @@ class Command(BaseCommand):
         models.Movie.origin_country.through.objects.bulk_create(origin_country_links, ignore_conflicts=True)
         models.Movie.production_countries.through.objects.bulk_create(prod_countries_links, ignore_conflicts=True)
         models.Movie.production_companies.through.objects.bulk_create(prod_companies_links, ignore_conflicts=True)
+        models.Movie.directors.through.objects.bulk_create(directors_links, ignore_conflicts=True)
         models.MovieCast.objects.bulk_create(cast_relations, ignore_conflicts=True)
         models.MovieCrew.objects.bulk_create(crew_relations, ignore_conflicts=True)
 
