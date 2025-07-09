@@ -2,7 +2,6 @@ from django.core.management.base import BaseCommand
 
 from apps.moviedb.integrations.tmdb.api import TMDB
 from apps.moviedb.models import Genre
-from apps.services.utils import unique_slugify
 
 
 class Command(BaseCommand):
@@ -25,7 +24,7 @@ class Command(BaseCommand):
 
         for genre_data in genres:
             genre = Genre(tmdb_id=genre_data['id'], name=genre_data['name'])
-            genre.slug = unique_slugify(genre, genre.name, new_slugs)
+            genre.set_slug(genre.name, new_slugs)
             genre_objs.append(genre)
             new_slugs.add(genre.slug)
 

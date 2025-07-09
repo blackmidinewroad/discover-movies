@@ -5,7 +5,6 @@ from django.core.management.base import BaseCommand
 from apps.moviedb import models
 from apps.moviedb.integrations.tmdb.api import asyncTMDB
 from apps.moviedb.integrations.tmdb.id_exports import IDExport
-from apps.services.utils import unique_slugify
 
 
 class Command(BaseCommand):
@@ -157,7 +156,7 @@ class Command(BaseCommand):
                 revenue=movie_data['revenue'],
                 runtime=movie_data['runtime'],
             )
-            movie.slug = unique_slugify(movie, movie.title, new_slugs)
+            movie.set_slug(movie.title, new_slugs)
             movie_map[movie.tmdb_id] = movie
             new_slugs.add(movie.slug)
 
@@ -274,13 +273,13 @@ class Command(BaseCommand):
         models.MovieCrew.objects.filter(movie_id__in=movie_ids).delete()
 
         # Create new relations in bulk
-        models.Movie.genres.through.objects.bulk_create(genre_links)
-        models.Movie.spoken_languages.through.objects.bulk_create(spoken_languages_links)
-        models.Movie.origin_country.through.objects.bulk_create(origin_country_links)
-        models.Movie.production_countries.through.objects.bulk_create(prod_countries_links)
-        models.Movie.production_companies.through.objects.bulk_create(prod_companies_links)
-        models.MovieCast.objects.bulk_create(cast_relations)
-        models.MovieCrew.objects.bulk_create(crew_relations)
+        models.Movie.genres.through.objects.bulk_create(genre_links, ignore_conflicts=True)
+        models.Movie.spoken_languages.through.objects.bulk_create(spoken_languages_links, ignore_conflicts=True)
+        models.Movie.origin_country.through.objects.bulk_create(origin_country_links, ignore_conflicts=True)
+        models.Movie.production_countries.through.objects.bulk_create(prod_countries_links, ignore_conflicts=True)
+        models.Movie.production_companies.through.objects.bulk_create(prod_companies_links, ignore_conflicts=True)
+        models.MovieCast.objects.bulk_create(cast_relations, ignore_conflicts=True)
+        models.MovieCrew.objects.bulk_create(crew_relations, ignore_conflicts=True)
 
         self.stdout.write(self.style.SUCCESS(f'Movies processed: {len(movies)} (skipped: {skipped})'))
         self.stdout.write(self.style.SUCCESS(f'Created persons: {total_created_persons}'))
@@ -316,7 +315,7 @@ class Command(BaseCommand):
                 logo_path=company_data['logo_path'] or '',
                 origin_country_id=origin_country_code or None,
             )
-            company.slug = unique_slugify(company, company.name, new_slugs)
+            company.set_slug(company.name, new_slugs)
             company_objs.append(company)
             new_slugs.add(company.slug)
 
@@ -357,7 +356,7 @@ class Command(BaseCommand):
                 profile_path=person_data['profile_path'] or '',
                 tmdb_popularity=person_data['popularity'],
             )
-            person.slug = unique_slugify(person, person.name, new_slugs)
+            person.set_slug(person.name, new_slugs)
             person_objs.append(person)
             new_slugs.add(person.slug)
 

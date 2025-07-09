@@ -5,7 +5,6 @@ from django.core.management.base import BaseCommand
 from apps.moviedb.integrations.tmdb.api import asyncTMDB
 from apps.moviedb.integrations.tmdb.id_exports import IDExport
 from apps.moviedb.models import Person
-from apps.services.utils import unique_slugify
 
 
 class Command(BaseCommand):
@@ -100,7 +99,7 @@ class Command(BaseCommand):
                 profile_path=person_data['profile_path'] or '',
                 tmdb_popularity=person_data['popularity'],
             )
-            person.slug = unique_slugify(person, person.name, new_slugs)
+            person.set_slug(person.name, new_slugs)
             person_objs.append(person)
             new_slugs.add(person.slug)
 

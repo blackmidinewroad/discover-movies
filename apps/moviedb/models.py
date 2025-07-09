@@ -4,12 +4,34 @@ from django.urls import reverse
 from apps.services.utils import unique_slugify
 
 
-class Country(models.Model):
+class SlugMixin(models.Model):
+    slug = models.SlugField(max_length=60, unique=True, blank=True)
+
+    # By default use "name" field to create slug
+    slug_source_field = 'name'
+
+    class Meta:
+        abstract = True
+
+    def save(self, *args, **kwargs):
+        """Create unique slug on save"""
+
+        value = getattr(self, self.slug_source_field)
+        self.slug = unique_slugify(self, value)
+        super().save(*args, **kwargs)
+
+    def set_slug(self, value: str, cur_bulk_slugs: set[str] = None) -> None:
+        """Set slug manually when save() is not called"""
+
+        value = getattr(self, self.slug_source_field)
+        self.slug = unique_slugify(self, value, cur_bulk_slugs=cur_bulk_slugs)
+
+
+class Country(SlugMixin):
     """Countries with ISO 3166-1 alpha-2 codes"""
 
     code = models.CharField(max_length=2, primary_key=True)
     name = models.CharField(max_length=64)
-    slug = models.SlugField(max_length=60, unique=True, blank=True)
 
     class Meta:
         verbose_name_plural = 'countries'
@@ -24,19 +46,12 @@ class Country(models.Model):
 
         return reverse('movies_by_country', kwargs={'slug': self.slug})
 
-    def save(self, *args, **kwargs):
-        """Create unique slug on save"""
 
-        self.slug = unique_slugify(self, self.name)
-        super().save(*args, **kwargs)
-
-
-class Language(models.Model):
+class Language(SlugMixin):
     """Languages with ISO 639-1 codes"""
 
     code = models.CharField(max_length=2, primary_key=True)
     name = models.CharField(max_length=128)
-    slug = models.SlugField(max_length=60, unique=True, blank=True)
 
     class Meta:
         verbose_name_plural = 'languages'
@@ -51,19 +66,12 @@ class Language(models.Model):
 
         return reverse('movies_by_language', kwargs={'slug': self.slug})
 
-    def save(self, *args, **kwargs):
-        """Create unique slug on save"""
 
-        self.slug = unique_slugify(self, self.name)
-        super().save(*args, **kwargs)
-
-
-class Genre(models.Model):
+class Genre(SlugMixin):
     """Genre of movies model"""
 
     tmdb_id = models.IntegerField(primary_key=True)
     name = models.CharField(max_length=32)
-    slug = models.SlugField(max_length=60, unique=True, blank=True)
 
     class Meta:
         verbose_name_plural = 'genres'
@@ -78,19 +86,13 @@ class Genre(models.Model):
 
         return reverse('movies_by_genre', kwargs={'slug': self.slug})
 
-    def save(self, *args, **kwargs):
-        """Create unique slug on save"""
 
-        self.slug = unique_slugify(self, self.name)
-        super().save(*args, **kwargs)
-
-
-class ProductionCompany(models.Model):
+class ProductionCompany(SlugMixin):
     """Production company model"""
 
     tmdb_id = models.IntegerField(primary_key=True)
     name = models.CharField(max_length=256)
-    slug = models.SlugField(max_length=60, unique=True, blank=True)
+
     logo_path = models.CharField(max_length=64, blank=True, default='')
     origin_country = models.ForeignKey(Country, on_delete=models.SET_NULL, null=True, blank=True, related_name='companies')
 
@@ -108,19 +110,13 @@ class ProductionCompany(models.Model):
 
         return reverse('movies_by_prod_company', kwargs={'slug': self.slug})
 
-    def save(self, *args, **kwargs):
-        """Create unique slug on save"""
 
-        self.slug = unique_slugify(self, self.name)
-        super().save(*args, **kwargs)
-
-
-class Collection(models.Model):
+class Collection(SlugMixin):
     """Collection of movies model"""
 
     tmdb_id = models.IntegerField(primary_key=True)
     name = models.CharField(max_length=256)
-    slug = models.SlugField(max_length=60, unique=True, blank=True)
+
     overview = models.TextField(blank=True, default='')
     poster_path = models.CharField(max_length=64, blank=True, default='')
     backdrop_path = models.CharField(max_length=64, blank=True, default='')
@@ -138,24 +134,67 @@ class Collection(models.Model):
 
         return reverse('movie_collection', kwargs={'slug': self.slug})
 
-    def save(self, *args, **kwargs):
-        """Create unique slug on save"""
 
-        self.slug = unique_slugify(self, self.name)
-        super().save(*args, **kwargs)
+class Person(SlugMixin):
+    """Any people invovlved in making movies (e. g. actors, directors, writers)"""
+
+    tmdb_id = models.IntegerField(primary_key=True)
+    name = models.CharField(max_length=512)
+
+    imdb_id = models.CharField(max_length=16, blank=True, default='')
+
+    known_for_department = models.CharField(max_length=64, blank=True, default='')
+    biography = models.TextField(blank=True, default='')
+    place_of_birth = models.CharField(max_length=256, blank=True, default='')
+
+    GENDER_OPTIONS = (
+        ('', 'Unknown'),
+        ('F', 'Female'),
+        ('M', 'Male'),
+        ('NB', 'Non-binary'),
+    )
+
+    gender = models.CharField(max_length=2, choices=GENDER_OPTIONS, blank=True, default='')
+
+    birthday = models.DateField(null=True, blank=True)
+    deathday = models.DateField(null=True, blank=True)
+
+    profile_path = models.CharField(max_length=64, blank=True, default='')
+
+    tmdb_popularity = models.FloatField(blank=True, default=0.0)
+
+    class Meta:
+        verbose_name_plural = 'persons'
+        ordering = ['name']
+        indexes = [
+            models.Index(fields=['name']),
+            models.Index(fields=['slug']),
+            models.Index(fields=['-tmdb_popularity']),
+        ]
+
+    def __str__(self):
+        return self.name
 
 
-class Movie(models.Model):
+class Movie(SlugMixin):
     """Movie model"""
 
     tmdb_id = models.IntegerField(primary_key=True)
     title = models.CharField(max_length=512)
-    slug = models.SlugField(max_length=60, unique=True, blank=True)
+
+    # Use title to create slug
+    slug_source_field = 'title'
+
     imdb_id = models.CharField(max_length=16, blank=True, default='')
+
+    directors = models.ManyToManyField(Person, blank=True, related_name='directed_movies')
 
     release_date = models.DateField(null=True, blank=True)
 
     genres = models.ManyToManyField(Genre, blank=True, related_name='movies')
+
+    is_documentary = models.BooleanField(blank=True, default=False)
+    is_tv_movie = models.BooleanField(blank=True, default=False)
 
     original_title = models.CharField(max_length=512, blank=True, default='')
     original_language = models.ForeignKey(
@@ -191,11 +230,15 @@ class Movie(models.Model):
 
     status = models.CharField(max_length=32, choices=STATUS_OPTIONS, blank=True, default='')
 
+    # Budget and revenue in USD
     budget = models.BigIntegerField(blank=True, default=0)
     revenue = models.BigIntegerField(blank=True, default=0)
 
     # Runtime in minutes
     runtime = models.PositiveIntegerField(blank=True, default=0)
+
+    # Is this a short movie (<= 40 mins)
+    is_short = models.BooleanField(blank=True, default=False)
 
     class Meta:
         verbose_name_plural = 'movies'
@@ -264,49 +307,6 @@ class MovieEngagement(models.Model):
 
     def __str__(self):
         return f'{self.movie} engagement'
-
-
-class Person(models.Model):
-    """Any people invovlved in making movies (e. g. actors, directors, writers)"""
-
-    tmdb_id = models.IntegerField(primary_key=True)
-    name = models.CharField(max_length=512)
-    slug = models.SlugField(max_length=60, unique=True, blank=True)
-    imdb_id = models.CharField(max_length=16, blank=True, default='')
-
-    known_for_department = models.CharField(max_length=64, blank=True, default='')
-    biography = models.TextField(blank=True, default='')
-    place_of_birth = models.CharField(max_length=256, blank=True, default='')
-
-    GENDER_OPTIONS = (
-        ('', 'Unknown'),
-        ('F', 'Female'),
-        ('M', 'Male'),
-        ('NB', 'Non-binary'),
-    )
-
-    gender = models.CharField(max_length=2, choices=GENDER_OPTIONS, blank=True, default='')
-
-    birthday = models.DateField(null=True, blank=True)
-    deathday = models.DateField(null=True, blank=True)
-
-    profile_path = models.CharField(max_length=64, blank=True, default='')
-
-    tmdb_popularity = models.FloatField(blank=True, default=0.0)
-
-    class Meta:
-        verbose_name_plural = 'persons'
-        ordering = ['name']
-        indexes = [models.Index(fields=['name']), models.Index(fields=['slug']), models.Index(fields=['-tmdb_popularity'])]
-
-    def __str__(self):
-        return self.name
-
-    def save(self, *args, **kwargs):
-        """Create unique slug on save"""
-
-        self.slug = unique_slugify(self, self.name)
-        super().save(*args, **kwargs)
 
 
 class MovieCast(models.Model):

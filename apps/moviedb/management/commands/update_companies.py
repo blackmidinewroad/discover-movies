@@ -3,7 +3,6 @@ from django.core.management.base import BaseCommand
 from apps.moviedb.integrations.tmdb.api import asyncTMDB
 from apps.moviedb.integrations.tmdb.id_exports import IDExport
 from apps.moviedb.models import Country, ProductionCompany
-from apps.services.utils import unique_slugify
 
 
 class Command(BaseCommand):
@@ -50,9 +49,6 @@ class Command(BaseCommand):
         else:
             company_ids = specific_ids
 
-        company_ids = company_ids[:10]
-        print(company_ids)
-
         if kwargs['create']:
             existing_ids = set(ProductionCompany.objects.only('tmdb_id').values_list('tmdb_id', flat=True))
             company_ids = [id for id in company_ids if id not in existing_ids]
@@ -74,7 +70,7 @@ class Command(BaseCommand):
                 logo_path=company_data['logo_path'] or '',
                 origin_country_id=origin_country_code or None,
             )
-            company.slug = unique_slugify(company, company.name, new_slugs)
+            company.set_slug(company.name, new_slugs)
             company_objs.append(company)
             new_slugs.add(company.slug)
 

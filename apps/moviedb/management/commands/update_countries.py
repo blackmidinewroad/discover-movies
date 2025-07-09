@@ -2,7 +2,6 @@ from django.core.management.base import BaseCommand
 
 from apps.moviedb.integrations.tmdb.api import TMDB
 from apps.moviedb.models import Country
-from apps.services.utils import unique_slugify
 
 
 class Command(BaseCommand):
@@ -25,7 +24,7 @@ class Command(BaseCommand):
 
         for country_data in countries:
             country = Country(code=country_data['iso_3166_1'], name=country_data['english_name'])
-            country.slug = unique_slugify(country, country.name, new_slugs)
+            country.set_slug(country.name, new_slugs)
             country_objs.append(country)
             new_slugs.add(country.slug)
 

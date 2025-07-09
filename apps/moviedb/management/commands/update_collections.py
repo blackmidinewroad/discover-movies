@@ -3,7 +3,6 @@ from django.core.management.base import BaseCommand
 from apps.moviedb.integrations.tmdb.api import asyncTMDB
 from apps.moviedb.integrations.tmdb.id_exports import IDExport
 from apps.moviedb.models import Collection
-from apps.services.utils import unique_slugify
 
 
 class Command(BaseCommand):
@@ -74,7 +73,7 @@ class Command(BaseCommand):
                 poster_path=collection_data['poster_path'] or '',
                 backdrop_path=collection_data['backdrop_path'] or '',
             )
-            collection.slug = unique_slugify(collection, collection.name, new_slugs)
+            collection.set_slug(collection.name, new_slugs)
             collection_objs.append(collection)
             new_slugs.add(collection.slug)
 
