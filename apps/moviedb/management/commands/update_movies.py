@@ -79,6 +79,10 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        import time
+
+        start = time.perf_counter()
+
         operation = options['operation']
         ids = options['ids']
         published_date = options['date']
@@ -124,12 +128,20 @@ class Command(BaseCommand):
         languages = {l.code for l in models.Language.objects.all()}
         genres = {g.tmdb_id for g in models.Genre.objects.all()}
 
+        # Create missing persons
+        credits = []
+        for movie_data in movies:
+            credits.extend(movie_data['credits']['cast'] + movie_data['credits']['crew'])
+        n_created_persons, not_fetched_person_ids = self.create_missing_persons(credits)
+
+        # Create missing companies
         n_created_companies, not_fetched_company_ids = self.create_missing_companies(movies)
 
         # Keep track of new slugs to create unique slugs
         new_slugs = set()
 
-        skipped = total_created_persons = 0
+        # Skipped movies counter
+        skipped = 0
 
         # Links to update many to many fields
         genre_links = []
@@ -141,27 +153,23 @@ class Command(BaseCommand):
         crew_relations = []
         directors_links = []
 
-        # Store movie IDs and objects for bulk_create {'movie_id': movie_obj}
+        # Store movie IDs and objects for bulk_create {movie_id: movie_obj}
         movie_map = {}
 
         for movie_data in movies:
-            # Create missing persons
-            n_created_persons, is_missing_persons = self.create_missing_persons(
-                movie_data['credits']['cast'] + movie_data['credits']['crew']
-            )
-
-            total_created_persons += n_created_persons
-
-            # If couldn't create all people from the movie - skip movie
-            if is_missing_persons:
-                self.stdout.write(self.style.WARNING(f"Skipped «{movie_data['title']}» because couldn't create all people"))
+            # If couldn't create needed people from the movie - skip movie
+            cast_ids = {cast['id'] for cast in movie_data['credits']['cast']}
+            crew_ids = {crew['id'] for crew in movie_data['credits']['crew']}
+            credit_ids = cast_ids | crew_ids
+            if not_fetched_person_ids and not credit_ids.isdisjoint(not_fetched_person_ids):
+                self.stdout.write(self.style.WARNING(f"Skipped «{movie_data['title']}» because couldn't create all needed people"))
                 skipped += 1
                 continue
 
             # If couldn't create needed production companies - skip movie
-            company_ids = [company['id'] for company in movie_data['production_companies']]
-            if not_fetched_company_ids and (set(not_fetched_company_ids) & set(company_ids)):
-                self.stdout.write(self.style.WARNING(f"Skipped «{movie_data['title']}» because couldn't create all companies"))
+            company_ids = {company['id'] for company in movie_data['production_companies']}
+            if not_fetched_company_ids and not company_ids.isdisjoint(not_fetched_company_ids):
+                self.stdout.write(self.style.WARNING(f"Skipped «{movie_data['title']}» because couldn't create all needed companies"))
                 skipped += 1
                 continue
 
@@ -239,9 +247,9 @@ class Command(BaseCommand):
                 prod_countries_links.append(models.Movie.production_countries.through(movie_id=movie_id, country_id=prod_country_code))
 
             # Production companies
-            for prod_company in movie_data['production_companies']:
+            for prod_company_id in company_ids:
                 prod_companies_links.append(
-                    models.Movie.production_companies.through(movie_id=movie_id, productioncompany_id=prod_company['id'])
+                    models.Movie.production_companies.through(movie_id=movie_id, productioncompany_id=prod_company_id)
                 )
 
             # Cast
@@ -316,7 +324,7 @@ class Command(BaseCommand):
         models.MovieCrew.objects.bulk_create(crew_relations, ignore_conflicts=True)
 
         self.stdout.write(self.style.SUCCESS(f'Movies processed: {len(movies)} (skipped: {skipped})'))
-        self.stdout.write(self.style.SUCCESS(f'Created persons: {total_created_persons}'))
+        self.stdout.write(self.style.SUCCESS(f'Created persons: {n_created_persons}'))
         self.stdout.write(self.style.SUCCESS(f'Created companies: {n_created_companies}'))
         if not_fetched_movie_ids:
             self.stdout.write(
@@ -324,6 +332,8 @@ class Command(BaseCommand):
                     f"Couldn't update/create: {len(not_fetched_movie_ids)} (IDs: {', '.join(map(str, not_fetched_movie_ids))})"
                 )
             )
+
+        self.stdout.write(self.style.SUCCESS(f'Runtime: {round(time.perf_counter() - start, 2)}'))
 
     def create_missing_companies(self, movies: list[dict]) -> tuple[int, list[int] | None]:
         company_ids = {company['id'] for movie in movies for company in movie['production_companies']}
@@ -362,12 +372,12 @@ class Command(BaseCommand):
 
         return len(companies), not_fetched
 
-    def create_missing_persons(self, credits: list[dict]) -> tuple[int, bool]:
+    def create_missing_persons(self, credits: list[dict]) -> tuple[int, list[int] | None]:
         GENDERS = {0: '', 1: 'F', 2: 'M', 3: 'NB'}
 
-        cast_ids = [cast_member['id'] for cast_member in credits]
-        existing_ids = set(models.Person.objects.filter(tmdb_id__in=cast_ids).values_list('tmdb_id', flat=True))
-        missing_ids = {id for id in cast_ids if id not in existing_ids}
+        person_ids = [credit_member['id'] for credit_member in credits]
+        existing_ids = set(models.Person.objects.filter(tmdb_id__in=person_ids).values_list('tmdb_id', flat=True))
+        missing_ids = {id for id in person_ids if id not in existing_ids}
 
         if not missing_ids:
             return 0, False
@@ -413,4 +423,4 @@ class Command(BaseCommand):
             unique_fields=('tmdb_id',),
         )
 
-        return len(persons), bool(not_fetched)
+        return len(persons), not_fetched

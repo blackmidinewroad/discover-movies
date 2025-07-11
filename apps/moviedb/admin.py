@@ -65,7 +65,7 @@ class MovieAdmin(admin.ModelAdmin):
     """Admin panel for movie"""
 
     list_display = ('title', 'get_directors', 'release_date')
-    search_fields = ('title', 'tmdb_id')
+    search_fields = ('title', 'directors__name', 'tmdb_id')
     prepopulated_fields = {'slug': ('title',)}
     autocomplete_fields = [
         'genres',

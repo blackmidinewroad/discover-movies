@@ -291,7 +291,7 @@ class asyncTMDB(BaseTMDB):
         }
         self.limiter = AsyncLimiter(self.calls, self.rate_limit)
 
-    async def _fetch_data(self, session: aiohttp.ClientSession, path: str, params: dict = None) -> dict | int:
+    async def _fetch_data(self, session: aiohttp.ClientSession, path: str, params: dict = None, is_by_id: bool = False) -> dict | int:
         """Fetch data asynchronously"""
 
         url = self._build_url(path, params)
@@ -304,9 +304,15 @@ class asyncTMDB(BaseTMDB):
                     return data
             except (aiohttp.ClientError, asyncio.TimeoutError):
                 logging.warning(f"{self.colors.YELLOW} Couldn't fetch\n{self.colors.BLUE}path: {path}\nparams: {params}{self.colors.RESET}")
-                return path.split('/')[-1]
+                if is_by_id:
+                    return int(path.split('/')[-1])
 
-    async def _batch_fetch(self, task_details: list[str, dict] | list[str], const_params: dict = None) -> tuple[list[dict], list[int]]:
+    async def _batch_fetch(
+        self,
+        task_details: list[str, dict] | list[str],
+        const_params: dict = None,
+        is_by_id: bool = False,
+    ) -> tuple[list[dict], list[int]]:
         """Batch fetch data asynchronously"""
 
         results = []
@@ -316,9 +322,9 @@ class asyncTMDB(BaseTMDB):
 
         async with aiohttp.ClientSession(headers=self.header, connector=connector, timeout=timeout) as session:
             if const_params is None:
-                tasks = [self._fetch_data(session, path, params) for path, params in task_details]
+                tasks = [self._fetch_data(session, path, params, is_by_id=is_by_id) for path, params in task_details]
             else:
-                tasks = [self._fetch_data(session, path, const_params) for path in task_details]
+                tasks = [self._fetch_data(session, path, const_params, is_by_id=is_by_id) for path in task_details]
 
             responses = await asyncio.gather(*tasks)
 
@@ -350,7 +356,7 @@ class asyncTMDB(BaseTMDB):
 
         for i in range(0, len(paths), batch_size):
             batch = paths[i : i + batch_size]
-            results, batch_not_fetched = await self._batch_fetch(task_details=batch, const_params=params)
+            results, batch_not_fetched = await self._batch_fetch(task_details=batch, const_params=params, is_by_id=True)
             all_results.extend(results)
             not_fetched.extend(batch_not_fetched)
 
