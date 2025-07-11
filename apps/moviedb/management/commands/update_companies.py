@@ -50,7 +50,7 @@ class Command(BaseCommand):
             existing_ids = set(ProductionCompany.objects.only('tmdb_id').values_list('tmdb_id', flat=True))
             company_ids = [id for id in company_ids if id not in existing_ids]
 
-        companies, missing_ids = asyncTMDB().batch_fetch_companies_by_id(company_ids, batch_size=batch_size)
+        companies, missing_ids = asyncTMDB().fetch_companies_by_id(company_ids, batch_size=batch_size)
         countries = {c.code for c in Country.objects.all()}
         company_objs = []
         new_slugs = set()

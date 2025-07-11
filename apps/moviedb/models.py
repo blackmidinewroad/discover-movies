@@ -5,7 +5,7 @@ from apps.services.utils import unique_slugify
 
 
 class SlugMixin(models.Model):
-    """Slug Mixin to create slug field, create slug on save and to set slug manually"""
+    """Slug Mixin to create slug field, create slug on save and to set slug manually."""
 
     slug = models.SlugField(max_length=60, unique=True, blank=True)
 
@@ -16,21 +16,21 @@ class SlugMixin(models.Model):
         abstract = True
 
     def save(self, *args, **kwargs):
-        """Create unique slug on save"""
+        """Create unique slug before saving."""
 
         value = getattr(self, self.slug_source_field)
         self.slug = unique_slugify(self, value)
         super().save(*args, **kwargs)
 
     def set_slug(self, value: str, cur_bulk_slugs: set[str] = None) -> None:
-        """Set slug manually when save() is not called"""
+        """Set slug manually when save() is not called."""
 
         value = getattr(self, self.slug_source_field)
         self.slug = unique_slugify(self, value, cur_bulk_slugs=cur_bulk_slugs)
 
 
 class Country(SlugMixin):
-    """Countries with ISO 3166-1 alpha-2 codes"""
+    """Countries with ISO 3166-1 alpha-2 codes."""
 
     code = models.CharField(max_length=2, primary_key=True)
     name = models.CharField(max_length=64)
@@ -44,13 +44,11 @@ class Country(SlugMixin):
         return self.name
 
     def get_absolute_url(self):
-        """Get country url"""
-
         return reverse('movies_by_country', kwargs={'slug': self.slug})
 
 
 class Language(SlugMixin):
-    """Languages with ISO 639-1 codes"""
+    """Languages with ISO 639-1 codes."""
 
     code = models.CharField(max_length=2, primary_key=True)
     name = models.CharField(max_length=128)
@@ -64,14 +62,10 @@ class Language(SlugMixin):
         return self.name
 
     def get_absolute_url(self):
-        """Get genre url"""
-
         return reverse('movies_by_language', kwargs={'slug': self.slug})
 
 
 class Genre(SlugMixin):
-    """Genre of movies model"""
-
     tmdb_id = models.IntegerField(primary_key=True)
     name = models.CharField(max_length=32)
 
@@ -84,14 +78,10 @@ class Genre(SlugMixin):
         return self.name
 
     def get_absolute_url(self):
-        """Get genre url"""
-
         return reverse('movies_by_genre', kwargs={'slug': self.slug})
 
 
 class ProductionCompany(SlugMixin):
-    """Production company model"""
-
     tmdb_id = models.IntegerField(primary_key=True)
     name = models.CharField(max_length=256)
 
@@ -108,13 +98,11 @@ class ProductionCompany(SlugMixin):
         return self.name
 
     def get_absolute_url(self):
-        """Get production company url"""
-
         return reverse('movies_by_prod_company', kwargs={'slug': self.slug})
 
 
 class Collection(SlugMixin):
-    """Collection of movies model"""
+    """Collection of movies model (e.g. Star Wars Collection, Indiana Jones Collection)."""
 
     tmdb_id = models.IntegerField(primary_key=True)
     name = models.CharField(max_length=256)
@@ -132,20 +120,20 @@ class Collection(SlugMixin):
         return self.name
 
     def get_absolute_url(self):
-        """Get collection url"""
-
         return reverse('movie_collection', kwargs={'slug': self.slug})
 
 
 class Person(SlugMixin):
-    """Any people invovlved in making movies (e. g. actors, directors, writers)"""
+    """Any person invovlved in the making of movies (e. g. actors, directors, writers)."""
 
     tmdb_id = models.IntegerField(primary_key=True)
     name = models.CharField(max_length=512)
 
     imdb_id = models.CharField(max_length=16, blank=True, default='')
 
+    # Main occupation
     known_for_department = models.CharField(max_length=64, blank=True, default='')
+
     biography = models.TextField(blank=True, default='')
     place_of_birth = models.CharField(max_length=256, blank=True, default='')
 
@@ -166,7 +154,7 @@ class Person(SlugMixin):
     tmdb_popularity = models.FloatField(blank=True, default=0.0)
 
     class Meta:
-        verbose_name_plural = 'persons'
+        verbose_name_plural = 'people'
         ordering = ['name']
         indexes = [
             models.Index(fields=['name']),
@@ -179,8 +167,6 @@ class Person(SlugMixin):
 
 
 class Movie(SlugMixin):
-    """Movie model"""
-
     tmdb_id = models.IntegerField(primary_key=True)
     title = models.CharField(max_length=512)
 
@@ -195,8 +181,10 @@ class Movie(SlugMixin):
 
     genres = models.ManyToManyField(Genre, blank=True, related_name='movies')
 
-    # Is this a documentary/TV movie
+    # Is this a documentary
     documentary = models.BooleanField(blank=True, default=False)
+
+    # Is this a TV movie
     tv_movie = models.BooleanField(blank=True, default=False)
 
     original_title = models.CharField(max_length=512, blank=True, default='')
@@ -260,8 +248,6 @@ class Movie(SlugMixin):
         return self.title
 
     def get_absolute_url(self):
-        """Get movie url"""
-
         return reverse('movie_detail', kwargs={'slug': self.slug})
 
     def set_flags(self):
@@ -279,7 +265,7 @@ class Movie(SlugMixin):
 
 
 class MovieEngagement(models.Model):
-    """Movie engagement model with ratings and popularity scores from TMDB, IMDB, letterboxd and Kinopoisk"""
+    """Movie engagement model with ratings and popularity scores from TMDB, IMDB, letterboxd and Kinopoisk."""
 
     movie = models.OneToOneField(Movie, on_delete=models.CASCADE, related_name='engagement')
 
@@ -320,7 +306,7 @@ class MovieEngagement(models.Model):
 
 
 class MovieCast(models.Model):
-    """Actors in a movie"""
+    """Cast of a movie - all actors."""
 
     movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name='cast')
     person = models.ForeignKey(Person, on_delete=models.CASCADE, related_name='cast_roles')
@@ -336,7 +322,7 @@ class MovieCast(models.Model):
 
 
 class MovieCrew(models.Model):
-    """Crew members (e.g. director, writer) in a movie"""
+    """Crew of a movie (e.g. director, writer)."""
 
     movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name='crew')
     person = models.ForeignKey(Person, on_delete=models.CASCADE, related_name='crew_roles')

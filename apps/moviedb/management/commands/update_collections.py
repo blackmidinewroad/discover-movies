@@ -58,7 +58,7 @@ class Command(BaseCommand):
             existing_ids = set(Collection.objects.only('tmdb_id').values_list('tmdb_id', flat=True))
             collection_ids = [id for id in collection_ids if id not in existing_ids]
 
-        collections, missing_ids = asyncTMDB().batch_fetch_collections_by_id(collection_ids, batch_size=batch_size, language=language)
+        collections, missing_ids = asyncTMDB().fetch_collections_by_id(collection_ids, batch_size=batch_size, language=language)
         collection_objs = []
         new_slugs = set()
 

@@ -5,6 +5,7 @@ from django.core.management.base import BaseCommand, CommandError
 from apps.moviedb.integrations.tmdb.api import asyncTMDB
 from apps.moviedb.integrations.tmdb.id_exports import IDExport
 from apps.moviedb.models import Person
+from apps.services.utils import runtime
 
 
 class Command(BaseCommand):
@@ -49,7 +50,7 @@ class Command(BaseCommand):
             '--batch_size',
             type=int,
             default=100,
-            help='Number of persons to fetch per batch. Defaults to 100.',
+            help='Number of people to fetch per batch. Defaults to 100.',
         )
 
         parser.add_argument(
@@ -63,7 +64,7 @@ class Command(BaseCommand):
             '--limit',
             type=int,
             default=None,
-            help='Limit number of persons added.',
+            help='Limit number of people added.',
         )
 
         parser.add_argument(
@@ -77,9 +78,10 @@ class Command(BaseCommand):
             '--create',
             action='store_true',
             default=False,
-            help="Only create new persons (can't be used with update_changed operation).",
+            help="Only create new people (can't be used with update_changed operation).",
         )
 
+    @runtime
     def handle(self, *args, **options):
         operation = options['operation']
         ids = options['ids']
@@ -91,7 +93,7 @@ class Command(BaseCommand):
         sort_by_popularity = options['sort_by_popularity']
         only_create = options['create']
 
-        # IDs of persons already in db
+        # IDs of people already in db
         existing_ids = set(Person.objects.only('tmdb_id').values_list('tmdb_id', flat=True))
 
         match operation:
@@ -112,11 +114,11 @@ class Command(BaseCommand):
         if only_create:
             person_ids = [id for id in person_ids if id not in existing_ids]
 
-        persons, missing_ids = asyncTMDB().batch_fetch_persons_by_id(person_ids[:limit], batch_size=batch_size, language=language)
+        people, missing_ids = asyncTMDB().fetch_people_by_id(person_ids[:limit], batch_size=batch_size, language=language)
         person_objs = []
         new_slugs = set()
 
-        for person_data in persons:
+        for person_data in people:
             person = Person(
                 tmdb_id=person_data['id'],
                 name=person_data['name'],
@@ -153,6 +155,6 @@ class Command(BaseCommand):
             unique_fields=('tmdb_id',),
         )
 
-        self.stdout.write(self.style.SUCCESS(f'Persons processed: {len(persons)}'))
+        self.stdout.write(self.style.SUCCESS(f'People processed: {len(people)}'))
         if missing_ids:
             self.stdout.write(self.style.WARNING(f"Couldn't update/create: {len(missing_ids)} (IDs: {', '.join(map(str, missing_ids))})"))

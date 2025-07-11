@@ -13,13 +13,11 @@ from urllib3.util import Retry
 
 
 class BaseTMDB:
-    """Base class for TMDB API wrapper"""
+    """Base class for TMDB API wrapper."""
 
     BASE_URL = 'https://api.themoviedb.org/3/'
 
     def _build_url(self, path: str, params: dict = None) -> str:
-        """Build URL"""
-
         if params is None:
             params = {}
 
@@ -33,7 +31,7 @@ class BaseTMDB:
 
 
 class TMDB(BaseTMDB):
-    """TMDB API wrapper"""
+    """TMDB API wrapper."""
 
     # 45 calls per 1 second
     calls = 45
@@ -59,7 +57,7 @@ class TMDB(BaseTMDB):
     @sleep_and_retry
     @limits(calls=calls, period=rate_limit)
     def _fetch_data(self, path: str, params: dict = None) -> dict:
-        """Fetch data"""
+        """Main method to make requests to TMDB API."""
 
         url = self._build_url(path, params)
         try:
@@ -85,11 +83,12 @@ class TMDB(BaseTMDB):
 
         return data.get('genres', [])
 
-    def _fetch_configuration(self, config_for: str, language: str = None) -> list[dict]:
-        """Fetch TMDB configuration"""
+    def _fetch_configuration(self, data_type: str, language: str = None) -> list[dict]:
+        """Fetch TMDB configuration - static lists of data they use throughout the database."""
 
-        path = f'configuration/{config_for}'
+        path = f'configuration/{data_type}'
         params = {'language': language} if language is not None else {}
+
         return self._fetch_data(path, params)
 
     def fetch_countries(self, language: str = 'en-US') -> list[dict]:
@@ -102,8 +101,9 @@ class TMDB(BaseTMDB):
             list[dict]: list of countries with ISO 3166-1 tags, names and english names.
         """
 
-        config_for = 'countries'
-        return self._fetch_configuration(config_for, language=language)
+        data_type = 'countries'
+
+        return self._fetch_configuration(data_type, language=language)
 
     def fetch_languages(self) -> list[dict]:
         """Get the list of languages (ISO 639-1 tags) used throughout TMDB.
@@ -112,12 +112,11 @@ class TMDB(BaseTMDB):
             list[dict]: list of languages with ISO 639-1 tags, names and english names.
         """
 
-        config_for = 'languages'
-        return self._fetch_configuration(config_for)
+        data_type = 'languages'
 
-    def _fetch_details(self, path: str, language: str = None, append_to_response: list[str] = None) -> dict:
-        """Fetch details"""
+        return self._fetch_configuration(data_type)
 
+    def _fetch_by_id(self, path: str, language: str = None, append_to_response: list[str] = None) -> dict:
         params = {}
         if language is not None:
             params['language'] = language
@@ -140,7 +139,7 @@ class TMDB(BaseTMDB):
 
         path = f'movie/{movie_id}'
 
-        return self._fetch_details(path=path, language=language, append_to_response=append_to_response)
+        return self._fetch_by_id(path=path, language=language, append_to_response=append_to_response)
 
     def fetch_person_by_id(self, person_id: int, language: str = 'en-US', append_to_response: list[str] = None) -> dict:
         """Fetch person details by ID.
@@ -156,7 +155,7 @@ class TMDB(BaseTMDB):
 
         path = f'person/{person_id}'
 
-        return self._fetch_details(path=path, language=language, append_to_response=append_to_response)
+        return self._fetch_by_id(path=path, language=language, append_to_response=append_to_response)
 
     def fetch_company_by_id(self, company_id: int) -> dict:
         """Fetch production company details by ID.
@@ -170,7 +169,7 @@ class TMDB(BaseTMDB):
 
         path = f'company/{company_id}'
 
-        return self._fetch_details(path=path)
+        return self._fetch_by_id(path=path)
 
     def fetch_collection_by_id(self, collection_id: int, language: str = 'en-US') -> dict:
         """Fetch collection details by ID.
@@ -185,10 +184,10 @@ class TMDB(BaseTMDB):
 
         path = f'collection/{collection_id}'
 
-        return self._fetch_details(path=path, language=language)
+        return self._fetch_by_id(path=path, language=language)
 
-    def _discover(self, path: str, first_page: int, last_page: int, language: str, region: str = None) -> list[dict]:
-        """Discover"""
+    def _fetch_pages(self, path: str, first_page: int, last_page: int, language: str, region: str = None) -> list[dict]:
+        """Fetch pages of data from endpoints that support pagination."""
 
         if last_page is None:
             last_page = first_page
@@ -219,7 +218,7 @@ class TMDB(BaseTMDB):
 
         path = 'movie/popular'
 
-        return self._discover(path=path, first_page=first_page, last_page=last_page, language=language, region=region)
+        return self._fetch_pages(path=path, first_page=first_page, last_page=last_page, language=language, region=region)
 
     def fetch_top_rated_movies(self, first_page: int = 1, last_page: int = None, language: str = 'en-US', region: str = None) -> list[dict]:
         """Fetch top rated movies.
@@ -236,7 +235,7 @@ class TMDB(BaseTMDB):
 
         path = 'movie/top_rated'
 
-        return self._discover(path=path, first_page=first_page, last_page=last_page, language=language, region=region)
+        return self._fetch_pages(path=path, first_page=first_page, last_page=last_page, language=language, region=region)
 
     def fetch_trending_movies(
         self, time_window: str = 'day', first_page: int = 1, last_page: int = None, language: str = 'en-US'
@@ -255,7 +254,7 @@ class TMDB(BaseTMDB):
 
         path = f'trending/movie/{time_window}'
 
-        return self._discover(path=path, first_page=first_page, last_page=last_page, language=language)
+        return self._fetch_pages(path=path, first_page=first_page, last_page=last_page, language=language)
 
     def fetch_trending_people(
         self, time_window: str = 'day', first_page: int = 1, last_page: int = None, language: str = 'en-US'
@@ -274,11 +273,11 @@ class TMDB(BaseTMDB):
 
         path = f'trending/person/{time_window}'
 
-        return self._discover(path=path, first_page=first_page, last_page=last_page, language=language)
+        return self._fetch_pages(path=path, first_page=first_page, last_page=last_page, language=language)
 
 
 class asyncTMDB(BaseTMDB):
-    """TMDB API wrapper for async requests"""
+    """TMDB API wrapper for async requests."""
 
     # 45 calls per 1 second
     calls = 45
@@ -292,7 +291,7 @@ class asyncTMDB(BaseTMDB):
         self.limiter = AsyncLimiter(self.calls, self.rate_limit)
 
     async def _fetch_data(self, session: aiohttp.ClientSession, path: str, params: dict = None, is_by_id: bool = False) -> dict | int:
-        """Fetch data asynchronously"""
+        """Main method to make asynchronous requests to TMDB API."""
 
         url = self._build_url(path, params)
 
@@ -313,7 +312,7 @@ class asyncTMDB(BaseTMDB):
         const_params: dict = None,
         is_by_id: bool = False,
     ) -> tuple[list[dict], list[int]]:
-        """Batch fetch data asynchronously"""
+        """Fetch one batch of data."""
 
         results = []
         batch_not_fetched = []
@@ -336,15 +335,13 @@ class asyncTMDB(BaseTMDB):
 
         return results, batch_not_fetched
 
-    async def _batch_fetch_details(
+    async def _fetch_by_id(
         self,
         paths: list[str],
         language: str = None,
         append_to_response: list[str] = None,
         batch_size: int = 100,
     ) -> tuple[list[dict], list[int]]:
-        """Batch fetch details"""
-
         params = {}
         if language is not None:
             params['language'] = language
@@ -364,7 +361,7 @@ class asyncTMDB(BaseTMDB):
 
         return all_results, not_fetched
 
-    def batch_fetch_movies_by_id(
+    def fetch_movies_by_id(
         self,
         movie_ids: list[int],
         language: str = 'en-US',
@@ -386,7 +383,7 @@ class asyncTMDB(BaseTMDB):
         paths = [f'movie/{movie_id}' for movie_id in movie_ids]
 
         return asyncio.run(
-            self._batch_fetch_details(
+            self._fetch_by_id(
                 paths=paths,
                 language=language,
                 append_to_response=append_to_response,
@@ -394,7 +391,7 @@ class asyncTMDB(BaseTMDB):
             )
         )
 
-    def batch_fetch_persons_by_id(
+    def fetch_people_by_id(
         self,
         person_ids: list[int],
         language: str = 'en-US',
@@ -407,16 +404,16 @@ class asyncTMDB(BaseTMDB):
             person_ids (list[int]): list of TMDB pesron IDs.
             language (str, optional): locale (ISO 639-1-ISO 3166-1) code (e.g. en-UD, fr-CA, de_DE). Defaults to 'en-US'.
             append_to_response (list[str], optional): list of endpoints within this namespace, will appended to each movie, 20 items max. Defaults to None.
-            batch_size (int, optional): number of persons to fetch per batch. Defaults to 100.
+            batch_size (int, optional): number of people to fetch per batch. Defaults to 100.
 
         Returns:
-            tuple[list[dict], list[int]]: list of persons with details and list of not fetched IDs.
+            tuple[list[dict], list[int]]: list of people with details and list of not fetched IDs.
         """
 
         paths = [f'person/{person_id}' for person_id in person_ids]
 
         return asyncio.run(
-            self._batch_fetch_details(
+            self._fetch_by_id(
                 paths=paths,
                 language=language,
                 append_to_response=append_to_response,
@@ -424,7 +421,7 @@ class asyncTMDB(BaseTMDB):
             )
         )
 
-    def batch_fetch_companies_by_id(self, company_ids: list[int], batch_size: int = 100) -> tuple[list[dict], list[int]]:
+    def fetch_companies_by_id(self, company_ids: list[int], batch_size: int = 100) -> tuple[list[dict], list[int]]:
         """Fetch company details for list of IDs.
 
         Args:
@@ -439,9 +436,9 @@ class asyncTMDB(BaseTMDB):
 
         paths = [f'company/{company_id}' for company_id in company_ids]
 
-        return asyncio.run(self._batch_fetch_details(paths=paths, batch_size=batch_size))
+        return asyncio.run(self._fetch_by_id(paths=paths, batch_size=batch_size))
 
-    def batch_fetch_collections_by_id(
+    def fetch_collections_by_id(
         self, collection_ids: list[int], language: str = 'en-US', batch_size: int = 100
     ) -> tuple[list[dict], list[int]]:
         """Fetch collection details for list of IDs.
@@ -457,9 +454,9 @@ class asyncTMDB(BaseTMDB):
 
         paths = [f'collection/{collection_id}' for collection_id in collection_ids]
 
-        return asyncio.run(self._batch_fetch_details(paths=paths, language=language, batch_size=batch_size))
+        return asyncio.run(self._fetch_by_id(paths=paths, language=language, batch_size=batch_size))
 
-    async def _batch_discover(
+    async def _fetch_pages(
         self,
         path: str,
         first_page: int,
@@ -469,7 +466,7 @@ class asyncTMDB(BaseTMDB):
         region: str = None,
         batch_size: int = 100,
     ) -> list[dict]:
-        """Batch discover"""
+        """Fetch pages of data from endpoints that support pagination."""
 
         if last_page is None:
             last_page = first_page
@@ -519,7 +516,7 @@ class asyncTMDB(BaseTMDB):
         path = 'movie/popular'
 
         return asyncio.run(
-            self._batch_discover(
+            self._fetch_pages(
                 path=path,
                 first_page=first_page,
                 last_page=last_page,
@@ -553,7 +550,7 @@ class asyncTMDB(BaseTMDB):
         path = 'movie/top_rated'
 
         return asyncio.run(
-            self._batch_discover(
+            self._fetch_pages(
                 path=path,
                 first_page=first_page,
                 last_page=last_page,
@@ -587,7 +584,7 @@ class asyncTMDB(BaseTMDB):
         path = 'movie/top_rated'
 
         pages = asyncio.run(
-            self._batch_discover(
+            self._fetch_pages(
                 path=path,
                 first_page=first_page,
                 last_page=last_page,
@@ -623,7 +620,7 @@ class asyncTMDB(BaseTMDB):
         path = f'trending/movie/{time_window}'
 
         return asyncio.run(
-            self._batch_discover(
+            self._fetch_pages(
                 path=path,
                 first_page=first_page,
                 last_page=last_page,
@@ -656,7 +653,7 @@ class asyncTMDB(BaseTMDB):
         path = f'trending/person/{time_window}'
 
         return asyncio.run(
-            self._batch_discover(
+            self._fetch_pages(
                 path=path,
                 first_page=first_page,
                 last_page=last_page,
@@ -682,7 +679,7 @@ class asyncTMDB(BaseTMDB):
         total_pages = first_page_data['total_pages']
 
         data = asyncio.run(
-            self._batch_discover(
+            self._fetch_pages(
                 path=path,
                 first_page=1,
                 last_page=min(total_pages, 500),  # Max. page is 500

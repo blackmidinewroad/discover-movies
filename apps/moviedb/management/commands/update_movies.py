@@ -5,6 +5,7 @@ from django.core.management.base import BaseCommand, CommandError
 from apps.moviedb import models
 from apps.moviedb.integrations.tmdb.api import asyncTMDB
 from apps.moviedb.integrations.tmdb.id_exports import IDExport
+from apps.services.utils import runtime
 
 
 class Command(BaseCommand):
@@ -78,11 +79,8 @@ class Command(BaseCommand):
             help="Only create new movies (can't be used with update_changed operation).",
         )
 
+    @runtime
     def handle(self, *args, **options):
-        import time
-
-        start = time.perf_counter()
-
         operation = options['operation']
         ids = options['ids']
         published_date = options['date']
@@ -116,7 +114,7 @@ class Command(BaseCommand):
         if only_create:
             movie_ids = [id for id in movie_ids if id not in existing_ids]
 
-        movies, not_fetched_movie_ids = asyncTMDB().batch_fetch_movies_by_id(
+        movies, not_fetched_movie_ids = asyncTMDB().fetch_movies_by_id(
             movie_ids[:limit],
             batch_size=batch_size,
             language=language,
@@ -128,14 +126,24 @@ class Command(BaseCommand):
         languages = {l.code for l in models.Language.objects.all()}
         genres = {g.tmdb_id for g in models.Genre.objects.all()}
 
-        # Create missing persons
+        # Create missing people
         credits = []
         for movie_data in movies:
             credits.extend(movie_data['credits']['cast'] + movie_data['credits']['crew'])
-        n_created_persons, not_fetched_person_ids = self.create_missing_persons(credits)
+        n_created_people, not_fetched_person_ids = self.create_missing_people(credits)
 
         # Create missing companies
         n_created_companies, not_fetched_company_ids = self.create_missing_companies(movies)
+
+        # Counters for newly created objects
+        created_counter = {
+            'people': n_created_people,
+            'companies': n_created_companies,
+            'collections': 0,
+            'countries': 0,
+            'languages': 0,
+            'genres': 0,
+        }
 
         # Keep track of new slugs to create unique slugs
         new_slugs = set()
@@ -177,13 +185,16 @@ class Command(BaseCommand):
             if origin_language_code and origin_language_code not in languages:
                 models.Language.objects.create(code=origin_language_code, name='unknown')
                 languages.add(origin_language_code)
+                created_counter['languages'] += 1
 
             collection = None
             if movie_data['belongs_to_collection']:
-                collection, _ = models.Collection.objects.get_or_create(
+                collection, created = models.Collection.objects.get_or_create(
                     tmdb_id=movie_data['belongs_to_collection']['id'],
                     defaults={'name': movie_data['belongs_to_collection']['name']},
                 )
+                if created:
+                    created_counter['collections'] += 1
 
             movie_id = movie_data['id']
 
@@ -217,6 +228,7 @@ class Command(BaseCommand):
                 if genre_id not in genres:
                     models.Genre.objects.create(tmdb_id=genre_id, name=genre_data['name'])
                     genres.add(genre_id)
+                    created_counter['genres'] += 1
 
                 genre_links.append(models.Movie.genres.through(movie_id=movie_id, genre_id=genre_id))
 
@@ -226,6 +238,7 @@ class Command(BaseCommand):
                 if spoken_language_code not in languages:
                     models.Language.objects.create(code=spoken_language_code, name=spoken_language_data['english_name'])
                     languages.add(spoken_language_code)
+                    created_counter['languages'] += 1
 
                 spoken_languages_links.append(models.Movie.spoken_languages.through(movie_id=movie_id, language_id=spoken_language_code))
 
@@ -234,6 +247,7 @@ class Command(BaseCommand):
                 if origin_country_code not in self.countries:
                     models.Country.objects.create(code=origin_country_code, name='unknown')
                     self.countries.add(origin_country_code)
+                    created_counter['countries'] += 1
 
                 origin_country_links.append(models.Movie.origin_country.through(movie_id=movie_id, country_id=origin_country_code))
 
@@ -243,6 +257,7 @@ class Command(BaseCommand):
                 if prod_country_code not in self.countries:
                     models.Country.objects.create(code=prod_country_code, name=prod_country['name'])
                     self.countries.add(prod_country_code)
+                    created_counter['countries'] += 1
 
                 prod_countries_links.append(models.Movie.production_countries.through(movie_id=movie_id, country_id=prod_country_code))
 
@@ -324,16 +339,15 @@ class Command(BaseCommand):
         models.MovieCrew.objects.bulk_create(crew_relations, ignore_conflicts=True)
 
         self.stdout.write(self.style.SUCCESS(f'Movies processed: {len(movies)} (skipped: {skipped})'))
-        self.stdout.write(self.style.SUCCESS(f'Created persons: {n_created_persons}'))
-        self.stdout.write(self.style.SUCCESS(f'Created companies: {n_created_companies}'))
+        for obj_type, counter in created_counter.items():
+            if counter:
+                self.stdout.write(self.style.SUCCESS(f'Created {obj_type}: {counter}'))
         if not_fetched_movie_ids:
             self.stdout.write(
                 self.style.WARNING(
                     f"Couldn't update/create: {len(not_fetched_movie_ids)} (IDs: {', '.join(map(str, not_fetched_movie_ids))})"
                 )
             )
-
-        self.stdout.write(self.style.SUCCESS(f'Runtime: {round(time.perf_counter() - start, 2)}'))
 
     def create_missing_companies(self, movies: list[dict]) -> tuple[int, list[int] | None]:
         company_ids = {company['id'] for movie in movies for company in movie['production_companies']}
@@ -343,7 +357,7 @@ class Command(BaseCommand):
         if not missing_ids:
             return 0, None
 
-        companies, not_fetched = asyncTMDB().batch_fetch_companies_by_id(missing_ids)
+        companies, not_fetched = asyncTMDB().fetch_companies_by_id(missing_ids)
         company_objs = []
         new_slugs = set()
 
@@ -372,7 +386,7 @@ class Command(BaseCommand):
 
         return len(companies), not_fetched
 
-    def create_missing_persons(self, credits: list[dict]) -> tuple[int, list[int] | None]:
+    def create_missing_people(self, credits: list[dict]) -> tuple[int, list[int] | None]:
         GENDERS = {0: '', 1: 'F', 2: 'M', 3: 'NB'}
 
         person_ids = [credit_member['id'] for credit_member in credits]
@@ -382,11 +396,11 @@ class Command(BaseCommand):
         if not missing_ids:
             return 0, False
 
-        persons, not_fetched = asyncTMDB().batch_fetch_persons_by_id(missing_ids)
+        people, not_fetched = asyncTMDB().fetch_people_by_id(missing_ids)
         person_objs = []
         new_slugs = set()
 
-        for person_data in persons:
+        for person_data in people:
             person = models.Person(
                 tmdb_id=person_data['id'],
                 name=person_data['name'],
@@ -423,4 +437,4 @@ class Command(BaseCommand):
             unique_fields=('tmdb_id',),
         )
 
-        return len(persons), not_fetched
+        return len(people), not_fetched

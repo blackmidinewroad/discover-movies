@@ -9,6 +9,8 @@ from requests.exceptions import RequestException
 
 
 class IDExport:
+    """Download and extract TMDB daily ID export files."""
+
     BASE_URL = 'http://files.tmdb.org/p/exports/'
     MEDIA_TYPES = {
         'movie': 'movie',
@@ -21,18 +23,14 @@ class IDExport:
     }
 
     def _build_url(self, media_type: str, published_date: str) -> str:
-        """Build URL"""
-
         if published_date is None:
-            published_date = datetime.now(timezone.utc).strftime("%m_%d_%Y")
+            published_date = datetime.now(timezone.utc).strftime('%m_%d_%Y')
 
         path = f'{self.MEDIA_TYPES.get(media_type, '')}_ids_{published_date}.json.gz'
 
         return self.BASE_URL + path
 
-    def _fetch_file(self, media_type: str, published_date: str) -> bytes:
-        """Fetch ID file"""
-
+    def _fetch_id_file(self, media_type: str, published_date: str) -> bytes:
         url = self._build_url(media_type, published_date)
 
         try:
@@ -43,7 +41,10 @@ class IDExport:
             logging.error("Couldn't fetch ID file", exc_info=True)
 
     def _get_ids(self, compressed_file: bytes, sort_by_popularity: bool = False) -> list[int]:
-        """Get IDs from compressed file"""
+        """
+        Unzip fetched file, deserialize lines containing JSON to python dict, store IDs and popularity in a list
+        then sort it by by popularity if needed, return list of IDs.
+        """
 
         ids = []
         with gzip.GzipFile(fileobj=BytesIO(compressed_file)) as gz_file:
@@ -51,7 +52,7 @@ class IDExport:
                 line = line.decode('utf-8').strip()
                 if line:
                     data = json.loads(line)
-                    
+
                     # Store tuples of id and popularity
                     ids.append((data['id'], data.get('popularity', 0)))
 
@@ -93,7 +94,7 @@ class IDExport:
                     - 'company': For production company IDs'''
             )
 
-        id_file = self._fetch_file(media_type, published_date)
+        id_file = self._fetch_id_file(media_type, published_date)
         ids = self._get_ids(id_file, sort_by_popularity=sort_by_popularity)
 
         return ids
