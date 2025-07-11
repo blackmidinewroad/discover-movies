@@ -39,7 +39,7 @@ class Command(BaseCommand):
             type=int,
             default=None,
             help=(
-                'Changes made in past _ days (max. 14, only works with update_changed operation).'
+                'Changes made in past _ days (only works with update_changed operation).'
                 'By default changes will be fetched for the past 24 hours.'
             ),
         )
@@ -93,25 +93,27 @@ class Command(BaseCommand):
 
         tmdb = asyncTMDB()
 
-        # IDs of movies already in db
-        if operation == 'specific_ids' and ids is not None:
-            existing_ids = set(models.Movie.objects.filter(tmdb_id__in=ids).values_list('tmdb_id', flat=True))
-        else:
-            existing_ids = set(models.Movie.objects.only('tmdb_id').values_list('tmdb_id', flat=True))
-
         match operation:
             case 'update_changed':
                 if only_create:
                     raise CommandError("Can't use --create with update_changed operation")
-                movie_ids = tmdb.fetch_changed_ids('movie', days=days)
+
+                movie_ids, earliest_date = tmdb.fetch_changed_ids('movie', days=days)
+
+                # Get movie IDs that were last updated before the changes earliest date
+                existing_ids = set(models.Movie.objects.filter(last_update__lt=earliest_date).values_list('tmdb_id', flat=True))
                 movie_ids = [id for id in movie_ids if id in existing_ids]
+                self.stdout.write(self.style.SUCCESS(f'Movies to update: {len(movie_ids)}'))
             case 'daily_export':
+                existing_ids = set(models.Movie.objects.only('tmdb_id').values_list('tmdb_id', flat=True))
                 movie_ids = IDExport().fetch_ids('movie', published_date=published_date, sort_by_popularity=sort_by_popularity)
             case 'add_top_rated':
+                existing_ids = set(models.Movie.objects.only('tmdb_id').values_list('tmdb_id', flat=True))
                 movie_ids = tmdb.fetch_top_rated_movie_ids(last_page=500)
             case 'specific_ids':
                 if ids is None:
                     raise CommandError('Must provide --ids using specific_ids operation')
+                existing_ids = set(models.Movie.objects.filter(tmdb_id__in=ids).values_list('tmdb_id', flat=True))
                 movie_ids = ids
             case _:
                 raise CommandError("Invalid operation. Choose from 'update_changed', 'daily_export', 'add_top_rated', 'specific_ids'")
@@ -223,16 +225,13 @@ class Command(BaseCommand):
                 revenue=movie_data['revenue'],
                 runtime=movie_data['runtime'],
             )
-            movie.set_slug(movie.title, new_slugs)
-            movie.set_flags()
-            new_slugs.add(movie.slug)
-
-            movie_map[movie_id] = movie
 
             # Create links for many to many fields
             # Genres
+            genre_ids = []
             for genre_data in movie_data['genres']:
                 genre_id = genre_data['id']
+                genre_ids.append(genre_id)
                 if genre_id not in genres:
                     models.Genre.objects.create(tmdb_id=genre_id, name=genre_data['name'])
                     genres.add(genre_id)
@@ -300,6 +299,11 @@ class Command(BaseCommand):
                     )
                 )
 
+            movie.set_slug(movie.title, new_slugs)
+            new_slugs.add(movie.slug)
+            movie.pre_bulk_create(genre_ids)
+            movie_map[movie_id] = movie
+
         models.Movie.objects.bulk_create(
             tuple(movie_map.values()),
             update_conflicts=True,
@@ -319,6 +323,10 @@ class Command(BaseCommand):
                 'budget',
                 'revenue',
                 'runtime',
+                'documentary',
+                'tv_movie',
+                'short',
+                'last_update',
             ),
             unique_fields=('tmdb_id',),
         )
@@ -423,8 +431,9 @@ class Command(BaseCommand):
                 tmdb_popularity=person_data['popularity'],
             )
             person.set_slug(person.name, new_slugs)
-            person_objs.append(person)
             new_slugs.add(person.slug)
+            person.pre_bulk_create()
+            person_objs.append(person)
 
         models.Person.objects.bulk_create(
             person_objs,
@@ -441,6 +450,7 @@ class Command(BaseCommand):
                 'deathday',
                 'profile_path',
                 'tmdb_popularity',
+                'last_update',
             ),
             unique_fields=('tmdb_id',),
         )

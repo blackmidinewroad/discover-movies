@@ -1,7 +1,8 @@
 import asyncio
 import logging
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import date, timedelta
+from django.utils import timezone
 from urllib.parse import urlencode, urljoin
 
 import aiohttp
@@ -494,10 +495,14 @@ class asyncTMDB(BaseTMDB):
 
         all_pages = []
 
-        for i in range(0, len(task_details), batch_size):
-            batch = task_details[i : i + batch_size]
-            results, _ = await self._batch_fetch(task_details=batch)
-            all_pages.extend(results)
+        connector = aiohttp.TCPConnector(limit=self.calls)
+        timeout = aiohttp.ClientTimeout(total=20)
+
+        async with aiohttp.ClientSession(headers=self.headers, connector=connector, timeout=timeout) as self.session:
+            for i in range(0, len(task_details), batch_size):
+                batch = task_details[i : i + batch_size]
+                results, _ = await self._batch_fetch(task_details=batch)
+                all_pages.extend(results)
 
         return all_pages
 
@@ -671,35 +676,54 @@ class asyncTMDB(BaseTMDB):
             )
         )
 
-    def fetch_changed_ids(self, ids_type: str, days: int = None, batch_size: int = 100) -> list[int]:
+    def fetch_changed_ids(self, ids_type: str, days: int = 1, batch_size: int = 100) -> tuple[list[int], date]:
+        """Fetch changed movies/people in the last _ days.
+
+        Args:
+            ids_type (str): 'movie' or 'person'.
+            days (int, optional): for how many last days to fetch changes. Defaults to None.
+            batch_size (int, optional): number of pages to fetch per batch. Defaults to 100.
+
+        Raises:
+            ValueError: if id_type is not 'movie' or 'person'.
+
+        Returns:
+            tuple[list[int], date]: list of IDs and earliest date of changes.
+        """
+
         if ids_type not in ('movie', 'person'):
             raise ValueError("Invalid ids_type, must be 'movie' or 'person'.")
 
         path = f'{ids_type}/changes'
 
-        if days is not None:
-            end_date = datetime.now(timezone.utc)
-            start_date = end_date - timedelta(days)
-            params = {'start_date': str(start_date.date()), 'end_date': str(end_date.date())}
-        else:
-            params = {}
+        cur_date = timezone.now()
+        ids = set()
+        tmdb = TMDB()
 
-        first_page_data = TMDB()._fetch_data(path=path, params=params)
-        total_pages = first_page_data['total_pages']
+        for _ in range(1, days + 1):
+            cur_date_str = str(cur_date.date())
+            params = {'start_date': cur_date_str, 'end_date': cur_date_str}
 
-        data = self.run_sync(
-            self._fetch_pages(
-                path=path,
-                first_page=1,
-                last_page=min(total_pages, 500),  # Max. page is 500
-                dates=params,
-                batch_size=batch_size,
+            first_page_data = tmdb._fetch_data(path=path, params=params)
+            total_pages = first_page_data['total_pages']
+
+            data = self.run_sync(
+                self._fetch_pages(
+                    path=path,
+                    first_page=1,
+                    last_page=min(total_pages, 500),  # Max. page is 500
+                    dates=params,
+                    batch_size=batch_size,
+                )
             )
-        )
 
-        if ids_type == 'movie':
-            ids = [movie['id'] for page in data for movie in page['results'] if not movie['adult']]
-        elif ids_type == 'person':
-            ids = [person['id'] for page in data for person in page['results']]
+            if ids_type == 'movie':
+                ids.update(movie['id'] for page in data for movie in page['results'] if not movie['adult'])
+            elif ids_type == 'person':
+                ids.update(person['id'] for page in data for person in page['results'])
 
-        return ids
+            cur_date -= timedelta(days=1)
+
+        earliest_date = (cur_date + timedelta(days=1)).date()
+
+        return ids, earliest_date

@@ -1,10 +1,10 @@
 import gzip
 import json
 import logging
-from datetime import datetime, timezone
 from io import BytesIO
 
 import requests
+from django.utils import timezone
 from requests.exceptions import RequestException
 
 
@@ -24,7 +24,7 @@ class IDExport:
 
     def _build_url(self, media_type: str, published_date: str) -> str:
         if published_date is None:
-            published_date = datetime.now(timezone.utc).strftime('%m_%d_%Y')
+            published_date = timezone.now().strftime('%m_%d_%Y')
 
         path = f'{self.MEDIA_TYPES.get(media_type, '')}_ids_{published_date}.json.gz'
 

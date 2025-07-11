@@ -1,5 +1,6 @@
 from django.db import models
 from django.urls import reverse
+from django.utils import timezone
 
 from apps.services.utils import unique_slugify
 
@@ -127,7 +128,7 @@ class Person(SlugMixin):
     """Any person invovlved in the making of movies (e. g. actors, directors, writers)."""
 
     tmdb_id = models.IntegerField(primary_key=True)
-    name = models.CharField(max_length=512)
+    name = models.CharField(max_length=1024)
 
     imdb_id = models.CharField(max_length=16, blank=True, default='')
 
@@ -153,6 +154,8 @@ class Person(SlugMixin):
 
     tmdb_popularity = models.FloatField(blank=True, default=0.0)
 
+    last_update = models.DateField()
+
     class Meta:
         verbose_name_plural = 'people'
         ordering = ['name']
@@ -164,6 +167,11 @@ class Person(SlugMixin):
 
     def __str__(self):
         return self.name
+
+    def pre_bulk_create(self):
+        """Set last_update field before bulk create"""
+
+        self.last_update = timezone.now().date()
 
 
 class Movie(SlugMixin):
@@ -231,6 +239,8 @@ class Movie(SlugMixin):
     # Is this a short movie (<= 40 mins)
     short = models.BooleanField(blank=True, default=False)
 
+    last_update = models.DateField(blank=True)
+
     class Meta:
         verbose_name_plural = 'movies'
         ordering = ['title', '-release_date']
@@ -250,18 +260,18 @@ class Movie(SlugMixin):
     def get_absolute_url(self):
         return reverse('movie_detail', kwargs={'slug': self.slug})
 
-    def set_flags(self):
-        """Set documentary, tv_movie and short fields"""
+    def pre_bulk_create(self, genre_ids: list[int]):
+        """Set documentary, tv_movie, short and last_update fields before bulk create"""
 
         # Genre IDs of documentary and TV movie
         DOCUMENTARY = 99
         TV_MOVIE = 10770
 
-        genre_ids = set(self.genres.values_list('tmdb_id', flat=True))
-
         self.documentary = DOCUMENTARY in genre_ids
         self.tv_movie = TV_MOVIE in genre_ids
         self.short = self.runtime and self.runtime <= 40
+
+        self.last_update = timezone.now().date()
 
 
 class MovieEngagement(models.Model):

@@ -41,7 +41,7 @@ class Command(BaseCommand):
             type=int,
             default=None,
             help=(
-                'Changes made in past _ days (max. 14, only works with update_changed operation).'
+                'Changes made in past _ days (only works with update_changed operation).'
                 'By default changes will be fetched for the past 24 hours.'
             ),
         )
@@ -93,20 +93,26 @@ class Command(BaseCommand):
         sort_by_popularity = options['sort_by_popularity']
         only_create = options['create']
 
-        # IDs of people already in db
-        existing_ids = set(Person.objects.only('tmdb_id').values_list('tmdb_id', flat=True))
+        tmdb = asyncTMDB()
 
         match operation:
             case 'update_changed':
                 if only_create:
                     raise CommandError("Can't use --create with update_changed operation")
-                person_ids = asyncTMDB().fetch_changed_ids('person', days=days)
+
+                person_ids, earliest_date = tmdb.fetch_changed_ids('person', days=days)
+
+                # Get person IDs that were last updated before the changes earliest date
+                existing_ids = set(Person.objects.filter(last_update__lte=earliest_date).values_list('tmdb_id', flat=True))
                 person_ids = [id for id in person_ids if id in existing_ids]
+                self.stdout.write(self.style.SUCCESS(f'People to update: {len(person_ids)}'))
             case 'daily_export':
+                existing_ids = set(Person.objects.only('tmdb_id').values_list('tmdb_id', flat=True))
                 person_ids = IDExport().fetch_ids('person', published_date=published_date, sort_by_popularity=sort_by_popularity)
             case 'specific_ids':
                 if ids is None:
                     raise CommandError('Must provide --ids using specific_ids operation')
+                existing_ids = set(Person.objects.filter(tmdb_id__in=ids).values_list('tmdb_id', flat=True))
                 person_ids = ids
             case _:
                 raise CommandError("Invalid operation. Choose from 'update_changed', 'daily_export', 'specific_ids'")
@@ -114,7 +120,10 @@ class Command(BaseCommand):
         if only_create:
             person_ids = [id for id in person_ids if id not in existing_ids]
 
-        people, missing_ids = asyncTMDB().fetch_people_by_id(person_ids[:limit], batch_size=batch_size, language=language)
+        if limit is not None:
+            person_ids = person_ids[:limit]
+
+        people, missing_ids = tmdb.fetch_people_by_id(person_ids, batch_size=batch_size, language=language)
         person_objs = []
         new_slugs = set()
 
@@ -133,8 +142,9 @@ class Command(BaseCommand):
                 tmdb_popularity=person_data['popularity'],
             )
             person.set_slug(person.name, new_slugs)
-            person_objs.append(person)
             new_slugs.add(person.slug)
+            person.pre_bulk_create()
+            person_objs.append(person)
 
         Person.objects.bulk_create(
             person_objs,
@@ -151,6 +161,7 @@ class Command(BaseCommand):
                 'deathday',
                 'profile_path',
                 'tmdb_popularity',
+                'last_update',
             ),
             unique_fields=('tmdb_id',),
         )
