@@ -168,7 +168,7 @@ class Person(SlugMixin):
 
 class Movie(SlugMixin):
     tmdb_id = models.IntegerField(primary_key=True)
-    title = models.CharField(max_length=512)
+    title = models.CharField(max_length=1024)
 
     # Use title to create slug
     slug_source_field = 'title'
@@ -187,7 +187,7 @@ class Movie(SlugMixin):
     # Is this a TV movie
     tv_movie = models.BooleanField(blank=True, default=False)
 
-    original_title = models.CharField(max_length=512, blank=True, default='')
+    original_title = models.CharField(max_length=1024, blank=True, default='')
     original_language = models.ForeignKey(
         Language,
         on_delete=models.SET_NULL,

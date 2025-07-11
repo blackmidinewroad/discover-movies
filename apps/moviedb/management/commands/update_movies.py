@@ -91,19 +91,24 @@ class Command(BaseCommand):
         sort_by_popularity = options['sort_by_popularity']
         only_create = options['create']
 
+        tmdb = asyncTMDB()
+
         # IDs of movies already in db
-        existing_ids = set(models.Movie.objects.only('tmdb_id').values_list('tmdb_id', flat=True))
+        if operation == 'specific_ids' and ids is not None:
+            existing_ids = set(models.Movie.objects.filter(tmdb_id__in=ids).values_list('tmdb_id', flat=True))
+        else:
+            existing_ids = set(models.Movie.objects.only('tmdb_id').values_list('tmdb_id', flat=True))
 
         match operation:
             case 'update_changed':
                 if only_create:
                     raise CommandError("Can't use --create with update_changed operation")
-                movie_ids = asyncTMDB().fetch_changed_ids('movie', days=days)
+                movie_ids = tmdb.fetch_changed_ids('movie', days=days)
                 movie_ids = [id for id in movie_ids if id in existing_ids]
             case 'daily_export':
                 movie_ids = IDExport().fetch_ids('movie', published_date=published_date, sort_by_popularity=sort_by_popularity)
             case 'add_top_rated':
-                movie_ids = asyncTMDB().fetch_top_rated_movie_ids(last_page=500)
+                movie_ids = tmdb.fetch_top_rated_movie_ids(last_page=500)
             case 'specific_ids':
                 if ids is None:
                     raise CommandError('Must provide --ids using specific_ids operation')
@@ -114,8 +119,11 @@ class Command(BaseCommand):
         if only_create:
             movie_ids = [id for id in movie_ids if id not in existing_ids]
 
-        movies, not_fetched_movie_ids = asyncTMDB().fetch_movies_by_id(
-            movie_ids[:limit],
+        if limit is not None:
+            movie_ids = movie_ids[:limit]
+
+        movies, not_fetched_movie_ids = tmdb.fetch_movies_by_id(
+            movie_ids,
             batch_size=batch_size,
             language=language,
             append_to_response=['credits'],
@@ -130,10 +138,10 @@ class Command(BaseCommand):
         credits = []
         for movie_data in movies:
             credits.extend(movie_data['credits']['cast'] + movie_data['credits']['crew'])
-        n_created_people, not_fetched_person_ids = self.create_missing_people(credits)
+        n_created_people, not_fetched_person_ids = self.create_missing_people(tmdb, credits, batch_size=batch_size)
 
         # Create missing companies
-        n_created_companies, not_fetched_company_ids = self.create_missing_companies(movies)
+        n_created_companies, not_fetched_company_ids = self.create_missing_companies(tmdb, movies)
 
         # Counters for newly created objects
         created_counter = {
@@ -316,17 +324,17 @@ class Command(BaseCommand):
         )
 
         # IDs of created movies
-        movie_ids = set(movie_map)
+        created_movie_ids = set(movie_map)
 
         # Delete existing links
-        models.Movie.genres.through.objects.filter(movie_id__in=movie_ids).delete()
-        models.Movie.spoken_languages.through.objects.filter(movie_id__in=movie_ids).delete()
-        models.Movie.origin_country.through.objects.filter(movie_id__in=movie_ids).delete()
-        models.Movie.production_countries.through.objects.filter(movie_id__in=movie_ids).delete()
-        models.Movie.production_companies.through.objects.filter(movie_id__in=movie_ids).delete()
-        models.Movie.directors.through.objects.filter(movie_id__in=movie_ids).delete()
-        models.MovieCast.objects.filter(movie_id__in=movie_ids).delete()
-        models.MovieCrew.objects.filter(movie_id__in=movie_ids).delete()
+        models.Movie.genres.through.objects.filter(movie_id__in=created_movie_ids).delete()
+        models.Movie.spoken_languages.through.objects.filter(movie_id__in=created_movie_ids).delete()
+        models.Movie.origin_country.through.objects.filter(movie_id__in=created_movie_ids).delete()
+        models.Movie.production_countries.through.objects.filter(movie_id__in=created_movie_ids).delete()
+        models.Movie.production_companies.through.objects.filter(movie_id__in=created_movie_ids).delete()
+        models.Movie.directors.through.objects.filter(movie_id__in=created_movie_ids).delete()
+        models.MovieCast.objects.filter(movie_id__in=created_movie_ids).delete()
+        models.MovieCrew.objects.filter(movie_id__in=created_movie_ids).delete()
 
         # Create new relations in bulk
         models.Movie.genres.through.objects.bulk_create(genre_links, ignore_conflicts=True)
@@ -349,7 +357,7 @@ class Command(BaseCommand):
                 )
             )
 
-    def create_missing_companies(self, movies: list[dict]) -> tuple[int, list[int] | None]:
+    def create_missing_companies(self, tmdb_instance: asyncTMDB, movies: list[dict]) -> tuple[int, list[int] | None]:
         company_ids = {company['id'] for movie in movies for company in movie['production_companies']}
         existing_ids = set(models.ProductionCompany.objects.filter(tmdb_id__in=company_ids).values_list('tmdb_id', flat=True))
         missing_ids = {id for id in company_ids if id not in existing_ids}
@@ -357,7 +365,7 @@ class Command(BaseCommand):
         if not missing_ids:
             return 0, None
 
-        companies, not_fetched = asyncTMDB().fetch_companies_by_id(missing_ids)
+        companies, not_fetched = tmdb_instance.fetch_companies_by_id(missing_ids)
         company_objs = []
         new_slugs = set()
 
@@ -386,7 +394,7 @@ class Command(BaseCommand):
 
         return len(companies), not_fetched
 
-    def create_missing_people(self, credits: list[dict]) -> tuple[int, list[int] | None]:
+    def create_missing_people(self, tmdb_instance: asyncTMDB, credits: list[dict], batch_size: int) -> tuple[int, list[int] | None]:
         GENDERS = {0: '', 1: 'F', 2: 'M', 3: 'NB'}
 
         person_ids = [credit_member['id'] for credit_member in credits]
@@ -396,7 +404,7 @@ class Command(BaseCommand):
         if not missing_ids:
             return 0, False
 
-        people, not_fetched = asyncTMDB().fetch_people_by_id(missing_ids)
+        people, not_fetched = tmdb_instance.fetch_people_by_id(missing_ids, batch_size=batch_size)
         person_objs = []
         new_slugs = set()
 

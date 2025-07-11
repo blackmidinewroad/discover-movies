@@ -279,25 +279,38 @@ class TMDB(BaseTMDB):
 class asyncTMDB(BaseTMDB):
     """TMDB API wrapper for async requests."""
 
-    # 45 calls per 1 second
-    calls = 45
+    # 50 calls per 1 second
+    calls = 50
     rate_limit = 1
 
     def __init__(self):
-        self.header = {
+        self.headers = {
             'accept': 'application/json',
             'Authorization': f'Bearer {os.getenv("TMDB_ACCESS_TOKEN")}',
         }
         self.limiter = AsyncLimiter(self.calls, self.rate_limit)
 
-    async def _fetch_data(self, session: aiohttp.ClientSession, path: str, params: dict = None, is_by_id: bool = False) -> dict | int:
+    def run_sync(self, coro):
+        """Run async code in a synchronous context."""
+
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            return asyncio.run(coro)
+
+        if loop.is_running():
+            raise RuntimeError("Can't call sync method from within async event loop")
+
+        return loop.run_until_complete(coro)
+
+    async def _fetch_data(self, path: str, params: dict = None, is_by_id: bool = False) -> dict | int:
         """Main method to make asynchronous requests to TMDB API."""
 
         url = self._build_url(path, params)
 
         async with self.limiter:
             try:
-                async with session.get(url, timeout=10) as response:
+                async with self.session.get(url, timeout=10) as response:
                     response.raise_for_status()
                     data = await response.json()
                     return data
@@ -316,22 +329,19 @@ class asyncTMDB(BaseTMDB):
 
         results = []
         batch_not_fetched = []
-        connector = aiohttp.TCPConnector(limit=self.calls)
-        timeout = aiohttp.ClientTimeout(total=20)
 
-        async with aiohttp.ClientSession(headers=self.header, connector=connector, timeout=timeout) as session:
-            if const_params is None:
-                tasks = [self._fetch_data(session, path, params, is_by_id=is_by_id) for path, params in task_details]
+        if const_params is None:
+            tasks = [self._fetch_data(path, params, is_by_id=is_by_id) for path, params in task_details]
+        else:
+            tasks = [self._fetch_data(path, const_params, is_by_id=is_by_id) for path in task_details]
+
+        responses = await asyncio.gather(*tasks)
+
+        for result in responses:
+            if isinstance(result, dict):
+                results.append(result)
             else:
-                tasks = [self._fetch_data(session, path, const_params, is_by_id=is_by_id) for path in task_details]
-
-            responses = await asyncio.gather(*tasks)
-
-            for result in responses:
-                if isinstance(result, dict):
-                    results.append(result)
-                else:
-                    batch_not_fetched.append(result)
+                batch_not_fetched.append(result)
 
         return results, batch_not_fetched
 
@@ -351,13 +361,15 @@ class asyncTMDB(BaseTMDB):
         all_results = []
         not_fetched = []
 
-        for i in range(0, len(paths), batch_size):
-            batch = paths[i : i + batch_size]
-            results, batch_not_fetched = await self._batch_fetch(task_details=batch, const_params=params, is_by_id=True)
-            all_results.extend(results)
-            not_fetched.extend(batch_not_fetched)
+        connector = aiohttp.TCPConnector(limit=self.calls)
+        timeout = aiohttp.ClientTimeout(total=20)
 
-            await asyncio.sleep(1)
+        async with aiohttp.ClientSession(headers=self.headers, connector=connector, timeout=timeout) as self.session:
+            for i in range(0, len(paths), batch_size):
+                batch = paths[i : i + batch_size]
+                results, batch_not_fetched = await self._batch_fetch(task_details=batch, const_params=params, is_by_id=True)
+                all_results.extend(results)
+                not_fetched.extend(batch_not_fetched)
 
         return all_results, not_fetched
 
@@ -382,7 +394,7 @@ class asyncTMDB(BaseTMDB):
 
         paths = [f'movie/{movie_id}' for movie_id in movie_ids]
 
-        return asyncio.run(
+        return self.run_sync(
             self._fetch_by_id(
                 paths=paths,
                 language=language,
@@ -412,7 +424,7 @@ class asyncTMDB(BaseTMDB):
 
         paths = [f'person/{person_id}' for person_id in person_ids]
 
-        return asyncio.run(
+        return self.run_sync(
             self._fetch_by_id(
                 paths=paths,
                 language=language,
@@ -436,7 +448,7 @@ class asyncTMDB(BaseTMDB):
 
         paths = [f'company/{company_id}' for company_id in company_ids]
 
-        return asyncio.run(self._fetch_by_id(paths=paths, batch_size=batch_size))
+        return self.run_sync(self._fetch_by_id(paths=paths, batch_size=batch_size))
 
     def fetch_collections_by_id(
         self, collection_ids: list[int], language: str = 'en-US', batch_size: int = 100
@@ -454,7 +466,7 @@ class asyncTMDB(BaseTMDB):
 
         paths = [f'collection/{collection_id}' for collection_id in collection_ids]
 
-        return asyncio.run(self._fetch_by_id(paths=paths, language=language, batch_size=batch_size))
+        return self.run_sync(self._fetch_by_id(paths=paths, language=language, batch_size=batch_size))
 
     async def _fetch_pages(
         self,
@@ -474,7 +486,6 @@ class asyncTMDB(BaseTMDB):
         if dates is None:
             dates = {}
 
-        task_details = tuple((path, {'page': page, 'language': language, 'region': region}) for page in range(first_page, last_page + 1))
         task_details = []
         for page in range(first_page, last_page + 1):
             detail = {'page': page, 'language': language, 'region': region}
@@ -487,8 +498,6 @@ class asyncTMDB(BaseTMDB):
             batch = task_details[i : i + batch_size]
             results, _ = await self._batch_fetch(task_details=batch)
             all_pages.extend(results)
-
-            await asyncio.sleep(1)
 
         return all_pages
 
@@ -515,7 +524,7 @@ class asyncTMDB(BaseTMDB):
 
         path = 'movie/popular'
 
-        return asyncio.run(
+        return self.run_sync(
             self._fetch_pages(
                 path=path,
                 first_page=first_page,
@@ -549,7 +558,7 @@ class asyncTMDB(BaseTMDB):
 
         path = 'movie/top_rated'
 
-        return asyncio.run(
+        return self.run_sync(
             self._fetch_pages(
                 path=path,
                 first_page=first_page,
@@ -583,7 +592,7 @@ class asyncTMDB(BaseTMDB):
 
         path = 'movie/top_rated'
 
-        pages = asyncio.run(
+        pages = self.run_sync(
             self._fetch_pages(
                 path=path,
                 first_page=first_page,
@@ -619,7 +628,7 @@ class asyncTMDB(BaseTMDB):
 
         path = f'trending/movie/{time_window}'
 
-        return asyncio.run(
+        return self.run_sync(
             self._fetch_pages(
                 path=path,
                 first_page=first_page,
@@ -652,7 +661,7 @@ class asyncTMDB(BaseTMDB):
 
         path = f'trending/person/{time_window}'
 
-        return asyncio.run(
+        return self.run_sync(
             self._fetch_pages(
                 path=path,
                 first_page=first_page,
@@ -678,7 +687,7 @@ class asyncTMDB(BaseTMDB):
         first_page_data = TMDB()._fetch_data(path=path, params=params)
         total_pages = first_page_data['total_pages']
 
-        data = asyncio.run(
+        data = self.run_sync(
             self._fetch_pages(
                 path=path,
                 first_page=1,
