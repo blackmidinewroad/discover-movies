@@ -96,7 +96,7 @@ class TMDB(BaseTMDB):
         """Get the list of countries (ISO 3166-1 tags) used throughout TMDB.
 
         Args:
-            language (str, optional): locale (ISO 639-1-ISO 3166-1) code (e.g. en-UD, fr-CA, de_DE). Defaults to 'en-US'.
+            language (str, optional): locale (ISO 639-1-ISO 3166-1) code (e.g. en-US, fr-CA, de-DE). Defaults to 'en-US'.
 
         Returns:
             list[dict]: list of countries with ISO 3166-1 tags, names and english names.
@@ -131,7 +131,7 @@ class TMDB(BaseTMDB):
 
         Args:
             movie_id (int): TMDB ID of a movie.
-            language (str, optional): locale (ISO 639-1-ISO 3166-1) code (e.g. en-UD, fr-CA, de_DE). Defaults to 'en-US'.
+            language (str, optional): locale (ISO 639-1-ISO 3166-1) code (e.g. en-US, fr-CA, de-DE). Defaults to 'en-US'.
             append_to_response (list[str], optional): list of endpoints within this namespace, 20 items max. Defaults to ''.
 
         Returns:
@@ -147,7 +147,7 @@ class TMDB(BaseTMDB):
 
         Args:
             person_id (int): TMDB ID of a person.
-            language (str, optional): locale (ISO 639-1-ISO 3166-1) code (e.g. en-UD, fr-CA, de_DE). Defaults to 'en-US'.
+            language (str, optional): locale (ISO 639-1-ISO 3166-1) code (e.g. en-US, fr-CA, de-DE). Defaults to 'en-US'.
             append_to_response (list[str], optional): list of endpoints within this namespace, 20 items max. Defaults to ''.
 
         Returns:
@@ -177,7 +177,7 @@ class TMDB(BaseTMDB):
 
         Args:
             company_id (int): TMDB ID of a collection.
-            language (str, optional): locale (ISO 639-1-ISO 3166-1) code (e.g. en-UD, fr-CA, de_DE). Defaults to 'en-US'.
+            language (str, optional): locale (ISO 639-1-ISO 3166-1) code (e.g. en-US, fr-CA, de-DE). Defaults to 'en-US'.
 
         Returns:
             dict: dict with collection details.
@@ -210,7 +210,7 @@ class TMDB(BaseTMDB):
         Args:
             first_page (int, optional): first page, max=500. Defaults to 1.
             last_page (int, optional): last page, leave blank if need 1 page, max=500. Defaults to None.
-            language (str, optional): locale (ISO 639-1-ISO 3166-1) code (e.g. en-UD, fr-CA, de_DE). Defaults to 'en-US'.
+            language (str, optional): locale (ISO 639-1-ISO 3166-1) code (e.g. en-US, fr-CA, de-DE). Defaults to 'en-US'.
             region (str, optional): ISO 3166-1 code (e.g. US, FR, RU). Defaults to None.
 
         Returns:
@@ -227,7 +227,7 @@ class TMDB(BaseTMDB):
         Args:
             first_page (int, optional): first page, max=500. Defaults to 1.
             last_page (int, optional): last page, leave blank if need 1 page, max=500. Defaults to None.
-            language (str, optional): locale (ISO 639-1-ISO 3166-1) code (e.g. en-UD, fr-CA, de_DE). Defaults to 'en-US'.
+            language (str, optional): locale (ISO 639-1-ISO 3166-1) code (e.g. en-US, fr-CA, de-DE). Defaults to 'en-US'.
             region (str, optional): ISO 3166-1 code (e.g. US, FR, RU). Defaults to None.
 
         Returns:
@@ -247,7 +247,7 @@ class TMDB(BaseTMDB):
             time_window (str, optional): time window, day or week. Defaults to 'day'.
             first_page (int, optional): first page, max=500. Defaults to 1.
             last_page (int, optional): last page, leave blank if need 1 page, max=500. Defaults to None.
-            language (str, optional): locale (ISO 639-1-ISO 3166-1) code (e.g. en-UD, fr-CA, de_DE). Defaults to 'en-US'.
+            language (str, optional): locale (ISO 639-1-ISO 3166-1) code (e.g. en-US, fr-CA, de-DE). Defaults to 'en-US'.
 
         Returns:
             list[dict]: list of pages with movie details.
@@ -266,7 +266,7 @@ class TMDB(BaseTMDB):
             time_window (str, optional): time window, day or week. Defaults to 'day'.
             first_page (int, optional): first page, max=500. Defaults to 1.
             last_page (int, optional): last page, leave blank if need 1 page, max=500. Defaults to None.
-            language (str, optional): locale (ISO 639-1-ISO 3166-1) code (e.g. en-UD, fr-CA, de_DE). Defaults to 'en-US'.
+            language (str, optional): locale (ISO 639-1-ISO 3166-1) code (e.g. en-US, fr-CA, de-DE). Defaults to 'en-US'.
 
         Returns:
             list[dict]: list of pages with people details.
@@ -385,7 +385,7 @@ class asyncTMDB(BaseTMDB):
 
         Args:
             movie_ids (list[int]): list of TMDB movie IDs.
-            language (str, optional): locale (ISO 639-1-ISO 3166-1) code (e.g. en-UD, fr-CA, de_DE). Defaults to 'en-US'.
+            language (str, optional): locale (ISO 639-1-ISO 3166-1) code (e.g. en-US, fr-CA, de-DE). Defaults to 'en-US'.
             append_to_response (list[str], optional): list of endpoints within this namespace, will appended to each movie, 20 items max. Defaults to None.
             batch_size (int, optional): number of movies to fetch per batch. Defaults to 100.
 
@@ -414,8 +414,8 @@ class asyncTMDB(BaseTMDB):
         """Fetch person details for list of IDs.
 
         Args:
-            person_ids (list[int]): list of TMDB pesron IDs.
-            language (str, optional): locale (ISO 639-1-ISO 3166-1) code (e.g. en-UD, fr-CA, de_DE). Defaults to 'en-US'.
+            person_ids (list[int]): list of TMDB person IDs.
+            language (str, optional): locale (ISO 639-1-ISO 3166-1) code (e.g. en-US, fr-CA, de-DE). Defaults to 'en-US'.
             append_to_response (list[str], optional): list of endpoints within this namespace, will appended to each movie, 20 items max. Defaults to None.
             batch_size (int, optional): number of people to fetch per batch. Defaults to 100.
 
@@ -439,8 +439,9 @@ class asyncTMDB(BaseTMDB):
 
         Args:
             company_ids (list[int]): list of TMDB company IDs.
-            language (str, optional): locale (ISO 639-1-ISO 3166-1) code (e.g. en-UD, fr-CA, de_DE). Defaults to 'en-US'.
-            append_to_response (list[str], optional): list of endpoints within this namespace, will appended to each movie, 20 items max. Defaults to None.
+            language (str, optional): locale (ISO 639-1-ISO 3166-1) code (e.g. en-US, fr-CA, de-DE). Defaults to 'en-US'.
+            append_to_response (list[str], optional): list of endpoints within this namespace,
+                will be appended to each movie, 20 items max. Defaults to None.
             batch_size (int, optional): number of companies to fetch per batch. Defaults to 100.
 
         Returns:
@@ -458,7 +459,7 @@ class asyncTMDB(BaseTMDB):
 
         Args:
             collection_ids (list[int]): list of TMDB collection IDs.
-            language (str, optional): locale (ISO 639-1-ISO 3166-1) code (e.g. en-UD, fr-CA, de_DE). Defaults to 'en-US'.
+            language (str, optional): locale (ISO 639-1-ISO 3166-1) code (e.g. en-US, fr-CA, de-DE). Defaults to 'en-US'.
             batch_size (int, optional): number of collections to fetch per batch. Defaults to 100.
 
         Returns:
@@ -519,7 +520,7 @@ class asyncTMDB(BaseTMDB):
         Args:
             first_page (int, optional): first page, max=500. Defaults to 1.
             last_page (int, optional): last page, leave blank if need 1 page, max=500. Defaults to None.
-            language (str, optional): locale (ISO 639-1-ISO 3166-1) code (e.g. en-UD, fr-CA, de_DE). Defaults to 'en-US'.
+            language (str, optional): locale (ISO 639-1-ISO 3166-1) code (e.g. en-US, fr-CA, de-DE). Defaults to 'en-US'.
             region (str, optional): ISO 3166-1 code (e.g. US, FR, RU). Defaults to None.
             batch_size (int, optional): number of pages to fetch per batch. Defaults to 100.
 
@@ -553,7 +554,7 @@ class asyncTMDB(BaseTMDB):
         Args:
             first_page (int, optional): first page, max=500. Defaults to 1.
             last_page (int, optional): last page, leave blank if need 1 page, max=500. Defaults to None.
-            language (str, optional): locale (ISO 639-1-ISO 3166-1) code (e.g. en-UD, fr-CA, de_DE). Defaults to 'en-US'.
+            language (str, optional): locale (ISO 639-1-ISO 3166-1) code (e.g. en-US, fr-CA, de-DE). Defaults to 'en-US'.
             region (str, optional): ISO 3166-1 code (e.g. US, FR, RU). Defaults to None.
             batch_size (int, optional): number of pages to fetch per batch. Defaults to 100.
 
@@ -587,7 +588,7 @@ class asyncTMDB(BaseTMDB):
         Args:
             first_page (int, optional): first page, max=500. Defaults to 1.
             last_page (int, optional): last page, leave blank if need 1 page, max=500. Defaults to None.
-            language (str, optional): locale (ISO 639-1-ISO 3166-1) code (e.g. en-UD, fr-CA, de_DE). Defaults to 'en-US'.
+            language (str, optional): locale (ISO 639-1-ISO 3166-1) code (e.g. en-US, fr-CA, de-DE). Defaults to 'en-US'.
             region (str, optional): ISO 3166-1 code (e.g. US, FR, RU). Defaults to None.
             batch_size (int, optional): number of pages to fetch per batch. Defaults to 100.
 
@@ -624,7 +625,7 @@ class asyncTMDB(BaseTMDB):
             time_window (str, optional): time window, day or week. Defaults to 'day'.
             first_page (int, optional): first page, max=500. Defaults to 1.
             last_page (int, optional): last page, leave blank if need 1 page, max=500. Defaults to None.
-            language (str, optional): locale (ISO 639-1-ISO 3166-1) code (e.g. en-UD, fr-CA, de_DE). Defaults to 'en-US'.
+            language (str, optional): locale (ISO 639-1-ISO 3166-1) code (e.g. en-US, fr-CA, de-DE). Defaults to 'en-US'.
             batch_size (int, optional): number of pages to fetch per batch. Defaults to 100.
 
         Returns:
@@ -657,7 +658,7 @@ class asyncTMDB(BaseTMDB):
             time_window (str, optional): time window, day or week. Defaults to 'day'.
             first_page (int, optional): first page, max=500. Defaults to 1.
             last_page (int, optional): last page, leave blank if need 1 page, max=500. Defaults to None.
-            language (str, optional): locale (ISO 639-1-ISO 3166-1) code (e.g. en-UD, fr-CA, de_DE). Defaults to 'en-US'.
+            language (str, optional): locale (ISO 639-1-ISO 3166-1) code (e.g. en-US, fr-CA, de-DE). Defaults to 'en-US'.
             batch_size (int, optional): number of pages to fetch per batch. Defaults to 100.
 
         Returns:
@@ -677,7 +678,7 @@ class asyncTMDB(BaseTMDB):
         )
 
     def fetch_changed_ids(self, ids_type: str, days: int = 1, batch_size: int = 100) -> tuple[set[int], date]:
-        """Fetch changed movies/people in the last _ days.
+        """Fetch changed movies/people in the past N days.
 
         Args:
             ids_type (str): 'movie' or 'person'.
@@ -705,7 +706,14 @@ class asyncTMDB(BaseTMDB):
             params = {'start_date': cur_date_str, 'end_date': cur_date_str}
 
             first_page_data = tmdb._fetch_data(path=path, params=params)
-            total_pages = first_page_data['total_pages']
+
+            if first_page_data is None:
+                continue
+
+            total_pages = first_page_data.get('total_pages')
+
+            if total_pages is None:
+                continue
 
             data = self.run_sync(
                 self._fetch_pages(

@@ -26,7 +26,7 @@ class Command(BaseCommand):
             type=int,
             default=None,
             nargs='*',
-            help='IDs to ceate/update (required for specific_ids operation).',
+            help='IDs to create/update (required for specific_ids operation).',
         )
 
         parser.add_argument(
@@ -41,7 +41,7 @@ class Command(BaseCommand):
             type=int,
             default=None,
             help=(
-                'Changes made in past _ days (only works with update_changed operation).'
+                'Changes made in the past N days (only works with update_changed operation).'
                 'By default changes will be fetched for the past 24 hours.'
             ),
         )
@@ -57,7 +57,7 @@ class Command(BaseCommand):
             '--language',
             type=str,
             default='en-US',
-            help='Locale (ISO 639-1-ISO 3166-1) code (e.g. en-UD, fr-CA, de_DE). Defaults to "en-US".',
+            help='Locale (ISO 639-1-ISO 3166-1) code (e.g. en-US, fr-CA, de-DE). Defaults to "en-US".',
         )
 
         parser.add_argument(
@@ -93,12 +93,16 @@ class Command(BaseCommand):
         sort_by_popularity = options['sort_by_popularity']
         only_create = options['create']
 
+        is_update = False
+
         tmdb = asyncTMDB()
 
         match operation:
             case 'update_changed':
                 if only_create:
                     raise CommandError("Can't use --create with update_changed operation")
+
+                is_update = True
 
                 person_ids, earliest_date = tmdb.fetch_changed_ids('person', days=days)
 
@@ -131,6 +135,25 @@ class Command(BaseCommand):
         person_objs = []
         new_slugs = set()
 
+        # Fields to update in person table
+        update_fields = [
+            'name',
+            'imdb_id',
+            'known_for_department',
+            'biography',
+            'place_of_birth',
+            'gender',
+            'birthday',
+            'deathday',
+            'profile_path',
+            'tmdb_popularity',
+            'last_update',
+        ]
+
+        # Also update slug if not updating changes
+        if not is_update:
+            update_fields.append('slug')
+
         for person_data in people:
             person = Person(
                 tmdb_id=person_data['id'],
@@ -145,28 +168,19 @@ class Command(BaseCommand):
                 profile_path=person_data['profile_path'] or '',
                 tmdb_popularity=person_data['popularity'],
             )
-            person.set_slug(person.name, new_slugs)
-            new_slugs.add(person.slug)
+
+            # Create new slug if not updating changes
+            if not is_update:
+                person.set_slug(new_slugs)
+                new_slugs.add(person.slug)
+
             person.pre_bulk_create()
             person_objs.append(person)
 
         Person.objects.bulk_create(
             person_objs,
             update_conflicts=True,
-            update_fields=(
-                'name',
-                'slug',
-                'imdb_id',
-                'known_for_department',
-                'biography',
-                'place_of_birth',
-                'gender',
-                'birthday',
-                'deathday',
-                'profile_path',
-                'tmdb_popularity',
-                'last_update',
-            ),
+            update_fields=update_fields,
             unique_fields=('tmdb_id',),
         )
 

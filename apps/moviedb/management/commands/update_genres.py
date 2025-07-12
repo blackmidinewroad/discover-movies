@@ -24,7 +24,7 @@ class Command(BaseCommand):
 
         for genre_data in genres:
             genre = Genre(tmdb_id=genre_data['id'], name=genre_data['name'])
-            genre.set_slug(genre.name, new_slugs)
+            genre.set_slug(new_slugs)
             genre_objs.append(genre)
             new_slugs.add(genre.slug)
 

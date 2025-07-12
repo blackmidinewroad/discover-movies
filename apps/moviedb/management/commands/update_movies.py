@@ -11,6 +11,9 @@ from apps.services.utils import runtime
 class Command(BaseCommand):
     help = 'Update movie table'
 
+    # Genders for creating people
+    GENDERS = {0: '', 1: 'F', 2: 'M', 3: 'NB'}
+
     def add_arguments(self, parser):
         parser.add_argument(
             'operation',
@@ -24,7 +27,7 @@ class Command(BaseCommand):
             type=int,
             default=None,
             nargs='*',
-            help='IDs to ceate/update (required for specific_ids operation).',
+            help='IDs to create/update (required for specific_ids operation).',
         )
 
         parser.add_argument(
@@ -39,7 +42,7 @@ class Command(BaseCommand):
             type=int,
             default=None,
             help=(
-                'Changes made in past _ days (only works with update_changed operation).'
+                'Changes made in the past N days (only works with update_changed operation).'
                 'By default changes will be fetched for the past 24 hours.'
             ),
         )
@@ -55,7 +58,7 @@ class Command(BaseCommand):
             '--language',
             type=str,
             default='en-US',
-            help='Locale (ISO 639-1-ISO 3166-1) code (e.g. en-UD, fr-CA, de_DE). Defaults to "en-US".',
+            help='Locale (ISO 639-1-ISO 3166-1) code (e.g. en-US, fr-CA, de-DE). Defaults to "en-US".',
         )
 
         parser.add_argument(
@@ -91,12 +94,16 @@ class Command(BaseCommand):
         sort_by_popularity = options['sort_by_popularity']
         only_create = options['create']
 
+        is_update = False
+
         tmdb = asyncTMDB()
 
         match operation:
             case 'update_changed':
                 if only_create:
                     raise CommandError("Can't use --create with update_changed operation")
+
+                is_update = True
 
                 movie_ids, earliest_date = tmdb.fetch_changed_ids('movie', days=days)
 
@@ -169,6 +176,32 @@ class Command(BaseCommand):
 
         # Skipped movies counter
         skipped = 0
+
+        # Fields to update in movie table
+        update_fields = [
+            'title',
+            'imdb_id',
+            'release_date',
+            'original_title',
+            'original_language',
+            'overview',
+            'tagline',
+            'collection',
+            'poster_path',
+            'backdrop_path',
+            'status',
+            'budget',
+            'revenue',
+            'runtime',
+            'documentary',
+            'tv_movie',
+            'short',
+            'last_update',
+        ]
+
+        # Also update slug if not updating changes
+        if not is_update:
+            update_fields.append('slug')
 
         # Links to update many to many fields
         genre_links = []
@@ -295,35 +328,18 @@ class Command(BaseCommand):
                     )
                 )
 
-            movie.set_slug(movie.title, new_slugs)
-            new_slugs.add(movie.slug)
+            # Create new slug if not updating changes
+            if not is_update:
+                movie.set_slug(new_slugs)
+                new_slugs.add(movie.slug)
+
             movie.pre_bulk_create(genre_ids)
             movie_map[movie_id] = movie
 
         models.Movie.objects.bulk_create(
             tuple(movie_map.values()),
             update_conflicts=True,
-            update_fields=(
-                'title',
-                'slug',
-                'imdb_id',
-                'release_date',
-                'original_title',
-                'original_language',
-                'overview',
-                'tagline',
-                'collection',
-                'poster_path',
-                'backdrop_path',
-                'status',
-                'budget',
-                'revenue',
-                'runtime',
-                'documentary',
-                'tv_movie',
-                'short',
-                'last_update',
-            ),
+            update_fields=update_fields,
             unique_fields=('tmdb_id',),
         )
 
@@ -361,45 +377,7 @@ class Command(BaseCommand):
                 )
             )
 
-    def create_missing_companies(self, companies: list[dict]) -> int:
-        company_ids = {company['id'] for company in companies}
-        existing_ids = set(models.ProductionCompany.objects.filter(tmdb_id__in=company_ids).values_list('tmdb_id', flat=True))
-        missing_companies = {company for company in companies if company['id'] not in existing_ids}
-
-        if not missing_companies:
-            return 0
-
-        company_objs = []
-        new_slugs = set()
-
-        for company_data in missing_companies:
-            origin_country_code = company_data['origin_country']
-            if origin_country_code and origin_country_code not in self.countries:
-                models.Country.objects.create(code=origin_country_code, name='unknown')
-                self.countries.add(origin_country_code)
-
-            company = models.ProductionCompany(
-                tmdb_id=company_data['id'],
-                name=company_data['name'],
-                logo_path=company_data['logo_path'] or '',
-                origin_country_id=origin_country_code or None,
-            )
-            company.set_slug(company.name, new_slugs)
-            company_objs.append(company)
-            new_slugs.add(company.slug)
-
-        models.ProductionCompany.objects.bulk_create(
-            company_objs,
-            update_conflicts=True,
-            update_fields=('name', 'slug', 'logo_path', 'origin_country'),
-            unique_fields=('tmdb_id',),
-        )
-
-        return len(missing_companies)
-
     def create_missing_people(self, tmdb_instance: asyncTMDB, credits: list[dict], batch_size: int) -> tuple[int, list[int] | None]:
-        GENDERS = {0: '', 1: 'F', 2: 'M', 3: 'NB'}
-
         person_ids = [credit_member['id'] for credit_member in credits]
         existing_ids = set(models.Person.objects.filter(tmdb_id__in=person_ids).values_list('tmdb_id', flat=True))
         missing_ids = {id for id in person_ids if id not in existing_ids}
@@ -419,13 +397,13 @@ class Command(BaseCommand):
                 known_for_department=person_data['known_for_department'] or '',
                 biography=person_data['biography'] or '',
                 place_of_birth=person_data['place_of_birth'] or '',
-                gender=GENDERS[person_data['gender']],
+                gender=self.GENDERS[person_data['gender']],
                 birthday=date.fromisoformat(person_data['birthday']) if person_data['birthday'] else None,
                 deathday=date.fromisoformat(person_data['deathday']) if person_data['deathday'] else None,
                 profile_path=person_data['profile_path'] or '',
                 tmdb_popularity=person_data['popularity'],
             )
-            person.set_slug(person.name, new_slugs)
+            person.set_slug(new_slugs)
             new_slugs.add(person.slug)
             person.pre_bulk_create()
             person_objs.append(person)
@@ -452,6 +430,42 @@ class Command(BaseCommand):
 
         return len(people), not_fetched
 
+    def create_missing_companies(self, companies: list[dict]) -> int:
+        company_ids = {company['id'] for company in companies}
+        existing_ids = set(models.ProductionCompany.objects.filter(tmdb_id__in=company_ids).values_list('tmdb_id', flat=True))
+        missing_companies = {company for company in companies if company['id'] not in existing_ids}
+
+        if not missing_companies:
+            return 0
+
+        company_objs = []
+        new_slugs = set()
+
+        for company_data in missing_companies:
+            origin_country_code = company_data['origin_country']
+            if origin_country_code and origin_country_code not in self.countries:
+                models.Country.objects.create(code=origin_country_code, name='unknown')
+                self.countries.add(origin_country_code)
+
+            company = models.ProductionCompany(
+                tmdb_id=company_data['id'],
+                name=company_data['name'],
+                logo_path=company_data['logo_path'] or '',
+                origin_country_id=origin_country_code or None,
+            )
+            company.set_slug(new_slugs)
+            company_objs.append(company)
+            new_slugs.add(company.slug)
+
+        models.ProductionCompany.objects.bulk_create(
+            company_objs,
+            update_conflicts=True,
+            update_fields=('name', 'slug', 'logo_path', 'origin_country'),
+            unique_fields=('tmdb_id',),
+        )
+
+        return len(missing_companies)
+
     def create_missing_collections(self, collections: list[dict]) -> int:
         collection_ids = {collection['id'] for collection in collections}
         existing_ids = set(models.Collection.objects.filter(tmdb_id__in=collection_ids).values_list('tmdb_id', flat=True))
@@ -464,7 +478,7 @@ class Command(BaseCommand):
         new_slugs = set()
 
         for collection_data in missing_collections:
-            collection = models.ProductionCompany(
+            collection = models.Collection(
                 tmdb_id=collection_data['id'],
                 name=collection_data['name'],
                 overview='',
@@ -472,7 +486,7 @@ class Command(BaseCommand):
                 poster_path=collection_data['poster_path'] or '',
                 backdrop_path=collection_data['backdrop_path'] or '',
             )
-            collection.set_slug(collection.name, new_slugs)
+            collection.set_slug(new_slugs)
             collection_objs.append(collection)
             new_slugs.add(collection.slug)
 

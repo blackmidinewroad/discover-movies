@@ -67,7 +67,7 @@ class Command(BaseCommand):
                 logo_path=company_data['logo_path'] or '',
                 origin_country_id=origin_country_code or None,
             )
-            company.set_slug(company.name, new_slugs)
+            company.set_slug(new_slugs)
             company_objs.append(company)
             new_slugs.add(company.slug)
 

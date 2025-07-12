@@ -19,12 +19,14 @@ class SlugMixin(models.Model):
     def save(self, *args, **kwargs):
         """Create unique slug before saving."""
 
-        value = getattr(self, self.slug_source_field)
-        self.slug = unique_slugify(self, value)
+        if not self.slug:
+            value = getattr(self, self.slug_source_field)
+            self.slug = unique_slugify(self, value)
+
         super().save(*args, **kwargs)
 
-    def set_slug(self, value: str, cur_bulk_slugs: set[str] = None) -> None:
-        """Set slug manually when save() is not called."""
+    def set_slug(self, cur_bulk_slugs: set[str] = None) -> None:
+        """Set slug manually when 'save()' is not called."""
 
         value = getattr(self, self.slug_source_field)
         self.slug = unique_slugify(self, value, cur_bulk_slugs=cur_bulk_slugs)
@@ -37,6 +39,7 @@ class Country(SlugMixin):
     name = models.CharField(max_length=64)
 
     class Meta:
+        verbose_name = 'country'
         verbose_name_plural = 'countries'
         ordering = ['name']
         indexes = [models.Index(fields=['name']), models.Index(fields=['slug'])]
@@ -55,6 +58,7 @@ class Language(SlugMixin):
     name = models.CharField(max_length=128)
 
     class Meta:
+        verbose_name = 'language'
         verbose_name_plural = 'languages'
         ordering = ['name']
         indexes = [models.Index(fields=['name']), models.Index(fields=['slug'])]
@@ -71,6 +75,7 @@ class Genre(SlugMixin):
     name = models.CharField(max_length=32)
 
     class Meta:
+        verbose_name = 'genre'
         verbose_name_plural = 'genres'
         ordering = ['name']
         indexes = [models.Index(fields=['name']), models.Index(fields=['slug'])]
@@ -113,6 +118,7 @@ class Collection(SlugMixin):
     backdrop_path = models.CharField(max_length=64, blank=True, default='')
 
     class Meta:
+        verbose_name = 'collection'
         verbose_name_plural = 'collections'
         ordering = ['name']
         indexes = [models.Index(fields=['name']), models.Index(fields=['slug'])]
@@ -125,7 +131,7 @@ class Collection(SlugMixin):
 
 
 class Person(SlugMixin):
-    """Any person invovlved in the making of movies (e. g. actors, directors, writers)."""
+    """Any person involved in the making of movies (e.g. actors, directors, writers)."""
 
     tmdb_id = models.IntegerField(primary_key=True)
     name = models.CharField(max_length=1024)
@@ -157,6 +163,7 @@ class Person(SlugMixin):
     last_update = models.DateField()
 
     class Meta:
+        verbose_name = 'person'
         verbose_name_plural = 'people'
         ordering = ['name']
         indexes = [
@@ -242,16 +249,14 @@ class Movie(SlugMixin):
     last_update = models.DateField(blank=True)
 
     class Meta:
+        verbose_name = 'movie'
         verbose_name_plural = 'movies'
-        ordering = ['title', '-release_date']
+        ordering = ['-release_date']
 
         indexes = [
             models.Index(fields=['title']),
-            models.Index(fields=['-release_date']),
-            models.Index(fields=['-budget']),
-            models.Index(fields=['-revenue']),
-            models.Index(fields=['-runtime']),
             models.Index(fields=['slug']),
+            models.Index(fields=['-release_date']),
         ]
 
     def __str__(self):
@@ -269,7 +274,7 @@ class Movie(SlugMixin):
 
         self.documentary = DOCUMENTARY in genre_ids
         self.tv_movie = TV_MOVIE in genre_ids
-        self.short = self.runtime and self.runtime <= 40
+        self.short = bool(self.runtime and self.runtime <= 40)
 
         self.last_update = timezone.now().date()
 
@@ -297,8 +302,8 @@ class MovieEngagement(models.Model):
     kp_vote_count = models.PositiveIntegerField(null=True, blank=True)
 
     class Meta:
-        verbose_name = 'movie engagement'
-        verbose_name_plural = 'movie engagements'
+        verbose_name = 'engagement'
+        verbose_name_plural = 'engagements'
 
         ordering = ['-lb_rating']
 
@@ -324,6 +329,8 @@ class MovieCast(models.Model):
     order = models.PositiveIntegerField(default=0)
 
     class Meta:
+        verbose_name = 'cast'
+        verbose_name_plural = 'cast'
         unique_together = ('movie', 'person', 'character')
         ordering = ['order']
 
@@ -340,6 +347,8 @@ class MovieCrew(models.Model):
     job = models.CharField(max_length=64)
 
     class Meta:
+        verbose_name = 'crew'
+        verbose_name_plural = 'crew'
         unique_together = ('movie', 'person', 'department', 'job')
         indexes = [models.Index(fields=['department', 'job'])]
 

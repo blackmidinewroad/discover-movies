@@ -12,7 +12,7 @@ class Command(BaseCommand):
             '--language',
             type=str,
             default='en-US',
-            help='Locale (ISO 639-1-ISO 3166-1) code (e.g. en-UD, fr-CA, de_DE). Defaults to "en-US".',
+            help='Locale (ISO 639-1-ISO 3166-1) code (e.g. en-US, fr-CA, de-DE). Defaults to "en-US".',
         )
 
     def handle(self, *args, **options):
@@ -24,7 +24,7 @@ class Command(BaseCommand):
 
         for country_data in countries:
             country = Country(code=country_data['iso_3166_1'], name=country_data['english_name'])
-            country.set_slug(country.name, new_slugs)
+            country.set_slug(new_slugs)
             country_objs.append(country)
             new_slugs.add(country.slug)
 

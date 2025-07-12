@@ -27,7 +27,7 @@ class Command(BaseCommand):
             '--language',
             type=str,
             default='en-US',
-            help='Locale (ISO 639-1-ISO 3166-1) code (e.g. en-UD, fr-CA, de_DE). Defaults to "en-US".',
+            help='Locale (ISO 639-1-ISO 3166-1) code (e.g. en-US, fr-CA, de-DE). Defaults to "en-US".',
         )
 
         parser.add_argument(
@@ -70,7 +70,7 @@ class Command(BaseCommand):
                 poster_path=collection_data['poster_path'] or '',
                 backdrop_path=collection_data['backdrop_path'] or '',
             )
-            collection.set_slug(collection.name, new_slugs)
+            collection.set_slug(new_slugs)
             collection_objs.append(collection)
             new_slugs.add(collection.slug)
 

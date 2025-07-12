@@ -43,7 +43,7 @@ class IDExport:
     def _get_ids(self, compressed_file: bytes, sort_by_popularity: bool = False) -> list[int]:
         """
         Unzip fetched file, deserialize lines containing JSON to python dict, store IDs and popularity in a list
-        then sort it by by popularity if needed, return list of IDs.
+        then sort it by popularity if needed, return list of IDs.
         """
 
         ids = []

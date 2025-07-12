@@ -14,7 +14,7 @@ class Command(BaseCommand):
 
         for language_data in languages:
             language = Language(code=language_data['iso_639_1'], name=language_data['english_name'])
-            language.set_slug(language.name, new_slugs)
+            language.set_slug(new_slugs)
             language_objs.append(language)
             new_slugs.add(language.slug)
 
