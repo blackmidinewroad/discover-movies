@@ -56,7 +56,7 @@ class Command(BaseCommand):
         new_slugs = set()
 
         for company_data in companies:
-            origin_country_code = company_data['origin_country']
+            origin_country_code = company_data.get('origin_country')
             if origin_country_code and origin_country_code not in countries:
                 Country.objects.create(code=origin_country_code, name='unknown')
                 countries.add(origin_country_code)
@@ -64,7 +64,7 @@ class Command(BaseCommand):
             company = ProductionCompany(
                 tmdb_id=company_data['id'],
                 name=company_data['name'],
-                logo_path=company_data['logo_path'] or '',
+                logo_path=company_data.get('logo_path') or '',
                 origin_country_id=origin_country_code or None,
             )
             company.set_slug(new_slugs)

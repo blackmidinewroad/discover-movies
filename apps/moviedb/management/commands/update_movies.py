@@ -152,10 +152,12 @@ class Command(BaseCommand):
         companies = []
         collections = []
         for movie_data in movies:
-            credits.extend(movie_data['credits']['cast'] + movie_data['credits']['crew'])
-            companies.extend(movie_data['production_companies'])
-            if movie_data['belongs_to_collection']:
-                collections.append(movie_data['belongs_to_collection'])
+            credits_data = movie_data.get('credits', {})
+            credits.extend(credits_data.get('cast', []) + credits_data.get('crew', []))
+            companies.extend(movie_data.get('production_companies', []))
+            collection = movie_data.get('belongs_to_collection', {})
+            if collection:
+                collections.append(collection)
 
         n_created_people, not_fetched_person_ids = self.create_missing_people(tmdb, credits, batch_size=batch_size)
         n_created_companies = self.create_missing_companies(companies)
@@ -218,26 +220,30 @@ class Command(BaseCommand):
 
         for movie_data in movies:
             # If couldn't create needed people from the movie - skip movie
-            cast_ids = {cast['id'] for cast in movie_data['credits']['cast']}
-            crew_ids = {crew['id'] for crew in movie_data['credits']['crew']}
+            credits = movie_data.get('credits', {})
+            cast_data = credits.get('cast', [])
+            crew_data = credits.get('crew', [])
+            cast_ids = {cast['id'] for cast in cast_data}
+            crew_ids = {crew['id'] for crew in crew_data}
             credit_ids = cast_ids | crew_ids
             if not_fetched_person_ids and not credit_ids.isdisjoint(not_fetched_person_ids):
                 self.stdout.write(self.style.WARNING(f"Skipped «{movie_data['title']}» because couldn't create all needed people"))
                 skipped += 1
                 continue
 
-            origin_language_code = movie_data['original_language']
+            origin_language_code = movie_data.get('original_language', '')
             if origin_language_code and origin_language_code not in languages:
                 models.Language.objects.create(code=origin_language_code, name='unknown')
                 languages.add(origin_language_code)
                 created_counter['languages'] += 1
 
-            collection_id = movie_data['belongs_to_collection']['id'] if movie_data['belongs_to_collection'] is not None else None
+            collection = movie_data.get('belongs_to_collection', {})
+            collection_id = collection['id'] if collection else None
 
             release_date = None
-            if movie_data['release_date']:
+            if movie_data.get('release_date'):
                 try:
-                    release_date = date.fromisoformat(movie_data['release_date'])
+                    release_date = date.fromisoformat(movie_data.get('release_date'))
                 except ValueError:
                     pass
 
@@ -246,25 +252,25 @@ class Command(BaseCommand):
             movie = models.Movie(
                 tmdb_id=movie_id,
                 title=movie_data['title'],
-                imdb_id=movie_data['imdb_id'] or '',
+                imdb_id=movie_data.get('imdb_id') or '',
                 release_date=release_date,
-                original_title=movie_data['original_title'] or '',
+                original_title=movie_data.get('original_title') or '',
                 original_language_id=origin_language_code or None,
-                overview=movie_data['overview'] or '',
-                tagline=movie_data['tagline'] or '',
+                overview=movie_data.get('overview') or '',
+                tagline=movie_data.get('tagline') or '',
                 collection_id=collection_id,
-                poster_path=movie_data['poster_path'] or '',
-                backdrop_path=movie_data['backdrop_path'] or '',
-                status=movie_data['status'] or '',
-                budget=movie_data['budget'],
-                revenue=movie_data['revenue'],
-                runtime=movie_data['runtime'],
+                poster_path=movie_data.get('poster_path') or '',
+                backdrop_path=movie_data.get('backdrop_path') or '',
+                status=movie_data.get('status') or '',
+                budget=movie_data.get('budget', 0),
+                revenue=movie_data.get('revenue', 0),
+                runtime=movie_data.get('runtime', 0),
             )
 
             # Create links for many to many fields
             # Genres
             genre_ids = []
-            for genre_data in movie_data['genres']:
+            for genre_data in movie_data.get('genres', []):
                 genre_id = genre_data['id']
                 genre_ids.append(genre_id)
                 if genre_id not in genres:
@@ -275,7 +281,7 @@ class Command(BaseCommand):
                 genre_links.append(models.Movie.genres.through(movie_id=movie_id, genre_id=genre_id))
 
             # Spoken languages
-            for spoken_language_data in movie_data['spoken_languages']:
+            for spoken_language_data in movie_data.get('spoken_languages', []):
                 spoken_language_code = spoken_language_data['iso_639_1']
                 if spoken_language_code not in languages:
                     models.Language.objects.create(code=spoken_language_code, name=spoken_language_data['english_name'])
@@ -285,7 +291,7 @@ class Command(BaseCommand):
                 spoken_languages_links.append(models.Movie.spoken_languages.through(movie_id=movie_id, language_id=spoken_language_code))
 
             # Origin countries
-            for origin_country_code in movie_data['origin_country']:
+            for origin_country_code in movie_data.get('origin_country', []):
                 if origin_country_code not in self.countries:
                     models.Country.objects.create(code=origin_country_code, name='unknown')
                     self.countries.add(origin_country_code)
@@ -294,7 +300,7 @@ class Command(BaseCommand):
                 origin_country_links.append(models.Movie.origin_country.through(movie_id=movie_id, country_id=origin_country_code))
 
             # Production countries
-            for prod_country in movie_data['production_countries']:
+            for prod_country in movie_data.get('production_countries', []):
                 prod_country_code = prod_country['iso_3166_1']
                 if prod_country_code not in self.countries:
                     models.Country.objects.create(code=prod_country_code, name=prod_country['name'])
@@ -304,34 +310,35 @@ class Command(BaseCommand):
                 prod_countries_links.append(models.Movie.production_countries.through(movie_id=movie_id, country_id=prod_country_code))
 
             # Production companies
-            company_ids = {company['id'] for company in movie_data['production_companies']}
+            company_ids = {company['id'] for company in movie_data.get('production_companies', [])}
             for prod_company_id in company_ids:
                 prod_companies_links.append(
                     models.Movie.production_companies.through(movie_id=movie_id, productioncompany_id=prod_company_id)
                 )
 
             # Cast
-            for cast_member in movie_data['credits']['cast']:
+            for cast_member in cast_data:
                 cast_relations.append(
                     models.MovieCast(
                         movie_id=movie_id,
                         person_id=cast_member['id'],
-                        character=cast_member['character'] or '',
-                        order=cast_member['order'],
+                        character=cast_member.get('character') or '',
+                        order=cast_member.get('order', 0),
                     )
                 )
 
             # Crew and directors
-            for crew_member in movie_data['credits']['crew']:
-                if crew_member['job'] == 'Director':
+            for crew_member in crew_data:
+                job = crew_member.get('job')
+                if job and job == 'Director':
                     directors_links.append(models.Movie.directors.through(movie_id=movie_id, person_id=crew_member['id']))
 
                 crew_relations.append(
                     models.MovieCrew(
                         movie_id=movie_id,
                         person_id=crew_member['id'],
-                        department=crew_member['department'] or '',
-                        job=crew_member['job'] or '',
+                        department=crew_member.get('department') or '',
+                        job=job or '',
                     )
                 )
 
@@ -399,26 +406,27 @@ class Command(BaseCommand):
         for person_data in people:
             birthday = deathday = None
             try:
-                if person_data['birthday']:
-                    birthday = date.fromisoformat(person_data['birthday'])
-                if person_data['deathday']:
-                    deathday = date.fromisoformat(person_data['deathday'])
+                if person_data.get('birthday'):
+                    birthday = date.fromisoformat(person_data.get('birthday'))
+                if person_data.get('deathday'):
+                    deathday = date.fromisoformat(person_data.get('deathday'))
             except ValueError:
                 pass
 
             person = models.Person(
                 tmdb_id=person_data['id'],
                 name=person_data['name'],
-                imdb_id=person_data['imdb_id'] or '',
-                known_for_department=person_data['known_for_department'] or '',
-                biography=person_data['biography'] or '',
-                place_of_birth=person_data['place_of_birth'] or '',
-                gender=self.GENDERS[person_data['gender']],
+                imdb_id=person_data.get('imdb_id') or '',
+                known_for_department=person_data.get('known_for_department') or '',
+                biography=person_data.get('biography') or '',
+                place_of_birth=person_data.get('place_of_birth') or '',
+                gender=self.GENDERS[person_data.get('gender', 0)],
                 birthday=birthday,
                 deathday=deathday,
-                profile_path=person_data['profile_path'] or '',
-                tmdb_popularity=person_data['popularity'],
+                profile_path=person_data.get('profile_path') or '',
+                tmdb_popularity=person_data.get('popularity', 0),
             )
+            
             person.set_slug(new_slugs)
             new_slugs.add(person.slug)
             person.pre_bulk_create()
@@ -458,7 +466,7 @@ class Command(BaseCommand):
         new_slugs = set()
 
         for company_data in missing_companies:
-            origin_country_code = company_data['origin_country']
+            origin_country_code = company_data.get('origin_country')
             if origin_country_code and origin_country_code not in self.countries:
                 models.Country.objects.create(code=origin_country_code, name='unknown')
                 self.countries.add(origin_country_code)
@@ -466,9 +474,9 @@ class Command(BaseCommand):
             company = models.ProductionCompany(
                 tmdb_id=company_data['id'],
                 name=company_data['name'],
-                logo_path=company_data['logo_path'] or '',
+                logo_path=company_data.get('logo_path') or '',
                 origin_country_id=origin_country_code or None,
-            )
+            ) 
             company.set_slug(new_slugs)
             company_objs.append(company)
             new_slugs.add(company.slug)
@@ -498,8 +506,8 @@ class Command(BaseCommand):
                 tmdb_id=collection_data['id'],
                 name=collection_data['name'],
                 overview='',
-                poster_path=collection_data['poster_path'] or '',
-                backdrop_path=collection_data['backdrop_path'] or '',
+                poster_path=collection_data.get('poster_path') or '',
+                backdrop_path=collection_data.get('backdrop_path') or '',
             )
             collection.set_slug(new_slugs)
             collection_objs.append(collection)

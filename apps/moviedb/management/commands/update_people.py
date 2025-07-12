@@ -157,25 +157,25 @@ class Command(BaseCommand):
         for person_data in people:
             birthday = deathday = None
             try:
-                if person_data['birthday']:
-                    birthday = date.fromisoformat(person_data['birthday'])
-                if person_data['deathday']:
-                    deathday = date.fromisoformat(person_data['deathday'])
+                if person_data.get('birthday'):
+                    birthday = date.fromisoformat(person_data.get('birthday'))
+                if person_data.get('deathday'):
+                    deathday = date.fromisoformat(person_data.get('deathday'))
             except ValueError:
                 pass
 
             person = Person(
                 tmdb_id=person_data['id'],
                 name=person_data['name'],
-                imdb_id=person_data['imdb_id'] or '',
-                known_for_department=person_data['known_for_department'] or '',
-                biography=person_data['biography'] or '',
-                place_of_birth=person_data['place_of_birth'] or '',
-                gender=self.GENDERS[person_data['gender']],
+                imdb_id=person_data.get('imdb_id') or '',
+                known_for_department=person_data.get('known_for_department') or '',
+                biography=person_data.get('biography') or '',
+                place_of_birth=person_data.get('place_of_birth') or '',
+                gender=self.GENDERS[person_data.get('gender', 0)],
                 birthday=birthday,
                 deathday=deathday,
-                profile_path=person_data['profile_path'] or '',
-                tmdb_popularity=person_data['popularity'],
+                profile_path=person_data.get('profile_path') or '',
+                tmdb_popularity=person_data.get('popularity', 0),
             )
 
             # Create new slug if not updating changes

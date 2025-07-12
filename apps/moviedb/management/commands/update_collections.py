@@ -66,9 +66,9 @@ class Command(BaseCommand):
             collection = Collection(
                 tmdb_id=collection_data['id'],
                 name=collection_data['name'],
-                overview=collection_data['overview'] or '',
-                poster_path=collection_data['poster_path'] or '',
-                backdrop_path=collection_data['backdrop_path'] or '',
+                overview=collection_data.get('overview') or '',
+                poster_path=collection_data.get('poster_path') or '',
+                backdrop_path=collection_data.get('backdrop_path') or '',
             )
             collection.set_slug(new_slugs)
             collection_objs.append(collection)
