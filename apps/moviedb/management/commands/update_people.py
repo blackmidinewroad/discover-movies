@@ -155,6 +155,15 @@ class Command(BaseCommand):
             update_fields.append('slug')
 
         for person_data in people:
+            birthday = deathday = None
+            try:
+                if person_data['birthday']:
+                    birthday = date.fromisoformat(person_data['birthday'])
+                if person_data['deathday']:
+                    deathday = date.fromisoformat(person_data['deathday'])
+            except ValueError:
+                pass
+
             person = Person(
                 tmdb_id=person_data['id'],
                 name=person_data['name'],
@@ -163,8 +172,8 @@ class Command(BaseCommand):
                 biography=person_data['biography'] or '',
                 place_of_birth=person_data['place_of_birth'] or '',
                 gender=self.GENDERS[person_data['gender']],
-                birthday=date.fromisoformat(person_data['birthday']) if person_data['birthday'] else None,
-                deathday=date.fromisoformat(person_data['deathday']) if person_data['deathday'] else None,
+                birthday=birthday,
+                deathday=deathday,
                 profile_path=person_data['profile_path'] or '',
                 tmdb_popularity=person_data['popularity'],
             )

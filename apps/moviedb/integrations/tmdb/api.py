@@ -34,8 +34,8 @@ class BaseTMDB:
 class TMDB(BaseTMDB):
     """TMDB API wrapper."""
 
-    # 45 calls per 1 second
-    calls = 45
+    # calls per 1 second
+    calls = 47
     rate_limit = 1
 
     # Requests retry strategy
@@ -66,7 +66,15 @@ class TMDB(BaseTMDB):
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException:
-            logging.warning(f"{self.colors.YELLOW} Couldn't fetch\n{self.colors.BLUE}path: {path}\nparams: {params}{self.colors.RESET}")
+            logging.warning(
+                (
+                    f"{self.colors.YELLOW} Failed to fetch data, response code: {response.status_code}\n"
+                    f"{self.colors.BLUE}path: {path}\nparams: {params}{self.colors.RESET}"
+                )
+            )
+
+            if response.status_code in (401, 403):
+                raise
 
     def fetch_genres(self, language: str = 'en') -> list[dict]:
         """Fetch the list of official genres for movies.
@@ -280,8 +288,8 @@ class TMDB(BaseTMDB):
 class asyncTMDB(BaseTMDB):
     """TMDB API wrapper for async requests."""
 
-    # 50 calls per 1 second
-    calls = 50
+    # calls per 1 second
+    calls = 47
     rate_limit = 1
 
     def __init__(self):
@@ -316,7 +324,16 @@ class asyncTMDB(BaseTMDB):
                     data = await response.json()
                     return data
             except (aiohttp.ClientError, asyncio.TimeoutError):
-                logging.warning(f"{self.colors.YELLOW} Couldn't fetch\n{self.colors.BLUE}path: {path}\nparams: {params}{self.colors.RESET}")
+                logging.warning(
+                    (
+                        f"{self.colors.YELLOW} Failed to fetch data, response code: {response.status}.\n"
+                        f"{self.colors.BLUE}path: {path}\nparams: {params}{self.colors.RESET}"
+                    )
+                )
+
+                if response.status in (401, 403):
+                    raise
+
                 if is_by_id:
                     return int(path.split('/')[-1])
 

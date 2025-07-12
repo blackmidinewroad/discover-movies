@@ -234,13 +234,20 @@ class Command(BaseCommand):
 
             collection_id = movie_data['belongs_to_collection']['id'] if movie_data['belongs_to_collection'] is not None else None
 
+            release_date = None
+            if movie_data['release_date']:
+                try:
+                    release_date = date.fromisoformat(movie_data['release_date'])
+                except ValueError:
+                    pass
+
             movie_id = movie_data['id']
 
             movie = models.Movie(
                 tmdb_id=movie_id,
                 title=movie_data['title'],
                 imdb_id=movie_data['imdb_id'] or '',
-                release_date=date.fromisoformat(movie_data['release_date']) if movie_data['release_date'] else None,
+                release_date=release_date,
                 original_title=movie_data['original_title'] or '',
                 original_language_id=origin_language_code or None,
                 overview=movie_data['overview'] or '',
@@ -390,6 +397,15 @@ class Command(BaseCommand):
         new_slugs = set()
 
         for person_data in people:
+            birthday = deathday = None
+            try:
+                if person_data['birthday']:
+                    birthday = date.fromisoformat(person_data['birthday'])
+                if person_data['deathday']:
+                    deathday = date.fromisoformat(person_data['deathday'])
+            except ValueError:
+                pass
+
             person = models.Person(
                 tmdb_id=person_data['id'],
                 name=person_data['name'],
@@ -398,8 +414,8 @@ class Command(BaseCommand):
                 biography=person_data['biography'] or '',
                 place_of_birth=person_data['place_of_birth'] or '',
                 gender=self.GENDERS[person_data['gender']],
-                birthday=date.fromisoformat(person_data['birthday']) if person_data['birthday'] else None,
-                deathday=date.fromisoformat(person_data['deathday']) if person_data['deathday'] else None,
+                birthday=birthday,
+                deathday=deathday,
                 profile_path=person_data['profile_path'] or '',
                 tmdb_popularity=person_data['popularity'],
             )
@@ -433,7 +449,7 @@ class Command(BaseCommand):
     def create_missing_companies(self, companies: list[dict]) -> int:
         company_ids = {company['id'] for company in companies}
         existing_ids = set(models.ProductionCompany.objects.filter(tmdb_id__in=company_ids).values_list('tmdb_id', flat=True))
-        missing_companies = {company for company in companies if company['id'] not in existing_ids}
+        missing_companies = [company for company in companies if company['id'] not in existing_ids]
 
         if not missing_companies:
             return 0
@@ -469,7 +485,7 @@ class Command(BaseCommand):
     def create_missing_collections(self, collections: list[dict]) -> int:
         collection_ids = {collection['id'] for collection in collections}
         existing_ids = set(models.Collection.objects.filter(tmdb_id__in=collection_ids).values_list('tmdb_id', flat=True))
-        missing_collections = {collection for collection in collections if collection['id'] not in existing_ids}
+        missing_collections = [collection for collection in collections if collection['id'] not in existing_ids]
 
         if not missing_collections:
             return 0
@@ -482,7 +498,6 @@ class Command(BaseCommand):
                 tmdb_id=collection_data['id'],
                 name=collection_data['name'],
                 overview='',
-                logo_path=collection_data['logo_path'] or '',
                 poster_path=collection_data['poster_path'] or '',
                 backdrop_path=collection_data['backdrop_path'] or '',
             )
