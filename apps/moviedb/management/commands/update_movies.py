@@ -140,20 +140,25 @@ class Command(BaseCommand):
         languages = {l.code for l in models.Language.objects.all()}
         genres = {g.tmdb_id for g in models.Genre.objects.all()}
 
-        # Create missing people
+        # Create missing people, companies and collections
         credits = []
+        companies = []
+        collections = []
         for movie_data in movies:
             credits.extend(movie_data['credits']['cast'] + movie_data['credits']['crew'])
-        n_created_people, not_fetched_person_ids = self.create_missing_people(tmdb, credits, batch_size=batch_size)
+            companies.extend(movie_data['production_companies'])
+            if movie_data['belongs_to_collection']:
+                collections.append(movie_data['belongs_to_collection'])
 
-        # Create missing companies
-        n_created_companies, not_fetched_company_ids = self.create_missing_companies(tmdb, movies)
+        n_created_people, not_fetched_person_ids = self.create_missing_people(tmdb, credits, batch_size=batch_size)
+        n_created_companies = self.create_missing_companies(companies)
+        n_created_collections = self.create_missing_collections(collections)
 
         # Counters for newly created objects
         created_counter = {
             'people': n_created_people,
             'companies': n_created_companies,
-            'collections': 0,
+            'collections': n_created_collections,
             'countries': 0,
             'languages': 0,
             'genres': 0,
@@ -188,27 +193,13 @@ class Command(BaseCommand):
                 skipped += 1
                 continue
 
-            # If couldn't create needed production companies - skip movie
-            company_ids = {company['id'] for company in movie_data['production_companies']}
-            if not_fetched_company_ids and not company_ids.isdisjoint(not_fetched_company_ids):
-                self.stdout.write(self.style.WARNING(f"Skipped «{movie_data['title']}» because couldn't create all needed companies"))
-                skipped += 1
-                continue
-
             origin_language_code = movie_data['original_language']
             if origin_language_code and origin_language_code not in languages:
                 models.Language.objects.create(code=origin_language_code, name='unknown')
                 languages.add(origin_language_code)
                 created_counter['languages'] += 1
 
-            collection = None
-            if movie_data['belongs_to_collection']:
-                collection, created = models.Collection.objects.get_or_create(
-                    tmdb_id=movie_data['belongs_to_collection']['id'],
-                    defaults={'name': movie_data['belongs_to_collection']['name']},
-                )
-                if created:
-                    created_counter['collections'] += 1
+            collection_id = movie_data['belongs_to_collection']['id'] if movie_data['belongs_to_collection'] is not None else None
 
             movie_id = movie_data['id']
 
@@ -221,7 +212,7 @@ class Command(BaseCommand):
                 original_language_id=origin_language_code or None,
                 overview=movie_data['overview'] or '',
                 tagline=movie_data['tagline'] or '',
-                collection=collection,
+                collection_id=collection_id,
                 poster_path=movie_data['poster_path'] or '',
                 backdrop_path=movie_data['backdrop_path'] or '',
                 status=movie_data['status'] or '',
@@ -273,6 +264,7 @@ class Command(BaseCommand):
                 prod_countries_links.append(models.Movie.production_countries.through(movie_id=movie_id, country_id=prod_country_code))
 
             # Production companies
+            company_ids = {company['id'] for company in movie_data['production_companies']}
             for prod_company_id in company_ids:
                 prod_companies_links.append(
                     models.Movie.production_companies.through(movie_id=movie_id, productioncompany_id=prod_company_id)
@@ -369,19 +361,18 @@ class Command(BaseCommand):
                 )
             )
 
-    def create_missing_companies(self, tmdb_instance: asyncTMDB, movies: list[dict]) -> tuple[int, list[int] | None]:
-        company_ids = {company['id'] for movie in movies for company in movie['production_companies']}
+    def create_missing_companies(self, companies: list[dict]) -> int:
+        company_ids = {company['id'] for company in companies}
         existing_ids = set(models.ProductionCompany.objects.filter(tmdb_id__in=company_ids).values_list('tmdb_id', flat=True))
-        missing_ids = {id for id in company_ids if id not in existing_ids}
+        missing_companies = {company for company in companies if company['id'] not in existing_ids}
 
-        if not missing_ids:
-            return 0, None
+        if not missing_companies:
+            return 0
 
-        companies, not_fetched = tmdb_instance.fetch_companies_by_id(missing_ids)
         company_objs = []
         new_slugs = set()
 
-        for company_data in companies:
+        for company_data in missing_companies:
             origin_country_code = company_data['origin_country']
             if origin_country_code and origin_country_code not in self.countries:
                 models.Country.objects.create(code=origin_country_code, name='unknown')
@@ -404,7 +395,7 @@ class Command(BaseCommand):
             unique_fields=('tmdb_id',),
         )
 
-        return len(companies), not_fetched
+        return len(missing_companies)
 
     def create_missing_people(self, tmdb_instance: asyncTMDB, credits: list[dict], batch_size: int) -> tuple[int, list[int] | None]:
         GENDERS = {0: '', 1: 'F', 2: 'M', 3: 'NB'}
@@ -460,3 +451,36 @@ class Command(BaseCommand):
         )
 
         return len(people), not_fetched
+
+    def create_missing_collections(self, collections: list[dict]) -> int:
+        collection_ids = {collection['id'] for collection in collections}
+        existing_ids = set(models.Collection.objects.filter(tmdb_id__in=collection_ids).values_list('tmdb_id', flat=True))
+        missing_collections = {collection for collection in collections if collection['id'] not in existing_ids}
+
+        if not missing_collections:
+            return 0
+
+        collection_objs = []
+        new_slugs = set()
+
+        for collection_data in missing_collections:
+            collection = models.ProductionCompany(
+                tmdb_id=collection_data['id'],
+                name=collection_data['name'],
+                overview='',
+                logo_path=collection_data['logo_path'] or '',
+                poster_path=collection_data['poster_path'] or '',
+                backdrop_path=collection_data['backdrop_path'] or '',
+            )
+            collection.set_slug(collection.name, new_slugs)
+            collection_objs.append(collection)
+            new_slugs.add(collection.slug)
+
+        models.Collection.objects.bulk_create(
+            collection_objs,
+            update_conflicts=True,
+            update_fields=('name', 'slug', 'poster_path', 'backdrop_path'),
+            unique_fields=('tmdb_id',),
+        )
+
+        return len(missing_collections)
