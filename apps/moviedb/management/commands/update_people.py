@@ -103,8 +103,12 @@ class Command(BaseCommand):
                 person_ids, earliest_date = tmdb.fetch_changed_ids('person', days=days)
 
                 # Get person IDs that were last updated before the changes earliest date
-                existing_ids = set(Person.objects.filter(last_update__lte=earliest_date).values_list('tmdb_id', flat=True))
-                person_ids = [id for id in person_ids if id in existing_ids]
+                person_ids = list(
+                    Person.objects.filter(
+                        last_update__lt=earliest_date,
+                        tmdb_id__in=person_ids,
+                    ).values_list('tmdb_id', flat=True)
+                )
                 self.stdout.write(self.style.SUCCESS(f'People to update: {len(person_ids)}'))
             case 'daily_export':
                 existing_ids = set(Person.objects.only('tmdb_id').values_list('tmdb_id', flat=True))

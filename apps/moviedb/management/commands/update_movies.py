@@ -101,8 +101,12 @@ class Command(BaseCommand):
                 movie_ids, earliest_date = tmdb.fetch_changed_ids('movie', days=days)
 
                 # Get movie IDs that were last updated before the changes earliest date
-                existing_ids = set(models.Movie.objects.filter(last_update__lt=earliest_date).values_list('tmdb_id', flat=True))
-                movie_ids = [id for id in movie_ids if id in existing_ids]
+                movie_ids = list(
+                    models.Movie.objects.filter(
+                        last_update__lt=earliest_date,
+                        tmdb_id__in=movie_ids,
+                    ).values_list('tmdb_id', flat=True)
+                )
                 self.stdout.write(self.style.SUCCESS(f'Movies to update: {len(movie_ids)}'))
             case 'daily_export':
                 existing_ids = set(models.Movie.objects.only('tmdb_id').values_list('tmdb_id', flat=True))

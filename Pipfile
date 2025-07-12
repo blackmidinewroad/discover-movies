@@ -8,13 +8,14 @@ django = "*"
 psycopg2-binary = "*"
 pillow = "*"
 dotenv = "*"
-django-extensions = "*"
 requests = "*"
 pycountry = "*"
 ratelimit = "*"
 unidecode = "*"
 aiolimiter = "*"
 aiohttp = "*"
+django-extensions = "*"
+django-debug-toolbar = "*"
 
 [dev-packages]
 

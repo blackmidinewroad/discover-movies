@@ -207,7 +207,7 @@ class Movie(SlugMixin):
     origin_country = models.ManyToManyField(Country, blank=True, related_name='movies_originating_from')
 
     overview = models.TextField(blank=True, default='')
-    tagline = models.CharField(max_length=512, blank=True, default='')
+    tagline = models.CharField(max_length=1024, blank=True, default='')
 
     collection = models.ForeignKey(Collection, on_delete=models.SET_NULL, null=True, blank=True, related_name='movies')
 
@@ -320,7 +320,7 @@ class MovieCast(models.Model):
 
     movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name='cast')
     person = models.ForeignKey(Person, on_delete=models.CASCADE, related_name='cast_roles')
-    character = models.CharField(max_length=512, blank=True, default='')
+    character = models.CharField(max_length=1024, blank=True, default='')
     order = models.PositiveIntegerField(default=0)
 
     class Meta:

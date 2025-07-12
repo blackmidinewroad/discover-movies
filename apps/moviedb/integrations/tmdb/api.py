@@ -676,19 +676,19 @@ class asyncTMDB(BaseTMDB):
             )
         )
 
-    def fetch_changed_ids(self, ids_type: str, days: int = 1, batch_size: int = 100) -> tuple[list[int], date]:
+    def fetch_changed_ids(self, ids_type: str, days: int = 1, batch_size: int = 100) -> tuple[set[int], date]:
         """Fetch changed movies/people in the last _ days.
 
         Args:
             ids_type (str): 'movie' or 'person'.
-            days (int, optional): for how many last days to fetch changes. Defaults to None.
+            days (int, optional): for how many last days to fetch changes. Defaults to 1.
             batch_size (int, optional): number of pages to fetch per batch. Defaults to 100.
 
         Raises:
             ValueError: if id_type is not 'movie' or 'person'.
 
         Returns:
-            tuple[list[int], date]: list of IDs and earliest date of changes.
+            tuple[set[int], date]: set of IDs and earliest date of changes.
         """
 
         if ids_type not in ('movie', 'person'):
