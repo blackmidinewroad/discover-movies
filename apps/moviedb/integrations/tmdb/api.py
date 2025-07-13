@@ -2,15 +2,39 @@ import asyncio
 import logging
 import os
 from datetime import date, timedelta
-from django.utils import timezone
 from urllib.parse import urlencode, urljoin
 
 import aiohttp
 import requests
 from aiolimiter import AsyncLimiter
+from django.utils import timezone
 from ratelimit import limits, sleep_and_retry
 from requests.adapters import HTTPAdapter
+from tenacity import RetryCallState, retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 from urllib3.util import Retry
+
+from apps.services.utils import Colors
+
+from ..exceptions import RetryableError
+
+
+def retry_error_callback(retry_state: RetryCallState):
+    try:
+        path = retry_state.args[1]
+        params = retry_state.args[2]
+    except:
+        path = ''
+        params = {}
+
+    is_by_id = retry_state.kwargs.get('is_by_id', False)
+
+    e = retry_state.outcome.exception()
+    status = f', status: {e.status}' if e.status else ''
+
+    logging.warning(f"{Colors.YELLOW} Failed to fetch data: {e}{status}.\n{Colors.BLUE}path: {path}\nparams: {params}{Colors.RESET}")
+
+    if is_by_id and path:
+        return int(path.split('/')[-1])
 
 
 class BaseTMDB:
@@ -23,12 +47,6 @@ class BaseTMDB:
             params = {}
 
         return f'{urljoin(self.BASE_URL, path)}?{urlencode(params)}'
-
-    class colors:
-        RED = '\033[0;31m'
-        YELLOW = '\033[33m'
-        BLUE = '\033[0;34m'
-        RESET = '\033[0m'
 
 
 class TMDB(BaseTMDB):
@@ -65,15 +83,12 @@ class TMDB(BaseTMDB):
             response = self.session.get(url, timeout=10)
             response.raise_for_status()
             return response.json()
-        except requests.exceptions.RequestException:
+        except requests.exceptions.RequestException as e:
             logging.warning(
-                (
-                    f"{self.colors.YELLOW} Failed to fetch data, response code: {response.status_code}\n"
-                    f"{self.colors.BLUE}path: {path}\nparams: {params}{self.colors.RESET}"
-                )
+                f"{Colors.YELLOW} Failed to fetch data: {e.__class__.__name__}.\n{Colors.BLUE}path: {path}\nparams: {params}{Colors.RESET}"
             )
 
-            if response.status_code in (401, 403):
+            if isinstance(e, requests.exceptions.HTTPError) and e.response.status_code in (401, 403):
                 raise
 
     def fetch_genres(self, language: str = 'en') -> list[dict]:
@@ -312,6 +327,12 @@ class asyncTMDB(BaseTMDB):
 
         return loop.run_until_complete(coro)
 
+    @retry(
+        retry=retry_if_exception_type(RetryableError),
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        retry_error_callback=retry_error_callback,
+    )
     async def _fetch_data(self, path: str, params: dict = None, is_by_id: bool = False) -> dict | int:
         """Main method to make asynchronous requests to TMDB API."""
 
@@ -321,18 +342,28 @@ class asyncTMDB(BaseTMDB):
             try:
                 async with self.session.get(url, timeout=10) as response:
                     response.raise_for_status()
-                    data = await response.json()
-                    return data
-            except (aiohttp.ClientError, asyncio.TimeoutError):
+                    return await response.json()
+
+            except aiohttp.ClientResponseError as e:
+                if e.status in (401, 403):
+                    raise
+                if e.status in (429, 500, 502, 503, 504):
+                    raise RetryableError(e.__class__.__name__, status=e.status)
+
                 logging.warning(
-                    (
-                        f"{self.colors.YELLOW} Failed to fetch data, response code: {response.status}.\n"
-                        f"{self.colors.BLUE}path: {path}\nparams: {params}{self.colors.RESET}"
-                    )
+                    f"{Colors.YELLOW} Failed to fetch data: {e.__class__.__name__}.\n{Colors.BLUE}path: {path}\nparams: {params}{Colors.RESET}"
                 )
 
-                if response.status in (401, 403):
-                    raise
+                if is_by_id:
+                    return int(path.split('/')[-1])
+
+            except asyncio.TimeoutError as e:
+                raise RetryableError(e.__class__.__name__)
+
+            except aiohttp.ClientError as e:
+                logging.warning(
+                    f"{Colors.YELLOW} Failed to fetch data: {e.__class__.__name__}.\n{Colors.BLUE}path: {path}\nparams: {params}{Colors.RESET}"
+                )
 
                 if is_by_id:
                     return int(path.split('/')[-1])

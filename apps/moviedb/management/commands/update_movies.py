@@ -426,7 +426,6 @@ class Command(BaseCommand):
                 profile_path=person_data.get('profile_path') or '',
                 tmdb_popularity=person_data.get('popularity', 0),
             )
-            
             person.set_slug(new_slugs)
             new_slugs.add(person.slug)
             person.pre_bulk_create()
@@ -476,7 +475,7 @@ class Command(BaseCommand):
                 name=company_data['name'],
                 logo_path=company_data.get('logo_path') or '',
                 origin_country_id=origin_country_code or None,
-            ) 
+            )
             company.set_slug(new_slugs)
             company_objs.append(company)
             new_slugs.add(company.slug)

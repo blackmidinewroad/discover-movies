@@ -5,6 +5,16 @@ from django.template.defaultfilters import slugify
 from unidecode import unidecode
 
 
+class Colors:
+    """Change color in terminal."""
+
+    RED = '\033[0;31m'
+    YELLOW = '\033[33m'
+    BLUE = '\033[0;34m'
+    PURPLE = '\033[0;35m'
+    RESET = '\033[0m'
+
+
 def unique_slugify(instance, value: str, cur_bulk_slugs: set[str] = None) -> str:
     """Generate unique slug for a model.
 
@@ -39,9 +49,6 @@ def unique_slugify(instance, value: str, cur_bulk_slugs: set[str] = None) -> str
 def runtime(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-        PURPLE = '\033[0;35m'
-        RESET_COLOR = '\033[0m'
-
         start = time.perf_counter()
         res = func(*args, **kwargs)
         end = time.perf_counter()
@@ -50,7 +57,7 @@ def runtime(func):
         hours, remainder = divmod(runtime_in_secs, 3600)
         minutes, secs = divmod(remainder, 60)
 
-        print(f'{PURPLE}Runtime: {hours:02}:{minutes:02}:{secs:02}{RESET_COLOR}')
+        print(f'{Colors.PURPLE}Runtime: {hours:02}:{minutes:02}:{secs:02}{Colors.RESET}')
 
         return res
 

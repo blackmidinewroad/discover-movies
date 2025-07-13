@@ -9,13 +9,13 @@ psycopg2-binary = "*"
 pillow = "*"
 dotenv = "*"
 requests = "*"
-pycountry = "*"
 ratelimit = "*"
 unidecode = "*"
 aiolimiter = "*"
 aiohttp = "*"
 django-extensions = "*"
 django-debug-toolbar = "*"
+tenacity = "*"
 
 [dev-packages]
 
