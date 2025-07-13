@@ -16,6 +16,7 @@ aiohttp = "*"
 django-extensions = "*"
 django-debug-toolbar = "*"
 tenacity = "*"
+colorlog = "*"
 
 [dev-packages]
 

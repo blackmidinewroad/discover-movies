@@ -1,7 +1,11 @@
+import logging
+
 from django.core.management.base import BaseCommand
 
 from apps.moviedb.integrations.tmdb.api import TMDB
 from apps.moviedb.models import Country
+
+logger = logging.getLogger('moviedb')
 
 
 class Command(BaseCommand):
@@ -35,4 +39,4 @@ class Command(BaseCommand):
             unique_fields=('code',),
         )
 
-        self.stdout.write(self.style.SUCCESS(f'Countries processed: {len(countries)}'))
+        logger.info('Countries processed: %s.', len(countries))

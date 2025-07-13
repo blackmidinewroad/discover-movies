@@ -1,7 +1,11 @@
+import logging
+
 from django.core.management.base import BaseCommand
 
 from apps.moviedb.integrations.tmdb.api import TMDB
 from apps.moviedb.models import Genre
+
+logger = logging.getLogger('moviedb')
 
 
 class Command(BaseCommand):
@@ -35,4 +39,4 @@ class Command(BaseCommand):
             unique_fields=('tmdb_id',),
         )
 
-        self.stdout.write(self.style.SUCCESS(f'Genres processed: {len(genres)}'))
+        logger.info('Genres processed: %s.', len(genres))

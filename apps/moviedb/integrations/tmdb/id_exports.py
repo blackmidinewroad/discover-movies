@@ -7,6 +7,8 @@ import requests
 from django.utils import timezone
 from requests.exceptions import RequestException
 
+logger = logging.getLogger('moviedb')
+
 
 class IDExport:
     """Download and extract TMDB daily ID export files."""
@@ -30,7 +32,7 @@ class IDExport:
 
         return self.BASE_URL + path
 
-    def _fetch_id_file(self, media_type: str, published_date: str) -> bytes:
+    def _fetch_id_file(self, media_type: str, published_date: str) -> bytes | None:
         url = self._build_url(media_type, published_date)
 
         try:
@@ -38,7 +40,7 @@ class IDExport:
             response.raise_for_status()
             return response.content
         except RequestException:
-            logging.error("Couldn't fetch ID file", exc_info=True)
+            logger.error("Couldn't fetch ID file for media type: %s, date: %s.", media_type, published_date)
 
     def _get_ids(self, compressed_file: bytes, sort_by_popularity: bool = False) -> list[int]:
         """
@@ -73,8 +75,9 @@ class IDExport:
                 - 'network': For TV network IDs
                 - 'keyword': For keyword IDs
                 - 'company': For production company IDs
-            published_date (str, optional): date of the export file in 'MM_DD_YYYY' format. Defaults to None.
-                If not provided, uses the most recent available file.
+            published_date (str, optional): date of the export file in 'MM_DD_YYYY' format.
+                Files are available by 8:00 AM UTC of each day.
+                Defaults to None. If not provided, uses the most recent available file.
             sort_by_popularity (bool, optional): sort IDs by popularity if possible. Defaults to False.
 
         Returns:
@@ -95,6 +98,9 @@ class IDExport:
             )
 
         id_file = self._fetch_id_file(media_type, published_date)
+        if id_file is None:
+            return
+        
         ids = self._get_ids(id_file, sort_by_popularity=sort_by_popularity)
 
         return ids

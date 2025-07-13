@@ -13,25 +13,24 @@ from requests.adapters import HTTPAdapter
 from tenacity import RetryCallState, retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 from urllib3.util import Retry
 
-from apps.services.utils import Colors
-
 from ..exceptions import RetryableError
+
+logger = logging.getLogger('moviedb')
 
 
 def retry_error_callback(retry_state: RetryCallState):
-    try:
-        path = retry_state.args[1]
-        params = retry_state.args[2]
-    except:
-        path = ''
-        params = {}
-
-    is_by_id = retry_state.kwargs.get('is_by_id', False)
-
     e = retry_state.outcome.exception()
     status = f', status: {e.status}' if e.status else ''
 
-    logging.warning(f"{Colors.YELLOW} Failed to fetch data: {e}{status}.\n{Colors.BLUE}path: {path}\nparams: {params}{Colors.RESET}")
+    logger.warning('Failed to fetch data after %s attempts: %s%s.', retry_state.attempt_number, e, status)
+
+    try:
+        if isinstance(retry_state.args[1], str):
+            path = retry_state.args[1]
+    except:
+        path = ''
+
+    is_by_id = retry_state.kwargs.get('is_by_id', False)
 
     if is_by_id and path:
         return int(path.split('/')[-1])
@@ -84,9 +83,7 @@ class TMDB(BaseTMDB):
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
-            logging.warning(
-                f"{Colors.YELLOW} Failed to fetch data: {e.__class__.__name__}.\n{Colors.BLUE}path: {path}\nparams: {params}{Colors.RESET}"
-            )
+            logger.warning('Failed to fetch data: %s.', e.__class__.__name__)
 
             if isinstance(e, requests.exceptions.HTTPError) and e.response.status_code in (401, 403):
                 raise
@@ -350,9 +347,7 @@ class asyncTMDB(BaseTMDB):
                 if e.status in (429, 500, 502, 503, 504):
                     raise RetryableError(e.__class__.__name__, status=e.status)
 
-                logging.warning(
-                    f"{Colors.YELLOW} Failed to fetch data: {e.__class__.__name__}.\n{Colors.BLUE}path: {path}\nparams: {params}{Colors.RESET}"
-                )
+                logger.warning('Failed to fetch data: %s, status: %s.', e.__class__.__name__, e.status)
 
                 if is_by_id:
                     return int(path.split('/')[-1])
@@ -361,9 +356,7 @@ class asyncTMDB(BaseTMDB):
                 raise RetryableError(e.__class__.__name__)
 
             except aiohttp.ClientError as e:
-                logging.warning(
-                    f"{Colors.YELLOW} Failed to fetch data: {e.__class__.__name__}.\n{Colors.BLUE}path: {path}\nparams: {params}{Colors.RESET}"
-                )
+                logger.warning('Failed to fetch data: %s.', e.__class__.__name__)
 
                 if is_by_id:
                     return int(path.split('/')[-1])

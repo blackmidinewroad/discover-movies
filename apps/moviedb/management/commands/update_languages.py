@@ -1,7 +1,11 @@
+import logging
+
 from django.core.management.base import BaseCommand
 
 from apps.moviedb.integrations.tmdb.api import TMDB
 from apps.moviedb.models import Language
+
+logger = logging.getLogger('moviedb')
 
 
 class Command(BaseCommand):
@@ -25,4 +29,4 @@ class Command(BaseCommand):
             unique_fields=('code',),
         )
 
-        self.stdout.write(self.style.SUCCESS(f'Languages processed: {len(languages)}'))
+        logger.info('Languages processed: %s.', len(languages))

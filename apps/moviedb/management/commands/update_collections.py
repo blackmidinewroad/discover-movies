@@ -1,8 +1,12 @@
+import logging
+
 from django.core.management.base import BaseCommand
 
 from apps.moviedb.integrations.tmdb.api import asyncTMDB
 from apps.moviedb.integrations.tmdb.id_exports import IDExport
 from apps.moviedb.models import Collection
+
+logger = logging.getLogger('moviedb')
 
 
 class Command(BaseCommand):
@@ -53,6 +57,8 @@ class Command(BaseCommand):
         only_create = options['create']
 
         collection_ids = specific_ids or IDExport().fetch_ids('collection', published_date=published_date)
+        if collection_ids is None:
+            return
 
         if only_create:
             existing_ids = set(Collection.objects.only('tmdb_id').values_list('tmdb_id', flat=True))
@@ -81,6 +87,6 @@ class Command(BaseCommand):
             unique_fields=('tmdb_id',),
         )
 
-        self.stdout.write(self.style.SUCCESS(f'Collections processed: {len(collections)}'))
+        logger.info('Collections processed: %s.', len(collections))
         if missing_ids:
-            self.stdout.write(self.style.WARNING(f"Couldn't update/create: {len(missing_ids)} (IDs: {', '.join(map(str, missing_ids))})"))
+            logger.warning("Couldn't update/create: %s (IDs: %s).", len(missing_ids), ', '.join(map(str, missing_ids)))

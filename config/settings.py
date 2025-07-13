@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import os
 from pathlib import Path
 
+import colorlog
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -134,3 +135,46 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'standard': {
+            'format': '[{asctime}] {levelname}: {message}',
+            'style': '{',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+        'colored': {
+            '()': 'colorlog.ColoredFormatter',
+            'format': '%(purple)s[%(asctime)s] %(log_color)s%(levelname)-8s %(message)s',
+            'log_colors': {
+                'DEBUG': 'cyan',
+                'INFO': 'green',
+                'WARNING': 'yellow',
+                'ERROR': 'red',
+                'CRITICAL': 'bold_red',
+            },
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+    },
+    'handlers': {
+        'file': {
+            'class': 'logging.FileHandler',
+            'filename': 'moviedb.log',
+            'formatter': 'standard',
+            'level': 'WARNING',
+        },
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'colored',
+            'level': 'DEBUG',
+        },
+    },
+    'loggers': {
+        'moviedb': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+        },
+    },
+}

@@ -1,3 +1,4 @@
+import logging
 from datetime import date
 
 from django.core.management.base import BaseCommand, CommandError
@@ -6,6 +7,8 @@ from apps.moviedb import models
 from apps.moviedb.integrations.tmdb.api import asyncTMDB
 from apps.moviedb.integrations.tmdb.id_exports import IDExport
 from apps.services.utils import runtime
+
+logger = logging.getLogger('moviedb')
 
 
 class Command(BaseCommand):
@@ -114,10 +117,12 @@ class Command(BaseCommand):
                         tmdb_id__in=movie_ids,
                     ).values_list('tmdb_id', flat=True)
                 )
-                self.stdout.write(self.style.SUCCESS(f'Movies to update: {len(movie_ids)}'))
+                logger.info('Movies to update: %s.', len(movie_ids))
             case 'daily_export':
                 existing_ids = set(models.Movie.objects.only('tmdb_id').values_list('tmdb_id', flat=True))
                 movie_ids = IDExport().fetch_ids('movie', published_date=published_date, sort_by_popularity=sort_by_popularity)
+                if movie_ids is None:
+                    return
             case 'add_top_rated':
                 existing_ids = set(models.Movie.objects.only('tmdb_id').values_list('tmdb_id', flat=True))
                 movie_ids = tmdb.fetch_top_rated_movie_ids(last_page=500)
@@ -135,12 +140,16 @@ class Command(BaseCommand):
         if limit is not None:
             movie_ids = movie_ids[:limit]
 
+        logger.info('Starting to fetch %s movies...', len(movie_ids))
+
         movies, not_fetched_movie_ids = tmdb.fetch_movies_by_id(
             movie_ids,
             batch_size=batch_size,
             language=language,
             append_to_response=['credits'],
         )
+
+        logger.info('Finished fetching movies.')
 
         # Existing countreis/languages/genres in db
         self.countries = {c.code for c in models.Country.objects.all()}
@@ -160,7 +169,7 @@ class Command(BaseCommand):
                 collections.append(collection)
 
         n_created_people, not_fetched_person_ids = self.create_missing_people(tmdb, credits, batch_size=batch_size)
-        n_created_companies = self.create_missing_companies(companies)
+        n_created_companies, n_created_countries = self.create_missing_companies(companies)
         n_created_collections = self.create_missing_collections(collections)
 
         # Counters for newly created objects
@@ -168,7 +177,7 @@ class Command(BaseCommand):
             'people': n_created_people,
             'companies': n_created_companies,
             'collections': n_created_collections,
-            'countries': 0,
+            'countries': n_created_countries,
             'languages': 0,
             'genres': 0,
         }
@@ -218,6 +227,8 @@ class Command(BaseCommand):
         # Store movie IDs and objects for bulk_create {movie_id: movie_obj}
         movie_map = {}
 
+        logger.info('Starting to process movies...')
+
         for movie_data in movies:
             # If couldn't create needed people from the movie - skip movie
             credits = movie_data.get('credits', {})
@@ -227,7 +238,7 @@ class Command(BaseCommand):
             crew_ids = {crew['id'] for crew in crew_data}
             credit_ids = cast_ids | crew_ids
             if not_fetched_person_ids and not credit_ids.isdisjoint(not_fetched_person_ids):
-                self.stdout.write(self.style.WARNING(f"Skipped «{movie_data['title']}» because couldn't create all needed people"))
+                logger.warning("Skipped «%s» because couldn't create all needed people.", movie_data['title'])
                 skipped += 1
                 continue
 
@@ -380,24 +391,35 @@ class Command(BaseCommand):
         models.MovieCast.objects.bulk_create(cast_relations, ignore_conflicts=True)
         models.MovieCrew.objects.bulk_create(crew_relations, ignore_conflicts=True)
 
-        self.stdout.write(self.style.SUCCESS(f'Movies processed: {len(movies)} (skipped: {skipped})'))
+        logger.info('Movies processed: %s (skipped: %s).', len(movies), skipped)
         for obj_type, counter in created_counter.items():
             if counter:
-                self.stdout.write(self.style.SUCCESS(f'Created {obj_type}: {counter}'))
+                logger.info('Created %s: %s.', obj_type, counter)
         if not_fetched_movie_ids:
-            self.stdout.write(
-                self.style.WARNING(
-                    f"Couldn't update/create: {len(not_fetched_movie_ids)} (IDs: {', '.join(map(str, not_fetched_movie_ids))})"
-                )
-            )
+            logger.warning("Couldn't update/create: %s (IDs: %s).", len(not_fetched_movie_ids), ', '.join(map(str, not_fetched_movie_ids)))
 
     def create_missing_people(self, tmdb_instance: asyncTMDB, credits: list[dict], batch_size: int) -> tuple[int, list[int] | None]:
+        """Add to db missing people from credits so all movies can have full cast and crew.
+
+        Args:
+            tmdb_instance (asyncTMDB): instance of the async TMDB API wrapper.
+            credits (list[dict]): list of credits from TMDB from wich to take people.
+            batch_size (int): number of people to fetch per batch.
+
+        Returns:
+            tuple[int, list[int] | None]: number of created people and list of IDs of people that couldn't be created
+                (or None if people were created).
+        """
+
         person_ids = [credit_member['id'] for credit_member in credits]
         existing_ids = set(models.Person.objects.filter(tmdb_id__in=person_ids).values_list('tmdb_id', flat=True))
         missing_ids = {id for id in person_ids if id not in existing_ids}
 
         if not missing_ids:
+            logger.info('There are no missing people.')
             return 0, False
+
+        logger.info('Starting to process %s missing people...', len(missing_ids))
 
         people, not_fetched = tmdb_instance.fetch_people_by_id(missing_ids, batch_size=batch_size)
         person_objs = []
@@ -451,24 +473,37 @@ class Command(BaseCommand):
             unique_fields=('tmdb_id',),
         )
 
+        logger.info('Finished processing missing people.')
+
         return len(people), not_fetched
 
-    def create_missing_companies(self, companies: list[dict]) -> int:
+    def create_missing_companies(self, companies: list[dict]) -> tuple[int, int]:
+        """Create missing production companies so all movies can have full company lists.
+
+        Args:
+            companies (list[dict]): list of companies to create.
+
+        Returns:
+            tuple[int, int]: number of created companies and number of created countries (that were needed to ceate companies).
+        """
+
         company_ids = {company['id'] for company in companies}
         existing_ids = set(models.ProductionCompany.objects.filter(tmdb_id__in=company_ids).values_list('tmdb_id', flat=True))
         missing_companies = [company for company in companies if company['id'] not in existing_ids]
 
         if not missing_companies:
-            return 0
+            return 0, 0
 
         company_objs = []
         new_slugs = set()
+        n_created_countries = 0
 
         for company_data in missing_companies:
             origin_country_code = company_data.get('origin_country')
             if origin_country_code and origin_country_code not in self.countries:
                 models.Country.objects.create(code=origin_country_code, name='unknown')
                 self.countries.add(origin_country_code)
+                n_created_countries += 1
 
             company = models.ProductionCompany(
                 tmdb_id=company_data['id'],
@@ -487,9 +522,18 @@ class Command(BaseCommand):
             unique_fields=('tmdb_id',),
         )
 
-        return len(missing_companies)
+        return len(missing_companies), n_created_countries
 
     def create_missing_collections(self, collections: list[dict]) -> int:
+        """Create missing collections so all movies can have valid collections.
+
+        Args:
+            collections (list[dict]): list of collections to create.
+
+        Returns:
+            int: number of created collections.
+        """
+
         collection_ids = {collection['id'] for collection in collections}
         existing_ids = set(models.Collection.objects.filter(tmdb_id__in=collection_ids).values_list('tmdb_id', flat=True))
         missing_collections = [collection for collection in collections if collection['id'] not in existing_ids]

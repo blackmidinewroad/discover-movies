@@ -1,3 +1,4 @@
+import logging
 from datetime import date
 
 from django.core.management.base import BaseCommand, CommandError
@@ -6,6 +7,8 @@ from apps.moviedb.integrations.tmdb.api import asyncTMDB
 from apps.moviedb.integrations.tmdb.id_exports import IDExport
 from apps.moviedb.models import Person
 from apps.services.utils import runtime
+
+logger = logging.getLogger('moviedb')
 
 
 class Command(BaseCommand):
@@ -113,10 +116,12 @@ class Command(BaseCommand):
                         tmdb_id__in=person_ids,
                     ).values_list('tmdb_id', flat=True)
                 )
-                self.stdout.write(self.style.SUCCESS(f'People to update: {len(person_ids)}'))
+                logger.info('People to update: %s.', len(person_ids))
             case 'daily_export':
                 existing_ids = set(Person.objects.only('tmdb_id').values_list('tmdb_id', flat=True))
                 person_ids = IDExport().fetch_ids('person', published_date=published_date, sort_by_popularity=sort_by_popularity)
+                if person_ids is None:
+                    return
             case 'specific_ids':
                 if ids is None:
                     raise CommandError('Must provide --ids using specific_ids operation')
@@ -131,7 +136,12 @@ class Command(BaseCommand):
         if limit is not None:
             person_ids = person_ids[:limit]
 
+        logger.info('Starting to fetch %s people...', len(person_ids))
+
         people, missing_ids = tmdb.fetch_people_by_id(person_ids, batch_size=batch_size, language=language)
+
+        logger.info('Finished fetching people.')
+
         person_objs = []
         new_slugs = set()
 
@@ -153,6 +163,8 @@ class Command(BaseCommand):
         # Also update slug if not updating changes
         if not is_update:
             update_fields.append('slug')
+
+        logger.info('Starting to process people...')
 
         for person_data in people:
             birthday = deathday = None
@@ -193,6 +205,6 @@ class Command(BaseCommand):
             unique_fields=('tmdb_id',),
         )
 
-        self.stdout.write(self.style.SUCCESS(f'People processed: {len(people)}'))
+        logger.info('People processed: %s.', len(people))
         if missing_ids:
-            self.stdout.write(self.style.WARNING(f"Couldn't update/create: {len(missing_ids)} (IDs: {', '.join(map(str, missing_ids))})"))
+            logger.warning("Couldn't update/create: %s (IDs: %s).", len(missing_ids), ', '.join(map(str, missing_ids)))

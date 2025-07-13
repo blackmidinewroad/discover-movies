@@ -1,8 +1,11 @@
+import logging
 import time
 from functools import wraps
 
 from django.template.defaultfilters import slugify
 from unidecode import unidecode
+
+logger = logging.getLogger('moviedb')
 
 
 class Colors:
@@ -57,7 +60,7 @@ def runtime(func):
         hours, remainder = divmod(runtime_in_secs, 3600)
         minutes, secs = divmod(remainder, 60)
 
-        print(f'{Colors.PURPLE}Runtime: {hours:02}:{minutes:02}:{secs:02}{Colors.RESET}')
+        logger.info('Runtime: %s.', f'{hours:02}:{minutes:02}:{secs:02}')
 
         return res
 

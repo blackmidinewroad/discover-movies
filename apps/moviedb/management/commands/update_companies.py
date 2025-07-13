@@ -1,8 +1,12 @@
+import logging
+
 from django.core.management.base import BaseCommand
 
 from apps.moviedb.integrations.tmdb.api import asyncTMDB
 from apps.moviedb.integrations.tmdb.id_exports import IDExport
 from apps.moviedb.models import Country, ProductionCompany
+
+logger = logging.getLogger('moviedb')
 
 
 class Command(BaseCommand):
@@ -45,6 +49,8 @@ class Command(BaseCommand):
         only_create = options['create']
 
         company_ids = specific_ids or IDExport().fetch_ids('company', published_date=published_date)
+        if company_ids is None:
+            return
 
         if only_create:
             existing_ids = set(ProductionCompany.objects.only('tmdb_id').values_list('tmdb_id', flat=True))
@@ -54,12 +60,14 @@ class Command(BaseCommand):
         countries = {c.code for c in Country.objects.all()}
         company_objs = []
         new_slugs = set()
+        n_created_countries = 0
 
         for company_data in companies:
             origin_country_code = company_data.get('origin_country')
             if origin_country_code and origin_country_code not in countries:
                 Country.objects.create(code=origin_country_code, name='unknown')
                 countries.add(origin_country_code)
+                n_created_countries += 1
 
             company = ProductionCompany(
                 tmdb_id=company_data['id'],
@@ -78,6 +86,8 @@ class Command(BaseCommand):
             unique_fields=('tmdb_id',),
         )
 
-        self.stdout.write(self.style.SUCCESS(f'Companies processed: {len(companies)}'))
+        logger.info('Companies processed: %s.', len(companies))
+        if n_created_countries:
+            logger.info('Created countries: %s.', n_created_countries)
         if missing_ids:
-            self.stdout.write(self.style.WARNING(f"Couldn't update/create: {len(missing_ids)} (IDs: {', '.join(map(str, missing_ids))})"))
+            logger.warning("Couldn't update/create: %s (IDs: %s).", len(missing_ids), ', '.join(map(str, missing_ids)))
