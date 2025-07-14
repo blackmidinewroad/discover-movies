@@ -225,16 +225,15 @@ class Movie(SlugMixin):
     production_countries = models.ManyToManyField(Country, blank=True, related_name='movies_produced_in')
 
     STATUS_OPTIONS = (
-        ('', 'Unknown'),
-        ('Rumored', 'Rumored'),
-        ('Planned', 'Planned'),
-        ('In Production', 'In Production'),
-        ('Post Production', 'Post Production'),
-        ('Released', 'Released'),
-        ('Canceled', 'Canceled'),
+        (0, 'Unknown'),
+        (1, 'Canceled'),
+        (2, 'Rumored'),
+        (3, 'Planned'),
+        (4, 'In Production'),
+        (5, 'Post Production'),
+        (6, 'Released'),
     )
-
-    status = models.CharField(max_length=32, choices=STATUS_OPTIONS, blank=True, default='')
+    status = models.IntegerField(choices=STATUS_OPTIONS, blank=True, default=0)
 
     # Budget and revenue in USD
     budget = models.BigIntegerField(blank=True, default=0)

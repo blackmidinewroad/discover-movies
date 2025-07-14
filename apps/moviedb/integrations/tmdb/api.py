@@ -745,20 +745,21 @@ class asyncTMDB(BaseTMDB):
 
         cur_date = timezone.now()
         ids = set()
-        tmdb = TMDB()
 
         for _ in range(1, days + 1):
             cur_date_str = str(cur_date.date())
             params = {'start_date': cur_date_str, 'end_date': cur_date_str}
 
-            first_page_data = tmdb._fetch_data(path=path, params=params)
+            first_page_data = TMDB()._fetch_data(path=path, params=params)
 
             if first_page_data is None:
+                logger.warning("Couldn't fetch changes for %s. Failed to fetch first page data.", cur_date_str)
                 continue
 
             total_pages = first_page_data.get('total_pages')
 
             if total_pages is None:
+                logger.warning("Couldn't fetch changes for %s. No 'total_pages' on first page.", cur_date_str)
                 continue
 
             data = self.run_sync(

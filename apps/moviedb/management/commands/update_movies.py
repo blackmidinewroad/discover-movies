@@ -16,6 +16,15 @@ class Command(BaseCommand):
 
     # Genders for creating people
     GENDERS = {0: '', 1: 'F', 2: 'M', 3: 'NB'}
+    STATUS_MAP = {
+            '': 0,
+            'Canceled': 1,
+            'Rumored': 2,
+            'Planned': 3,
+            'In Production': 4,
+            'Post Production': 5,
+            'Released': 6,
+        }
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -272,7 +281,7 @@ class Command(BaseCommand):
                 collection_id=collection_id,
                 poster_path=movie_data.get('poster_path') or '',
                 backdrop_path=movie_data.get('backdrop_path') or '',
-                status=movie_data.get('status') or '',
+                status=self.STATUS_MAP[movie_data.get('status', '')],
                 budget=movie_data.get('budget', 0),
                 revenue=movie_data.get('revenue', 0),
                 runtime=movie_data.get('runtime', 0),
