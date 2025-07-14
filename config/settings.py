@@ -145,7 +145,7 @@ LOGGING = {
             'style': '{',
             'datefmt': '%Y-%m-%d %H:%M:%S',
         },
-        'colored': {
+        'verbose': {
             '()': 'colorlog.ColoredFormatter',
             'format': '%(purple)s[%(asctime)s] %(log_color)s%(levelname)-8s %(message)s',
             'log_colors': {
@@ -155,7 +155,7 @@ LOGGING = {
                 'ERROR': 'red',
                 'CRITICAL': 'bold_red',
             },
-            'datefmt': '%Y-%m-%d %H:%M:%S',
+            'datefmt': '%d.%m.%Y %H:%M:%S',
         },
     },
     'handlers': {
@@ -163,11 +163,12 @@ LOGGING = {
             'class': 'logging.FileHandler',
             'filename': 'moviedb.log',
             'formatter': 'standard',
+            'encoding': 'utf-8',
             'level': 'WARNING',
         },
         'console': {
             'class': 'logging.StreamHandler',
-            'formatter': 'colored',
+            'formatter': 'verbose',
             'level': 'DEBUG',
         },
     },

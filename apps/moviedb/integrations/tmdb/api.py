@@ -86,6 +86,7 @@ class TMDB(BaseTMDB):
             logger.warning('Failed to fetch data: %s.', e.__class__.__name__)
 
             if isinstance(e, requests.exceptions.HTTPError) and e.response.status_code in (401, 403):
+                logger.error('Unauthorized or Forbidden: %s, status: %s.', e.__class__.__name__, e.response.status_code)
                 raise
 
     def fetch_genres(self, language: str = 'en') -> list[dict]:
@@ -343,6 +344,7 @@ class asyncTMDB(BaseTMDB):
 
             except aiohttp.ClientResponseError as e:
                 if e.status in (401, 403):
+                    logger.error('Unauthorized or Forbidden: %s, status: %s.', e.__class__.__name__, e.status)
                     raise
                 if e.status in (429, 500, 502, 503, 504):
                     raise RetryableError(e.__class__.__name__, status=e.status)
@@ -413,7 +415,10 @@ class asyncTMDB(BaseTMDB):
                 all_results.extend(results)
                 not_fetched.extend(batch_not_fetched)
 
-        return all_results, not_fetched
+        # Make sure result contains only data with unique IDs
+        unique_results = list({data['id']: data for data in all_results}.values())
+
+        return unique_results, not_fetched
 
     def fetch_movies_by_id(
         self,

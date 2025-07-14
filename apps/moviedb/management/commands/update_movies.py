@@ -487,9 +487,13 @@ class Command(BaseCommand):
             tuple[int, int]: number of created companies and number of created countries (that were needed to ceate companies).
         """
 
-        company_ids = {company['id'] for company in companies}
-        existing_ids = set(models.ProductionCompany.objects.filter(tmdb_id__in=company_ids).values_list('tmdb_id', flat=True))
-        missing_companies = [company for company in companies if company['id'] not in existing_ids]
+        # Get rid of duplicates
+        unique_companies = {company_data['id']: company_data for company_data in companies}
+
+        existing_ids = set(
+            models.ProductionCompany.objects.filter(tmdb_id__in=set(unique_companies.keys())).values_list('tmdb_id', flat=True)
+        )
+        missing_companies = [company for id, company in unique_companies.items() if id not in existing_ids]
 
         if not missing_companies:
             return 0, 0
@@ -534,9 +538,11 @@ class Command(BaseCommand):
             int: number of created collections.
         """
 
-        collection_ids = {collection['id'] for collection in collections}
-        existing_ids = set(models.Collection.objects.filter(tmdb_id__in=collection_ids).values_list('tmdb_id', flat=True))
-        missing_collections = [collection for collection in collections if collection['id'] not in existing_ids]
+        # Get rid of duplicates
+        unique_collections = {collection_data['id']: collection_data for collection_data in collections}
+
+        existing_ids = set(models.Collection.objects.filter(tmdb_id__in=set(unique_collections.keys())).values_list('tmdb_id', flat=True))
+        missing_collections = [collection for id, collection in unique_collections.items() if id not in existing_ids]
 
         if not missing_collections:
             return 0

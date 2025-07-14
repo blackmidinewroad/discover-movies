@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.db.models import F
 
 from . import models
 
@@ -45,7 +46,7 @@ class PersonAdmin(admin.ModelAdmin):
     list_display = ('name', 'known_for_department')
     search_fields = ('name', 'tmdb_id')
     prepopulated_fields = {'slug': ('name',)}
-    ordering = ['-tmdb_popularity']
+    ordering = ['-last_update', '-tmdb_popularity']
 
 
 @admin.register(models.Movie)
@@ -63,7 +64,7 @@ class MovieAdmin(admin.ModelAdmin):
         'collection',
         'directors',
     ]
-    ordering = ['-release_date']
+    ordering = [F('release_date').desc(nulls_last=True)]
 
     def get_directors(self, obj):
         return ", ".join(d.name for d in obj.directors.all())

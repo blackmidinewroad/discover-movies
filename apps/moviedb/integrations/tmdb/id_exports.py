@@ -24,16 +24,16 @@ class IDExport:
         'company': 'production_company',
     }
 
-    def _build_url(self, media_type: str, published_date: str) -> str:
+    def _build_url(self, media_type: str, published_date: str) -> tuple[str, str]:
         if published_date is None:
             published_date = timezone.now().strftime('%m_%d_%Y')
 
         path = f'{self.MEDIA_TYPES.get(media_type, '')}_ids_{published_date}.json.gz'
 
-        return self.BASE_URL + path
+        return self.BASE_URL + path, published_date
 
     def _fetch_id_file(self, media_type: str, published_date: str) -> bytes | None:
-        url = self._build_url(media_type, published_date)
+        url, published_date = self._build_url(media_type, published_date)
 
         try:
             response = requests.get(url, timeout=20)
@@ -100,7 +100,7 @@ class IDExport:
         id_file = self._fetch_id_file(media_type, published_date)
         if id_file is None:
             return
-        
+
         ids = self._get_ids(id_file, sort_by_popularity=sort_by_popularity)
 
         return ids
