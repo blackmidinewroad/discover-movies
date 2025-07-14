@@ -17,14 +17,14 @@ class Command(BaseCommand):
     # Genders for creating people
     GENDERS = {0: '', 1: 'F', 2: 'M', 3: 'NB'}
     STATUS_MAP = {
-            '': 0,
-            'Canceled': 1,
-            'Rumored': 2,
-            'Planned': 3,
-            'In Production': 4,
-            'Post Production': 5,
-            'Released': 6,
-        }
+        '': 0,
+        'Canceled': 1,
+        'Rumored': 2,
+        'Planned': 3,
+        'In Production': 4,
+        'Post Production': 5,
+        'Released': 6,
+    }
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -39,7 +39,7 @@ class Command(BaseCommand):
             type=int,
             default=None,
             nargs='*',
-            help='IDs to create/update (required for specific_ids operation).',
+            help='TMDB IDs of movies to add (required for specific_ids operation).',
         )
 
         parser.add_argument(
@@ -87,13 +87,6 @@ class Command(BaseCommand):
             help='Sort IDs by popularity (only works with daily_export).',
         )
 
-        parser.add_argument(
-            '--create',
-            action='store_true',
-            default=False,
-            help="Only create new movies (can't be used with update_changed operation).",
-        )
-
     @runtime
     def handle(self, *args, **options):
         operation = options['operation']
@@ -104,19 +97,13 @@ class Command(BaseCommand):
         language = options['language']
         limit = options['limit']
         sort_by_popularity = options['sort_by_popularity']
-        only_create = options['create']
 
-        is_update = False
+        is_update = operation == 'update_changed'
 
         tmdb = asyncTMDB()
 
         match operation:
             case 'update_changed':
-                if only_create:
-                    raise CommandError("Can't use --create with update_changed operation")
-
-                is_update = True
-
                 movie_ids, earliest_date = tmdb.fetch_changed_ids('movie', days=days)
 
                 # Get movie IDs that were last updated before the changes earliest date
@@ -143,7 +130,7 @@ class Command(BaseCommand):
             case _:
                 raise CommandError("Invalid operation. Choose from 'update_changed', 'daily_export', 'add_top_rated', 'specific_ids'")
 
-        if only_create:
+        if not is_update:
             movie_ids = [id for id in movie_ids if id not in existing_ids]
 
         if limit is not None:
@@ -219,9 +206,9 @@ class Command(BaseCommand):
             'last_update',
         ]
 
-        # Also update slug if not updating changes
+        # Also add slug and created_at fields if not updating changes
         if not is_update:
-            update_fields.append('slug')
+            update_fields.extend(['slug', 'created_at'])
 
         # Links to update many to many fields
         genre_links = []
@@ -367,7 +354,8 @@ class Command(BaseCommand):
                 movie.set_slug(new_slugs)
                 new_slugs.add(movie.slug)
 
-            movie.pre_bulk_create(genre_ids)
+            movie.categorize(genre_ids)
+            movie.update_last_modified()
             movie_map[movie_id] = movie
 
         models.Movie.objects.bulk_create(
@@ -426,7 +414,7 @@ class Command(BaseCommand):
 
         if not missing_ids:
             logger.info('There are no missing people.')
-            return 0, False
+            return 0, None
 
         logger.info('Starting to process %s missing people...', len(missing_ids))
 
@@ -459,7 +447,7 @@ class Command(BaseCommand):
             )
             person.set_slug(new_slugs)
             new_slugs.add(person.slug)
-            person.pre_bulk_create()
+            person.update_last_modified()
             person_objs.append(person)
 
         models.Person.objects.bulk_create(

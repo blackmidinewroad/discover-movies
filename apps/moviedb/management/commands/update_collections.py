@@ -39,14 +39,7 @@ class Command(BaseCommand):
             type=int,
             default=None,
             nargs='*',
-            help='Update specific collections.',
-        )
-
-        parser.add_argument(
-            '--create',
-            action='store_true',
-            default=False,
-            help='Only create new collections.',
+            help='Add only specific collections, provide TMDB IDs.',
         )
 
     def handle(self, *args, **options):
@@ -54,15 +47,13 @@ class Command(BaseCommand):
         batch_size = options['batch_size']
         language = options['language']
         specific_ids = options['specific_ids']
-        only_create = options['create']
 
         collection_ids = specific_ids or IDExport().fetch_ids('collection', published_date=published_date)
         if collection_ids is None:
             return
 
-        if only_create:
-            existing_ids = set(Collection.objects.only('tmdb_id').values_list('tmdb_id', flat=True))
-            collection_ids = [id for id in collection_ids if id not in existing_ids]
+        existing_ids = set(Collection.objects.only('tmdb_id').values_list('tmdb_id', flat=True))
+        collection_ids = [id for id in collection_ids if id not in existing_ids]
 
         collections, missing_ids = asyncTMDB().fetch_collections_by_id(collection_ids, batch_size=batch_size, language=language)
         collection_objs = []

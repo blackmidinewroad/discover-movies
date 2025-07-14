@@ -32,29 +32,21 @@ class Command(BaseCommand):
             type=int,
             default=None,
             nargs='*',
-            help='Update specific companies.',
+            help='Add only specific companies, provide TMDB IDs.',
         )
 
-        parser.add_argument(
-            '--create',
-            action='store_true',
-            default=False,
-            help='Only create new companies.',
-        )
 
     def handle(self, *args, **options):
         published_date = options['date']
         batch_size = options['batch_size']
         specific_ids = options['specific_ids']
-        only_create = options['create']
 
         company_ids = specific_ids or IDExport().fetch_ids('company', published_date=published_date)
         if company_ids is None:
             return
 
-        if only_create:
-            existing_ids = set(ProductionCompany.objects.only('tmdb_id').values_list('tmdb_id', flat=True))
-            company_ids = [id for id in company_ids if id not in existing_ids]
+        existing_ids = set(ProductionCompany.objects.only('tmdb_id').values_list('tmdb_id', flat=True))
+        company_ids = [id for id in company_ids if id not in existing_ids]
 
         companies, missing_ids = asyncTMDB().fetch_companies_by_id(company_ids, batch_size=batch_size)
         countries = {c.code for c in Country.objects.all()}

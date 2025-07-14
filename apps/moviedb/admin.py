@@ -51,7 +51,7 @@ class PersonAdmin(admin.ModelAdmin):
 
 @admin.register(models.Movie)
 class MovieAdmin(admin.ModelAdmin):
-    list_display = ('title', 'get_directors', 'release_date')
+    list_display = ('title', 'release_date')
     search_fields = ('title', 'directors__name', 'tmdb_id')
     prepopulated_fields = {'slug': ('title',)}
     autocomplete_fields = [

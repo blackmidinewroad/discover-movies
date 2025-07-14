@@ -8,9 +8,9 @@ from apps.services.utils import unique_slugify
 class SlugMixin(models.Model):
     """Slug Mixin to create slug field, create slug on save and to set slug manually."""
 
-    slug = models.SlugField(max_length=60, unique=True, blank=True)
+    slug = models.SlugField(max_length=60, unique=True, blank=True, db_index=True)
 
-    # By default use "name" field to create slug
+    # By default use 'name' field to create slug
     slug_source_field = 'name'
 
     class Meta:
@@ -36,13 +36,12 @@ class Country(SlugMixin):
     """Countries with ISO 3166-1 alpha-2 codes."""
 
     code = models.CharField(max_length=2, primary_key=True)
-    name = models.CharField(max_length=64)
+    name = models.CharField(max_length=64, db_index=True)
 
     class Meta:
         verbose_name = 'country'
         verbose_name_plural = 'countries'
         ordering = ['name']
-        indexes = [models.Index(fields=['name']), models.Index(fields=['slug'])]
 
     def __str__(self):
         return self.name
@@ -55,13 +54,12 @@ class Language(SlugMixin):
     """Languages with ISO 639-1 codes."""
 
     code = models.CharField(max_length=2, primary_key=True)
-    name = models.CharField(max_length=128)
+    name = models.CharField(max_length=128, db_index=True)
 
     class Meta:
         verbose_name = 'language'
         verbose_name_plural = 'languages'
         ordering = ['name']
-        indexes = [models.Index(fields=['name']), models.Index(fields=['slug'])]
 
     def __str__(self):
         return self.name
@@ -71,14 +69,13 @@ class Language(SlugMixin):
 
 
 class Genre(SlugMixin):
-    tmdb_id = models.IntegerField(primary_key=True)
-    name = models.CharField(max_length=32)
+    tmdb_id = models.PositiveIntegerField(primary_key=True)
+    name = models.CharField(max_length=32, db_index=True)
 
     class Meta:
         verbose_name = 'genre'
         verbose_name_plural = 'genres'
         ordering = ['name']
-        indexes = [models.Index(fields=['name']), models.Index(fields=['slug'])]
 
     def __str__(self):
         return self.name
@@ -88,17 +85,16 @@ class Genre(SlugMixin):
 
 
 class ProductionCompany(SlugMixin):
-    tmdb_id = models.IntegerField(primary_key=True)
-    name = models.CharField(max_length=256)
+    tmdb_id = models.PositiveIntegerField(primary_key=True)
+    name = models.CharField(max_length=256, db_index=True)
 
     logo_path = models.CharField(max_length=64, blank=True, default='')
-    origin_country = models.ForeignKey(Country, on_delete=models.SET_NULL, null=True, blank=True, related_name='companies')
+    origin_country = models.ForeignKey(Country, on_delete=models.SET_NULL, null=True, blank=True, related_name='production_companies')
 
     class Meta:
         verbose_name = 'production company'
         verbose_name_plural = 'production companies'
         ordering = ['name']
-        indexes = [models.Index(fields=['name']), models.Index(fields=['slug'])]
 
     def __str__(self):
         return self.name
@@ -110,8 +106,8 @@ class ProductionCompany(SlugMixin):
 class Collection(SlugMixin):
     """Collection of movies model (e.g. Star Wars Collection, Indiana Jones Collection)."""
 
-    tmdb_id = models.IntegerField(primary_key=True)
-    name = models.CharField(max_length=256)
+    tmdb_id = models.PositiveIntegerField(primary_key=True)
+    name = models.CharField(max_length=256, db_index=True)
 
     overview = models.TextField(blank=True, default='')
     poster_path = models.CharField(max_length=64, blank=True, default='')
@@ -121,7 +117,6 @@ class Collection(SlugMixin):
         verbose_name = 'collection'
         verbose_name_plural = 'collections'
         ordering = ['name']
-        indexes = [models.Index(fields=['name']), models.Index(fields=['slug'])]
 
     def __str__(self):
         return self.name
@@ -133,8 +128,8 @@ class Collection(SlugMixin):
 class Person(SlugMixin):
     """Any person involved in the making of movies (e.g. actors, directors, writers)."""
 
-    tmdb_id = models.IntegerField(primary_key=True)
-    name = models.CharField(max_length=1024)
+    tmdb_id = models.PositiveIntegerField(primary_key=True)
+    name = models.CharField(max_length=1024, db_index=True)
 
     imdb_id = models.CharField(max_length=16, blank=True, default='')
 
@@ -158,43 +153,39 @@ class Person(SlugMixin):
 
     profile_path = models.CharField(max_length=64, blank=True, default='')
 
-    tmdb_popularity = models.FloatField(blank=True, default=0.0)
+    tmdb_popularity = models.FloatField(blank=True, default=0.0, db_index=True)
 
-    last_update = models.DateField()
+    last_update = models.DateField(blank=True, default=timezone.now)
+    created_at = models.DateField(blank=True, null=True)
 
     class Meta:
         verbose_name = 'person'
         verbose_name_plural = 'people'
         ordering = ['name']
-        indexes = [
-            models.Index(fields=['name']),
-            models.Index(fields=['slug']),
-            models.Index(fields=['-tmdb_popularity']),
-        ]
 
     def __str__(self):
         return self.name
 
-    def pre_bulk_create(self):
-        """Set last_update field before bulk create"""
+    def update_last_modified(self):
+        """Set last_update field."""
 
         self.last_update = timezone.now().date()
 
 
 class Movie(SlugMixin):
-    tmdb_id = models.IntegerField(primary_key=True)
-    title = models.CharField(max_length=1024)
+    tmdb_id = models.PositiveIntegerField(primary_key=True)
+    title = models.CharField(max_length=1024, db_index=True)
 
     # Use title to create slug
     slug_source_field = 'title'
 
     imdb_id = models.CharField(max_length=16, blank=True, default='')
 
-    directors = models.ManyToManyField(Person, blank=True, verbose_name='Directed by', related_name='directed_movies')
+    directors = models.ManyToManyField(Person, blank=True, verbose_name='Directed by', related_name='directed_movies', db_index=True)
 
-    release_date = models.DateField(null=True, blank=True)
+    release_date = models.DateField(null=True, blank=True, db_index=True)
 
-    genres = models.ManyToManyField(Genre, blank=True, related_name='movies')
+    genres = models.ManyToManyField(Genre, blank=True, related_name='movies', db_index=True)
 
     # Is this a documentary
     documentary = models.BooleanField(blank=True, default=False)
@@ -245,18 +236,13 @@ class Movie(SlugMixin):
     # Is this a short movie (<= 40 mins)
     short = models.BooleanField(blank=True, default=False)
 
-    last_update = models.DateField(blank=True)
+    last_update = models.DateField(blank=True, default=timezone.now)
+    created_at = models.DateField(blank=True, null=True)
 
     class Meta:
         verbose_name = 'movie'
         verbose_name_plural = 'movies'
         ordering = ['-release_date']
-
-        indexes = [
-            models.Index(fields=['title']),
-            models.Index(fields=['slug']),
-            models.Index(fields=['-release_date']),
-        ]
 
     def __str__(self):
         return self.title
@@ -264,8 +250,8 @@ class Movie(SlugMixin):
     def get_absolute_url(self):
         return reverse('movie_detail', kwargs={'slug': self.slug})
 
-    def pre_bulk_create(self, genre_ids: list[int]):
-        """Set documentary, tv_movie, short and last_update fields before bulk create"""
+    def categorize(self, genre_ids: list[int]):
+        """Set documentary, tv_movie and short fields based on genres and runtime."""
 
         # Genre IDs of documentary and TV movie
         DOCUMENTARY = 99
@@ -275,22 +261,25 @@ class Movie(SlugMixin):
         self.tv_movie = TV_MOVIE in genre_ids
         self.short = bool(self.runtime and self.runtime <= 40)
 
+    def update_last_modified(self):
+        """Set last_update field."""
+
         self.last_update = timezone.now().date()
 
 
 class MovieEngagement(models.Model):
     """Movie engagement model with ratings and popularity scores from TMDB, IMDB, letterboxd and Kinopoisk."""
 
-    movie = models.OneToOneField(Movie, on_delete=models.CASCADE, related_name='engagement')
+    movie = models.OneToOneField(Movie, on_delete=models.CASCADE, related_name='engagement', db_index=True)
 
     tmdb_rating = models.FloatField(blank=True, default=0.0)
     tmdb_vote_count = models.PositiveIntegerField(blank=True, default=0)
     tmdb_popularity = models.FloatField(blank=True, default=0.0)
 
-    lb_rating = models.FloatField(null=True, blank=True)
+    lb_rating = models.FloatField(null=True, blank=True, db_index=True)
     lb_vote_count = models.PositiveIntegerField(null=True, blank=True)
     lb_fans = models.PositiveIntegerField(null=True, blank=True)
-    lb_watched = models.PositiveIntegerField(null=True, blank=True)
+    lb_watched = models.PositiveIntegerField(null=True, blank=True, db_index=True)
     lb_liked = models.PositiveIntegerField(null=True, blank=True)
 
     imdb_rating = models.FloatField(null=True, blank=True)
@@ -303,17 +292,7 @@ class MovieEngagement(models.Model):
     class Meta:
         verbose_name = 'engagement'
         verbose_name_plural = 'engagements'
-
         ordering = ['-lb_rating']
-
-        indexes = [
-            models.Index(fields=['-tmdb_popularity']),
-            models.Index(fields=['-imdb_popularity']),
-            models.Index(fields=['-lb_rating']),
-            models.Index(fields=['-lb_watched']),
-            models.Index(fields=['-imdb_rating']),
-            models.Index(fields=['-kp_rating']),
-        ]
 
     def __str__(self):
         return f'{self.movie} engagement'
@@ -322,8 +301,8 @@ class MovieEngagement(models.Model):
 class MovieCast(models.Model):
     """Cast of a movie - all actors."""
 
-    movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name='cast')
-    person = models.ForeignKey(Person, on_delete=models.CASCADE, related_name='cast_roles')
+    movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name='cast', db_index=True)
+    person = models.ForeignKey(Person, on_delete=models.CASCADE, related_name='cast_roles', db_index=True)
     character = models.CharField(max_length=1024, blank=True, default='')
     order = models.PositiveIntegerField(default=0)
 
@@ -340,8 +319,8 @@ class MovieCast(models.Model):
 class MovieCrew(models.Model):
     """Crew of a movie (e.g. director, writer)."""
 
-    movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name='crew')
-    person = models.ForeignKey(Person, on_delete=models.CASCADE, related_name='crew_roles')
+    movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name='crew', db_index=True)
+    person = models.ForeignKey(Person, on_delete=models.CASCADE, related_name='crew_roles', db_index=True)
     department = models.CharField(max_length=64)
     job = models.CharField(max_length=64)
 

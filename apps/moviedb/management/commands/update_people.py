@@ -29,7 +29,7 @@ class Command(BaseCommand):
             type=int,
             default=None,
             nargs='*',
-            help='IDs to create/update (required for specific_ids operation).',
+            help='TMDB IDs of people to add (required for specific_ids operation).',
         )
 
         parser.add_argument(
@@ -77,13 +77,6 @@ class Command(BaseCommand):
             help='Sort IDs by popularity if possible.',
         )
 
-        parser.add_argument(
-            '--create',
-            action='store_true',
-            default=False,
-            help="Only create new people (can't be used with update_changed operation).",
-        )
-
     @runtime
     def handle(self, *args, **options):
         operation = options['operation']
@@ -94,19 +87,13 @@ class Command(BaseCommand):
         language = options['language']
         limit = options['limit']
         sort_by_popularity = options['sort_by_popularity']
-        only_create = options['create']
 
-        is_update = False
+        is_update = operation == 'update_changed'
 
         tmdb = asyncTMDB()
 
         match operation:
             case 'update_changed':
-                if only_create:
-                    raise CommandError("Can't use --create with update_changed operation")
-
-                is_update = True
-
                 person_ids, earliest_date = tmdb.fetch_changed_ids('person', days=days)
 
                 # Get person IDs that were last updated before the changes earliest date
@@ -130,7 +117,7 @@ class Command(BaseCommand):
             case _:
                 raise CommandError("Invalid operation. Choose from 'update_changed', 'daily_export', 'specific_ids'")
 
-        if only_create:
+        if not is_update:
             person_ids = [id for id in person_ids if id not in existing_ids]
 
         if limit is not None:
@@ -160,9 +147,9 @@ class Command(BaseCommand):
             'last_update',
         ]
 
-        # Also update slug if not updating changes
+        # Also add slug and created_at fields if not updating changes
         if not is_update:
-            update_fields.append('slug')
+            update_fields.extend(['slug', 'created_at'])
 
         logger.info('Starting to process people...')
 
@@ -195,7 +182,7 @@ class Command(BaseCommand):
                 person.set_slug(new_slugs)
                 new_slugs.add(person.slug)
 
-            person.pre_bulk_create()
+            person.update_last_modified()
             person_objs.append(person)
 
         Person.objects.bulk_create(

@@ -311,6 +311,7 @@ class asyncTMDB(BaseTMDB):
             'Authorization': f'Bearer {os.getenv("TMDB_ACCESS_TOKEN")}',
         }
         self.limiter = AsyncLimiter(self.calls, self.rate_limit)
+        self.session = None
 
     def run_sync(self, coro):
         """Run async code in a synchronous context."""
@@ -324,6 +325,13 @@ class asyncTMDB(BaseTMDB):
             raise RuntimeError("Can't call sync method from within async event loop")
 
         return loop.run_until_complete(coro)
+
+    async def _get_session(self):
+        if self.session is None or self.session.closed:
+            connector = aiohttp.TCPConnector(limit=self.calls)
+            timeout = aiohttp.ClientTimeout(total=20)
+            self.session = aiohttp.ClientSession(headers=self.headers, connector=connector, timeout=timeout)
+        return self.session
 
     @retry(
         retry=retry_if_exception_type(RetryableError),
@@ -405,10 +413,7 @@ class asyncTMDB(BaseTMDB):
         all_results = []
         not_fetched = []
 
-        connector = aiohttp.TCPConnector(limit=self.calls)
-        timeout = aiohttp.ClientTimeout(total=20)
-
-        async with aiohttp.ClientSession(headers=self.headers, connector=connector, timeout=timeout) as self.session:
+        async with await self._get_session():
             for i in range(0, len(paths), batch_size):
                 batch = paths[i : i + batch_size]
                 results, batch_not_fetched = await self._batch_fetch(task_details=batch, const_params=params, is_by_id=True)
@@ -432,7 +437,8 @@ class asyncTMDB(BaseTMDB):
         Args:
             movie_ids (list[int]): list of TMDB movie IDs.
             language (str, optional): locale (ISO 639-1-ISO 3166-1) code (e.g. en-US, fr-CA, de-DE). Defaults to 'en-US'.
-            append_to_response (list[str], optional): list of endpoints within this namespace, will appended to each movie, 20 items max. Defaults to None.
+            append_to_response (list[str], optional): list of endpoints within this namespace,
+                will appended to each movie, 20 items max. Defaults to None.
             batch_size (int, optional): number of movies to fetch per batch. Defaults to 100.
 
         Returns:
@@ -462,7 +468,8 @@ class asyncTMDB(BaseTMDB):
         Args:
             person_ids (list[int]): list of TMDB person IDs.
             language (str, optional): locale (ISO 639-1-ISO 3166-1) code (e.g. en-US, fr-CA, de-DE). Defaults to 'en-US'.
-            append_to_response (list[str], optional): list of endpoints within this namespace, will appended to each movie, 20 items max. Defaults to None.
+            append_to_response (list[str], optional): list of endpoints within this namespace,
+                will appended to each movie, 20 items max. Defaults to None.
             batch_size (int, optional): number of people to fetch per batch. Defaults to 100.
 
         Returns:
@@ -485,9 +492,6 @@ class asyncTMDB(BaseTMDB):
 
         Args:
             company_ids (list[int]): list of TMDB company IDs.
-            language (str, optional): locale (ISO 639-1-ISO 3166-1) code (e.g. en-US, fr-CA, de-DE). Defaults to 'en-US'.
-            append_to_response (list[str], optional): list of endpoints within this namespace,
-                will be appended to each movie, 20 items max. Defaults to None.
             batch_size (int, optional): number of companies to fetch per batch. Defaults to 100.
 
         Returns:
@@ -521,7 +525,7 @@ class asyncTMDB(BaseTMDB):
         path: str,
         first_page: int,
         last_page: int,
-        dates: dict = None,
+        change_dates: dict = None,
         language: str = 'en-US',
         region: str = None,
         batch_size: int = 100,
@@ -531,21 +535,18 @@ class asyncTMDB(BaseTMDB):
         if last_page is None:
             last_page = first_page
 
-        if dates is None:
-            dates = {}
+        if change_dates is None:
+            change_dates = {}
 
         task_details = []
         for page in range(first_page, last_page + 1):
             detail = {'page': page, 'language': language, 'region': region}
-            detail.update(dates)
+            detail.update(change_dates)
             task_details.append((path, detail))
 
         all_pages = []
 
-        connector = aiohttp.TCPConnector(limit=self.calls)
-        timeout = aiohttp.ClientTimeout(total=20)
-
-        async with aiohttp.ClientSession(headers=self.headers, connector=connector, timeout=timeout) as self.session:
+        async with await self._get_session():
             for i in range(0, len(task_details), batch_size):
                 batch = task_details[i : i + batch_size]
                 results, _ = await self._batch_fetch(task_details=batch)
@@ -750,7 +751,7 @@ class asyncTMDB(BaseTMDB):
             cur_date_str = str(cur_date.date())
             params = {'start_date': cur_date_str, 'end_date': cur_date_str}
 
-            first_page_data = TMDB()._fetch_data(path=path, params=params)
+            first_page_data = self.run_sync(self._fetch_pages(path=path, first_page=1, last_page=1, change_dates=params))[0]
 
             if first_page_data is None:
                 logger.warning("Couldn't fetch changes for %s. Failed to fetch first page data.", cur_date_str)
@@ -767,7 +768,7 @@ class asyncTMDB(BaseTMDB):
                     path=path,
                     first_page=1,
                     last_page=min(total_pages, 500),  # Max. page is 500
-                    dates=params,
+                    change_dates=params,
                     batch_size=batch_size,
                 )
             )
