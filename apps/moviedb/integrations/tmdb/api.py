@@ -753,14 +753,8 @@ class asyncTMDB(BaseTMDB):
 
             first_page_data = self.run_sync(self._fetch_pages(path=path, first_page=1, last_page=1, change_dates=params))[0]
 
-            if first_page_data is None:
-                logger.warning("Couldn't fetch changes for %s. Failed to fetch first page data.", cur_date_str)
-                continue
-
-            total_pages = first_page_data.get('total_pages')
-
-            if total_pages is None:
-                logger.warning("Couldn't fetch changes for %s. No 'total_pages' on first page.", cur_date_str)
+            if first_page_data is None or (total_pages := first_page_data.get('total_pages')) is None:
+                logger.warning("Couldn't fetch changes for %s.", cur_date_str)
                 continue
 
             data = self.run_sync(

@@ -31,10 +31,6 @@ def unique_slugify(instance, value: str, cur_bulk_slugs: set[str] = None) -> str
         str: final slug.
     """
 
-    # If value is empty generate uuid4
-    if not value:
-        return str(uuid4())
-
     if cur_bulk_slugs is None:
         cur_bulk_slugs = set()
 
@@ -46,20 +42,25 @@ def unique_slugify(instance, value: str, cur_bulk_slugs: set[str] = None) -> str
     # Truncate long slugs
     slug_field = instance._meta.get_field('slug')
     max_length = slug_field.max_length
-    slug_field = og_slug = slugify(ascii_text)[: max_length - 4]
+    # Offset length by 4 to add counter at the end if duplicate slug 
+    slug_field_value = og_slug = slugify(ascii_text)[: max_length - 4]
+
+    # If value is empty generate uuid4
+    if not value:
+        return str(uuid4())
 
     existing_slugs = set(model.objects.filter(slug__startswith=og_slug).exclude(pk=instance.pk).values_list('slug', flat=True))
 
     counter = 1
-    while slug_field in existing_slugs or slug_field in cur_bulk_slugs:
-        slug_field = f'{og_slug}-{counter}'
+    while slug_field_value in existing_slugs or slug_field_value in cur_bulk_slugs:
+        slug_field_value = f'{og_slug}-{counter}'
         counter += 1
 
         # If too many similar slugs generate uuid4 instead
         if counter == 1000:
             return str(uuid4())
 
-    return slug_field
+    return slug_field_value
 
 
 def runtime(func):

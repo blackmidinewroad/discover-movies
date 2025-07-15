@@ -164,7 +164,7 @@ LOGGING = {
             'filename': 'moviedb.log',
             'formatter': 'standard',
             'encoding': 'utf-8',
-            'level': 'WARNING',
+            'level': 'ERROR',
         },
         'console': {
             'class': 'logging.StreamHandler',

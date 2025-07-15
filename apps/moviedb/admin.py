@@ -81,7 +81,7 @@ class MovieEngagementAdmin(admin.ModelAdmin):
 
 @admin.register(models.MovieCast)
 class MovieCastAdmin(admin.ModelAdmin):
-    list_display = ('person', 'character', 'movie')
+    list_display = ('person', 'movie', 'character')
     search_fields = ('person__name', 'character', 'movie__title')
     autocomplete_fields = ['movie', 'person']
     ordering = ['order']

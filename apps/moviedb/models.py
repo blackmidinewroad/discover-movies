@@ -54,7 +54,7 @@ class Language(SlugMixin):
     """Languages with ISO 639-1 codes."""
 
     code = models.CharField(max_length=2, primary_key=True)
-    name = models.CharField(max_length=128, db_index=True)
+    name = models.CharField(max_length=32, db_index=True)
 
     class Meta:
         verbose_name = 'language'
@@ -129,12 +129,12 @@ class Person(SlugMixin):
     """Any person involved in the making of movies (e.g. actors, directors, writers)."""
 
     tmdb_id = models.PositiveIntegerField(primary_key=True)
-    name = models.CharField(max_length=1024, db_index=True)
+    name = models.CharField(max_length=128, db_index=True)
 
     imdb_id = models.CharField(max_length=16, blank=True, default='')
 
     # Main occupation
-    known_for_department = models.CharField(max_length=64, blank=True, default='')
+    known_for_department = models.CharField(max_length=32, blank=True, default='')
 
     biography = models.TextField(blank=True, default='')
     place_of_birth = models.CharField(max_length=256, blank=True, default='')
@@ -174,7 +174,7 @@ class Person(SlugMixin):
 
 class Movie(SlugMixin):
     tmdb_id = models.PositiveIntegerField(primary_key=True)
-    title = models.CharField(max_length=1024, db_index=True)
+    title = models.CharField(max_length=512, db_index=True)
 
     # Use title to create slug
     slug_source_field = 'title'
@@ -193,7 +193,7 @@ class Movie(SlugMixin):
     # Is this a TV movie
     tv_movie = models.BooleanField(blank=True, default=False)
 
-    original_title = models.CharField(max_length=1024, blank=True, default='')
+    original_title = models.CharField(max_length=512, blank=True, default='')
     original_language = models.ForeignKey(
         Language,
         on_delete=models.SET_NULL,
@@ -205,7 +205,7 @@ class Movie(SlugMixin):
     origin_country = models.ManyToManyField(Country, blank=True, related_name='movies_originating_from')
 
     overview = models.TextField(blank=True, default='')
-    tagline = models.CharField(max_length=1024, blank=True, default='')
+    tagline = models.CharField(max_length=512, blank=True, default='')
 
     collection = models.ForeignKey(Collection, on_delete=models.SET_NULL, null=True, blank=True, related_name='movies')
 
@@ -303,7 +303,7 @@ class MovieCast(models.Model):
 
     movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name='cast', db_index=True)
     person = models.ForeignKey(Person, on_delete=models.CASCADE, related_name='cast_roles', db_index=True)
-    character = models.CharField(max_length=1024, blank=True, default='')
+    character = models.CharField(max_length=512, blank=True, default='')
     order = models.PositiveIntegerField(default=0)
 
     class Meta:
@@ -321,7 +321,7 @@ class MovieCrew(models.Model):
 
     movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name='crew', db_index=True)
     person = models.ForeignKey(Person, on_delete=models.CASCADE, related_name='crew_roles', db_index=True)
-    department = models.CharField(max_length=64)
+    department = models.CharField(max_length=32)
     job = models.CharField(max_length=64)
 
     class Meta:
