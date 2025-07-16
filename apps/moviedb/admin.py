@@ -64,7 +64,8 @@ class MovieAdmin(admin.ModelAdmin):
         'collection',
         'directors',
     ]
-    ordering = ['-status', F('release_date').desc(nulls_last=True)]
+    # ordering = ['-status', F('release_date').desc(nulls_last=True)]
+    ordering = ['-tmdb_popularity']
 
     def get_directors(self, obj):
         return ", ".join(d.name for d in obj.directors.all())

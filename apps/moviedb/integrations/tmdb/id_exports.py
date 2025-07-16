@@ -42,7 +42,7 @@ class IDExport:
         except RequestException:
             logger.error("Couldn't fetch ID file for media type: %s, date: %s.", media_type, published_date)
 
-    def _get_ids(self, compressed_file: bytes, sort_by_popularity: bool = False) -> list[int]:
+    def _get_ids(self, compressed_file: bytes, sort_by_popularity: bool = False, include_popularity: bool = False) -> list[int]:
         """
         Unzip fetched file, deserialize lines containing JSON to python dict, store IDs and popularity in a list
         then sort it by popularity if needed, return list of IDs.
@@ -61,9 +61,18 @@ class IDExport:
         if sort_by_popularity:
             ids.sort(key=lambda el: -el[1])
 
+        if include_popularity:
+            return ids
+
         return [id for id, _ in ids]
 
-    def fetch_ids(self, media_type: str, published_date: str = None, sort_by_popularity: bool = False) -> list[int]:
+    def fetch_ids(
+        self,
+        media_type: str,
+        published_date: str = None,
+        sort_by_popularity: bool = False,
+        include_popularity: bool = False,
+    ) -> list[int] | list[tuple[int, int]]:
         """Fetch list of a valid TMDB IDs for the specified media type and date.
 
         Args:
@@ -101,6 +110,6 @@ class IDExport:
         if id_file is None:
             return
 
-        ids = self._get_ids(id_file, sort_by_popularity=sort_by_popularity)
+        ids = self._get_ids(id_file, sort_by_popularity=sort_by_popularity, include_popularity=include_popularity)
 
         return ids

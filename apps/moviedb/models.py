@@ -236,13 +236,15 @@ class Movie(SlugMixin):
     # Is this a short movie (<= 40 mins)
     short = models.BooleanField(blank=True, default=False)
 
+    tmdb_popularity = models.FloatField(blank=True, default=0.0)
+
     last_update = models.DateField(blank=True, default=timezone.now)
     created_at = models.DateField(blank=True, null=True)
 
     class Meta:
         verbose_name = 'movie'
         verbose_name_plural = 'movies'
-        ordering = ['-release_date']
+        ordering = ['-tmdb_popularity']
 
     def __str__(self):
         return self.title
