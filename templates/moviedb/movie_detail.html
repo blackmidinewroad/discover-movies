@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+    <div class="container my-4">
+        <h1>
+            {{ movie.title }}
+            {% if movie.release_date %}- {{ movie.release_date.year }}{% endif %}
+        </h1>
+        {% with movie.directors.all as directors %}
+            {% if directors %}<h5>Directed by {{ directors|join:", " }}</h5>{% endif %}
+        {% endwith %}
+        {% if movie.poster_path %}
+            <img src="https://image.tmdb.org/t/p/w342/{{ movie.poster_path }}"
+                 class="rounded"
+                 alt="{{ movie.title }}">
+        {% endif %}
+        {% if movie.tagline %}<h5>{{ movie.tagline }}</h5>{% endif %}
+        {% if movie.overview %}<p>{{ movie.overview }}</p>{% endif %}
+        {% if movie.runtime %}<p>Runtime: {{ movie.runtime }} min.</p>{% endif %}
+        {% if movie.budget %}<p>Budget: {{ movie.budget }}$</p>{% endif %}
+        {% if movie.revenue %}<p>Revenue: {{ movie.runtime }}$</p>{% endif %}
+    </div>
+{% endblock %}

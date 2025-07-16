@@ -1,0 +1,126 @@
+/* Background */
+body {
+    background-color: #1a263f;
+    color: #e0e0e0;
+}
+
+nav {
+    background-color: #0f1a2f;
+    color: #ffffff;
+    padding: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+footer {
+    background-color: #0f1a2f;
+    color: #ffffff;
+    padding: 1rem;
+}
+
+
+/* Grid for movie posters */
+.movie-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(var(--cols-xs, 2), 1fr);
+}
+
+@media (min-width: 576px) {
+    .movie-grid {
+        grid-template-columns: repeat(var(--cols-sm, 4), 1fr);
+    }
+}
+
+@media (min-width: 768px) {
+    .movie-grid {
+        grid-template-columns: repeat(var(--cols-md, 6), 1fr);
+    }
+}
+
+@media (min-width: 992px) {
+    .movie-grid {
+        grid-template-columns: repeat(var(--cols-lg, 8), 1fr);
+    }
+}
+
+
+/* Poster containers */
+.poster-wrapper {
+    background-color: transparent;
+}
+
+.poster-container {
+    position: relative;
+    width: 100%;
+    padding-top: 150%;
+    overflow: hidden;
+    background-color: transparent;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.poster-container:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.5);
+}
+
+.poster-container img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    transition: all 0.3s ease;
+    border-radius: inherit;
+}
+
+/* Missing poster styling */
+.missing-poster {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: #0f1a2f;
+    color: #e0e0e0;
+    text-align: center;
+    padding: 1rem;
+    font-size: 0.9rem;
+    border-radius: inherit;
+    overflow: hidden;
+    /* Truncate long titles */
+    text-overflow: ellipsis;
+}
+
+
+/* Pagination styles */
+.pagination {
+    border-radius: 8px;
+    padding: 0.5rem;
+
+}
+
+.page-item .page-link {
+    background-color: #2d3d62;
+    color: #a3bff4;
+    border: 1px solid #3a4a6f;
+    margin: 0 0.3rem;
+    transition: all 0.3s ease;
+}
+
+.page-item.active .page-link,
+.page-item .page-link:hover {
+    background-color: #7594ce;
+    color: #0f1a2f;
+}
+
+.page-item.disabled .page-link {
+    background-color: #2d3748;
+    color: #6b7280;
+}

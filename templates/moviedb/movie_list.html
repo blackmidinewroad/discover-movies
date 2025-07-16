@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+    <div class="container my-4">
+        <div class="movie-grid"
+             style="--cols-xs: 2;
+                    --cols-sm: 4;
+                    --cols-md: 6;
+                    --cols-lg: 8">
+            {% for movie in movies %}
+                <div class="poster-wrapper">
+                    <a href="{{ movie.get_absolute_url }}" class="text-decoration-none">
+                        <div class="poster-container rounded">
+                            {% if movie.poster_path %}
+                                <img src="https://image.tmdb.org/t/p/w342/{{ movie.poster_path }}"
+                                     class="rounded"
+                                     alt="{{ movie.title }}">
+                            {% else %}
+                                <span class="missing-poster">{{ movie.title }}
+                                    {% if movie.release_date %}({{ movie.release_date.year }}){% endif %}
+                                </span>
+                            {% endif %}
+                        </div>
+                    </a>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+{% endblock %}
