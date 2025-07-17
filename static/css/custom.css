@@ -18,27 +18,27 @@ footer {
 }
 
 
-/* Grid for movie posters */
-.movie-grid {
+/* Grid for posters */
+.poster-grid {
     display: grid;
     gap: 1rem;
     grid-template-columns: repeat(var(--cols-xs, 2), 1fr);
 }
 
 @media (min-width: 576px) {
-    .movie-grid {
+    .poster-grid {
         grid-template-columns: repeat(var(--cols-sm, 4), 1fr);
     }
 }
 
 @media (min-width: 768px) {
-    .movie-grid {
+    .poster-grid {
         grid-template-columns: repeat(var(--cols-md, 6), 1fr);
     }
 }
 
 @media (min-width: 992px) {
-    .movie-grid {
+    .poster-grid {
         grid-template-columns: repeat(var(--cols-lg, 8), 1fr);
     }
 }
@@ -110,7 +110,7 @@ footer {
     background-color: #2d3d62;
     color: #a3bff4;
     border: 1px solid #3a4a6f;
-    margin: 0 0.3rem;
+    margin: 0 0.4rem;
     transition: all 0.3s ease;
 }
 
@@ -120,7 +120,40 @@ footer {
     color: #0f1a2f;
 }
 
+.page-item .page-link:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(163, 191, 244, 0.3);
+}
+
 .page-item.disabled .page-link {
     background-color: #2d3748;
     color: #6b7280;
+}
+
+
+/* Toggle buttons */
+.toggle-buttons {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    align-items: center;
+}
+
+.toggle-btn {
+    background-color: #1a263f;
+    color: #a3bff4;
+    border: 1px solid #3a4a6f;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.toggle-btn:hover {
+    background-color: #a3bff4;
+    color: #0f1a2f;
+}
+
+.toggle-btn.active {
+    background-color: #a3bff4;
+    color: #0f1a2f;
 }

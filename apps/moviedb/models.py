@@ -155,16 +155,22 @@ class Person(SlugMixin):
 
     tmdb_popularity = models.FloatField(blank=True, default=0.0, db_index=True)
 
+    # Actors in adult movies
+    adult = models.BooleanField(blank=True, default=False)
+
     last_update = models.DateField(blank=True, default=timezone.now)
     created_at = models.DateField(blank=True, null=True)
 
     class Meta:
         verbose_name = 'person'
         verbose_name_plural = 'people'
-        ordering = ['name']
+        ordering = ['-tmdb_popularity']
 
     def __str__(self):
         return self.name
+
+    def get_absolute_url(self):
+        return reverse('person_detail', kwargs={'slug': self.slug})
 
     def update_last_modified(self):
         """Set last_update field."""
@@ -237,6 +243,10 @@ class Movie(SlugMixin):
     short = models.BooleanField(blank=True, default=False)
 
     tmdb_popularity = models.FloatField(blank=True, default=0.0)
+
+    # There are adult movies on TMDB and sometimes they are falsely flagged as not adult and later corrected.
+    # This field is for filtering out adult movies and manually change them to adult if needed.
+    adult = models.BooleanField(blank=True, default=False)
 
     last_update = models.DateField(blank=True, default=timezone.now)
     created_at = models.DateField(blank=True, null=True)

@@ -3,7 +3,7 @@
         <!-- Previous Button -->
         <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}">
             <a class="page-link"
-               href="{% if page_obj.has_previous %}?page={{ page_obj.previous_page_number }}{% else %}#{% endif %}"
+               href="{% if page_obj.has_previous %}{% if list_type == 'movies' %}{% url 'movie_list' %}{% else %}{% url 'people_list' %}{% endif %}?page={{ page_obj.previous_page_number }}{% else %}#{% endif %}"
                aria-label="Previous">
                 <span aria-hidden="true">Prev</span>
             </a>
@@ -11,7 +11,7 @@
         <!-- Next Button -->
         <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}">
             <a class="page-link"
-               href="{% if page_obj.has_next %}?page={{ page_obj.next_page_number }}{% else %}#{% endif %}"
+               href="{% if page_obj.has_next %}{% if list_type == 'movies' %}{% url 'movie_list' %}{% else %}{% url 'people_list' %}{% endif %}?page={{ page_obj.next_page_number }}{% else %}#{% endif %}"
                aria-label="Next">
                 <span aria-hidden="true">Next</span>
             </a>

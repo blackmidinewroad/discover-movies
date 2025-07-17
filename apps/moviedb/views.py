@@ -1,27 +1,66 @@
+from django.shortcuts import render
 from django.views.generic import DetailView, ListView
 
-from .models import Movie
+from .models import Movie, Person
 
 
 class MovieListView(ListView):
-    # model = Movie
-    template_name = 'moviedb/movie_list.html'
+    template_name = 'moviedb/main.html'
     context_object_name = 'movies'
-    paginate_by = 48
-    queryset = Movie.objects.prefetch_related('directors')
+    paginate_by = 24
+    queryset = Movie.objects.prefetch_related('directors').filter(adult=False)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Discover Movies'
+        context['list_type'] = 'movies'
         return context
+
+    def get(self, request, *args, **kwargs):
+        if request.headers.get('HX-Request'):
+            self.object_list = self.get_queryset()
+            context = self.get_context_data()
+            return render(request, 'moviedb/partials/content.html', context)
+        return super().get(request, *args, **kwargs)
+
+
+class PeopleListView(ListView):
+    template_name = 'moviedb/main.html'
+    context_object_name = 'people'
+    paginate_by = 24
+    queryset = Person.objects.filter(adult=False)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'People'
+        context['list_type'] = 'people'
+        return context
+
+    def get(self, request, *args, **kwargs):
+        if request.headers.get('HX-Request'):
+            self.object_list = self.get_queryset()
+            context = self.get_context_data()
+            return render(request, 'moviedb/partials/content.html', context)
+        return super().get(request, *args, **kwargs)
 
 
 class MovieDetailView(DetailView):
-    model = Movie
     template_name = 'moviedb/movie_detail.html'
     context_object_name = 'movie'
+    queryset = Movie.objects.prefetch_related('directors')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['title'] = f'{self.object.title}{f" - {self.object.release_date.year}" if self.object.release_date else ""}'
+        return context
+
+
+class PersonDetailView(DetailView):
+    template_name = 'moviedb/person_detail.html'
+    context_object_name = 'person'
+    queryset = Person.objects.prefetch_related('cast_roles', 'crew_roles')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = f'{self.object.name}'
         return context

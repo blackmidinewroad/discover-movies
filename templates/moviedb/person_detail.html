@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+    <div class="container my-4">
+        <h1>{{ person.name }}</h1>
+        <h5>{{ person.known_for_department }}</h5>
+        {% if person.profile_path %}
+            <img src="https://image.tmdb.org/t/p/w342/{{ person.profile_path }}"
+                 class="rounded"
+                 alt="{{ person.name }}">
+        {% endif %}
+        {% with person.cast_roles.all as cast_roles %}
+            {% if cast_roles %}<p>Actor: {% for role in cast_roles%}{{ role.movie }}, {% endfor %}<p>{% endif %}
+        {% endwith %}
+        {% with person.crew_roles.all as crew_roles %}
+            {% if crew_roles %}<p>Crew: {% for role in crew_roles%}{{ role.movie }}, {% endfor %}<p>{% endif %}
+        {% endwith %}
+        {% if person.biography %}<p>{{ person.biography }}</p>{% endif %}
+    </div>
+{% endblock %}

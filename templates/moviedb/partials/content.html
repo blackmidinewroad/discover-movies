@@ -1,0 +1,19 @@
+<div class="toggle-buttons mb-3">
+    <button class="toggle-btn {% if list_type == 'movies' %}active{% endif %}"
+            hx-get="{% url 'movie_list' %}"
+            hx-target="#content-container"
+            hx-swap="innerHTML"
+            data-direction="right-to-left">Movies</button>
+    <button class="toggle-btn {% if list_type == 'people' %}active{% endif %}"
+            hx-get="{% url 'people_list' %}"
+            hx-target="#content-container"
+            hx-swap="innerHTML"
+            data-direction="left-to-right">People</button>
+</div>
+<div id="content-grid">
+    {% if list_type == 'movies' %}
+        {% include 'moviedb/movie_list.html' %}
+    {% else %}
+        {% include 'moviedb/people_list.html' %}
+    {% endif %}
+</div>
