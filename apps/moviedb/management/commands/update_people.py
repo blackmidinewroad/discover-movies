@@ -42,7 +42,7 @@ class Command(BaseCommand):
         parser.add_argument(
             '--days',
             type=int,
-            default=None,
+            default=1,
             help=(
                 'Changes made in the past N days (only works with update_changed operation).'
                 'By default changes will be fetched for the past 24 hours.'
@@ -145,6 +145,7 @@ class Command(BaseCommand):
             'profile_path',
             'tmdb_popularity',
             'last_update',
+            'adult',
         ]
 
         # Also add slug and created_at fields if not updating changes
@@ -175,6 +176,7 @@ class Command(BaseCommand):
                 deathday=deathday,
                 profile_path=person_data.get('profile_path') or '',
                 tmdb_popularity=person_data.get('popularity', 0),
+                adult=person_data.get('adult', False),
             )
 
             # Create new slug if not updating changes

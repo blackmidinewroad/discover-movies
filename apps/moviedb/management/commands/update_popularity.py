@@ -50,7 +50,7 @@ class Command(BaseCommand):
 
         to_update = [obj for obj in existing_objs if obj.tmdb_id in popularity and obj.tmdb_popularity != popularity[obj.tmdb_id]]
 
-        logger.info('Starting to update %s %ss', len(to_update), data_type)
+        logger.info('Updating %s %ss...', len(to_update), data_type)
 
         for obj in to_update:
             obj.tmdb_popularity = popularity[obj.tmdb_id]

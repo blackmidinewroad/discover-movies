@@ -52,7 +52,7 @@ class Command(BaseCommand):
         parser.add_argument(
             '--days',
             type=int,
-            default=None,
+            default=1,
             help=(
                 'Changes made in the past N days (only works with update_changed operation).'
                 'By default changes will be fetched for the past 24 hours.'
@@ -204,6 +204,7 @@ class Command(BaseCommand):
             'tv_movie',
             'short',
             'last_update',
+            'tmdb_popularity',
         ]
 
         # Also add slug and created_at fields if not updating changes
@@ -272,6 +273,8 @@ class Command(BaseCommand):
                 budget=movie_data.get('budget', 0),
                 revenue=movie_data.get('revenue', 0),
                 runtime=movie_data.get('runtime', 0),
+                tmdb_popularity=movie_data.get('popularity', 0),
+                adult=movie_data.get('adult', False),
             )
 
             # Create links for many to many fields
@@ -444,6 +447,7 @@ class Command(BaseCommand):
                 deathday=deathday,
                 profile_path=person_data.get('profile_path') or '',
                 tmdb_popularity=person_data.get('popularity', 0),
+                adult=person_data.get('adult', False),
             )
             person.set_slug(new_slugs)
             new_slugs.add(person.slug)
@@ -466,6 +470,7 @@ class Command(BaseCommand):
                 'profile_path',
                 'tmdb_popularity',
                 'last_update',
+                'adult',
             ),
             unique_fields=('tmdb_id',),
         )
