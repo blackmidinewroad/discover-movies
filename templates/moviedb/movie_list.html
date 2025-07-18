@@ -22,4 +22,19 @@
         </div>
     {% endfor %}
 </div>
-{% include 'pagination.html' %}
+<ul class="pagination justify-content-center">
+    <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}">
+        <a class="page-link"
+           href="{% if page_obj.has_previous %}{% if sort_by %}{% url 'movie_list_by' sort_by=sort_by %}{% else %}{% url 'movie_list' %}{% endif %}?page={{ page_obj.previous_page_number }}{% else %}#{% endif %}"
+           aria-label="Previous">
+            <span aria-hidden="true">Prev</span>
+        </a>
+    </li>
+    <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}">
+        <a class="page-link"
+           href="{% if page_obj.has_next %}{% if sort_by %}{% url 'movie_list_by' sort_by=sort_by %}{% else %}{% url 'movie_list' %}{% endif %}?page={{ page_obj.next_page_number }} {% else %} # {% endif %} "
+           aria-label="Next">
+            <span aria-hidden="true">Next</span>
+        </a>
+    </li>
+</ul>

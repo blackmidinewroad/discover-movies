@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.db.models import F
 from django.views.generic import DetailView, ListView
 
 from .models import Movie, Person
@@ -8,20 +8,50 @@ class MovieListView(ListView):
     template_name = 'moviedb/main.html'
     context_object_name = 'movies'
     paginate_by = 24
-    queryset = Movie.objects.prefetch_related('directors').filter(adult=False)
+
+    VERBOSE_SORT_BY = {
+        '-tmdb_popularity': 'Popularity ↓',
+        'tmdb_popularity': 'Popularity ↑',
+        '-release_date': 'Realease date ↓',
+        'release_date': 'Realease date ↑',
+        '-budget': 'Budget ↓',
+        'budget': 'Budget ↑',
+        '-revenue': 'Revenue ↓',
+        'revenue': 'Revenue ↑',
+        '-runtime': 'Runtime ↓',
+        'runtime': 'Runtime ↑',
+    }
+
+    def get_queryset(self):
+        queryset = Movie.objects.filter(adult=False)
+
+        sort_by = self.kwargs.get('sort_by', '-tmdb_popularity')
+        field = sort_by[1:] if sort_by.startswith('-') else sort_by
+
+        match field:
+            case 'tmdb_popularity':
+                queryset = queryset.order_by(sort_by)
+            case 'release_date':
+                if sort_by.startswith('-'):
+                    queryset = queryset.order_by(F(field).desc(nulls_last=True))
+                else:
+                    queryset = queryset.order_by(F(field).asc(nulls_last=True))
+            case 'budget':
+                queryset = queryset.exclude(budget=0).order_by(sort_by)
+            case 'revenue':
+                queryset = queryset.exclude(revenue=0).order_by(sort_by)
+            case 'runtime':
+                queryset = queryset.exclude(runtime=0).order_by(sort_by)
+
+        return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Discover Movies'
         context['list_type'] = 'movies'
+        context['sort_by'] = self.kwargs.get('sort_by', '-tmdb_popularity')
+        context['verbose_sort_by'] = self.VERBOSE_SORT_BY[context['sort_by']]
         return context
-
-    def get(self, request, *args, **kwargs):
-        if request.headers.get('HX-Request'):
-            self.object_list = self.get_queryset()
-            context = self.get_context_data()
-            return render(request, 'moviedb/partials/content.html', context)
-        return super().get(request, *args, **kwargs)
 
 
 class PeopleListView(ListView):
@@ -35,13 +65,6 @@ class PeopleListView(ListView):
         context['title'] = 'People'
         context['list_type'] = 'people'
         return context
-
-    def get(self, request, *args, **kwargs):
-        if request.headers.get('HX-Request'):
-            self.object_list = self.get_queryset()
-            context = self.get_context_data()
-            return render(request, 'moviedb/partials/content.html', context)
-        return super().get(request, *args, **kwargs)
 
 
 class MovieDetailView(DetailView):
