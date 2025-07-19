@@ -1,0 +1,10 @@
+{% load humanize %}
+<div id="content-grid">
+    {% if list_type == 'movies' %}
+        {% include 'moviedb/movie_list.html' %}
+    {% else %}
+        {% include 'moviedb/people_list.html' %}
+    {% endif %}
+    {% include 'moviedb/partials/pagination.html' %}
+</div>
+<span class="total-results" id="total-results" hx-swap-oob="true">{{ total_results|intcomma }} {{ list_type }}</span>

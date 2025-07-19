@@ -1,4 +1,5 @@
 {% load static %}
+<hr />
 <div class="poster-grid my-4"
      style="--cols-xs: 2;
             --cols-sm: 4;
@@ -11,7 +12,8 @@
                     {% if movie.poster_path %}
                         <img src="https://image.tmdb.org/t/p/w342/{{ movie.poster_path }}"
                              class="rounded"
-                             alt="{{ movie.title }}">
+                             alt="{{ movie.title }}"
+                             loading="lazy">
                     {% else %}
                         <span class="missing-poster">{{ movie.title }}
                             {% if movie.release_date %}({{ movie.release_date.year }}){% endif %}
@@ -22,19 +24,4 @@
         </div>
     {% endfor %}
 </div>
-<ul class="pagination justify-content-center">
-    <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}">
-        <a class="page-link"
-           href="{% if page_obj.has_previous %}{% if sort_by %}{% url 'movie_list_by' sort_by=sort_by %}{% else %}{% url 'movie_list' %}{% endif %}?page={{ page_obj.previous_page_number }}{% else %}#{% endif %}"
-           aria-label="Previous">
-            <span aria-hidden="true">Prev</span>
-        </a>
-    </li>
-    <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}">
-        <a class="page-link"
-           href="{% if page_obj.has_next %}{% if sort_by %}{% url 'movie_list_by' sort_by=sort_by %}{% else %}{% url 'movie_list' %}{% endif %}?page={{ page_obj.next_page_number }} {% else %} # {% endif %} "
-           aria-label="Next">
-            <span aria-hidden="true">Next</span>
-        </a>
-    </li>
-</ul>
+<hr />

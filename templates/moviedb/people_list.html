@@ -1,4 +1,5 @@
 {% load static %}
+<hr />
 <div class="poster-grid my-4"
      style="--cols-xs: 2;
             --cols-sm: 4;
@@ -11,7 +12,8 @@
                     {% if person.profile_path %}
                         <img src="https://image.tmdb.org/t/p/w342/{{ person.profile_path }}"
                              class="rounded"
-                             alt="{{ person.name }}">
+                             alt="{{ person.name }}"
+                             loading="lazy">
                     {% else %}
                         <span class="missing-poster">{{ person.name }}</span>
                     {% endif %}
@@ -20,19 +22,4 @@
         </div>
     {% endfor %}
 </div>
-<ul class="pagination justify-content-center">
-    <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}">
-        <a class="page-link"
-           href="{% if page_obj.has_previous %}{% url 'people_list' %}?page={{ page_obj.previous_page_number }}{% else %}#{% endif %}"
-           aria-label="Previous">
-            <span aria-hidden="true">Prev</span>
-        </a>
-    </li>
-    <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}">
-        <a class="page-link"
-           href="{% if page_obj.has_next %}{% url 'people_list' %}?page={{ page_obj.next_page_number }} {% else %} # {% endif %} "
-           aria-label="Next">
-            <span aria-hidden="true">Next</span>
-        </a>
-    </li>
-</ul>
+<hr />

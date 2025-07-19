@@ -2,7 +2,7 @@ from django.db import models
 from django.urls import reverse
 from django.utils import timezone
 
-from apps.services.utils import unique_slugify
+from apps.services.utils import GenreIDs, unique_slugify
 
 
 class SlugMixin(models.Model):
@@ -265,12 +265,8 @@ class Movie(SlugMixin):
     def categorize(self, genre_ids: list[int]):
         """Set documentary, tv_movie and short fields based on genres and runtime."""
 
-        # Genre IDs of documentary and TV movie
-        DOCUMENTARY = 99
-        TV_MOVIE = 10770
-
-        self.documentary = DOCUMENTARY in genre_ids
-        self.tv_movie = TV_MOVIE in genre_ids
+        self.documentary = GenreIDs.DOCUMENTARY in genre_ids
+        self.tv_movie = GenreIDs.TV_MOVIE in genre_ids
         self.short = bool(self.runtime and self.runtime <= 40)
 
     def update_last_modified(self):

@@ -19,6 +19,13 @@ class Colors:
     RESET = '\033[0m'
 
 
+class GenreIDs:
+    """TMDB IDs of some frequently used genres."""
+
+    DOCUMENTARY = 99
+    TV_MOVIE = 10770
+
+
 def unique_slugify(instance, value: str, cur_bulk_slugs: set[str] = None) -> str:
     """Generate unique slug for a model.
 
@@ -42,7 +49,7 @@ def unique_slugify(instance, value: str, cur_bulk_slugs: set[str] = None) -> str
     # Truncate long slugs
     slug_field = instance._meta.get_field('slug')
     max_length = slug_field.max_length
-    # Offset length by 4 to add counter at the end if duplicate slug 
+    # Offset length by 4 to add counter at the end if duplicate slug
     slug_field_value = og_slug = slugify(ascii_text)[: max_length - 4]
 
     # If value is empty generate uuid4

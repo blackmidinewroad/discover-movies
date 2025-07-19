@@ -1,0 +1,25 @@
+<div class="dropdown year-dropdown">
+    <button class="toggle-btn dropdown-toggle"
+            type="button"
+            data-bs-toggle="dropdown"
+            aria-expanded="false">
+        {% if year %}
+            {{ year }}
+        {% else %}
+            Year
+        {% endif %}
+    </button>
+    <ul class="dropdown-menu">
+        <li>
+            <a class="dropdown-item first-item {% if year == 0 %}active{% endif %}"
+               href="{% url 'movie_list_decade' sort_by=sort_by decade=decade %}">Any</a>
+        </li>
+        <div class="dropdown-divider"></div>
+        {% for cur_year in years_list %}
+            <li>
+                <a class="dropdown-item {% if i == 0 %}last-item{% endif %} {% if year == cur_year %}active{% endif %}"
+                   href="{% url 'movie_list_year' sort_by=sort_by year=cur_year %}">{{ cur_year }}</a>
+            </li>
+        {% endfor %}
+    </ul>
+</div>

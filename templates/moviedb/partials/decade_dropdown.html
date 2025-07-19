@@ -1,0 +1,25 @@
+<div class="dropdown decade-dropdown">
+    <button class="toggle-btn dropdown-toggle"
+            type="button"
+            data-bs-toggle="dropdown"
+            aria-expanded="false">
+        {% if decade == 'any' %}
+            Decade
+        {% else %}
+            {{ decade }}
+        {% endif %}
+    </button>
+    <ul class="dropdown-menu">
+        <li>
+            <a class="dropdown-item first-item {% if decade == 'any' %}active{% endif %}"
+               href="{% url 'movie_list_decade' sort_by=sort_by decade='any' %}">Any</a>
+        </li>
+        <div class="dropdown-divider"></div>
+        {% for cur_decade in decade_list %}
+            <li>
+                <a class="dropdown-item {% if cur_decade == '1880s' %}last-item{% endif %} {% if decade == cur_decade %}active{% endif %}"
+                   href="{% url 'movie_list_decade' sort_by=sort_by decade=cur_decade %}">{{ cur_decade }}</a>
+            </li>
+        {% endfor %}
+    </ul>
+</div>

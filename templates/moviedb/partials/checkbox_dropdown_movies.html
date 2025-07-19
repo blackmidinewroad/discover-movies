@@ -1,0 +1,26 @@
+<div class="dropdown dropdown-check-list">
+    <button class="dropdown-toggle"
+            type="button"
+            data-bs-toggle="dropdown"
+            aria-expanded="false">Include</button>
+    <ul class="dropdown-menu"
+        id="include-checkboxes"
+        hx-get="{{ request.path }}"
+        hx-trigger="change"
+        hx-target="#content-grid"
+        hx-swap="innerHTML"
+        hx-include="#include-checkboxes">
+        {% for field, verbose in include_dict.items %}
+            {% if forloop.counter != 1 %}<div class="dropdown-divider"></div>{% endif %}
+            <li>
+                <label class="dropdown-item {% if forloop.counter == 1 %}first-item{% elif forloop.counter == incldue_dict|length %}last-item{% endif %}">
+                    <input type="checkbox"
+                           {% if field in included %}checked{% endif %}
+                           name="include"
+                           value="{{ field }}">
+                    {{ verbose }}
+                </label>
+            </li>
+        {% endfor %}
+    </ul>
+</div>

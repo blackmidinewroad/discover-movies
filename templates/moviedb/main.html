@@ -1,13 +1,23 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load humanize %}
 {% block content %}
     <div class="container">
         <div id="content-container">
             <div class="list-nav">
-                {% include 'moviedb/partials/data_type_buttons.html' %}
-                {% if list_type == 'movies' %}
-                    {% include 'moviedb/partials/sort_dropdown.html' %}
-                {% endif %}
+                <div class="nav-controls">
+                    {% include 'moviedb/partials/data_type_buttons.html' %}
+                    {% if list_type == 'movies' %}
+                        {% include 'moviedb/partials/sort_dropdown_movies.html' %}
+                        {% include 'moviedb/partials/decade_dropdown.html' %}
+                        {% if decade != 'any' %}
+                            {% include 'moviedb/partials/year_dropdown.html' %}
+                        {% endif %}
+                        {% include 'moviedb/partials/checkbox_dropdown_movies.html' %}
+                    {% else %}
+                        {% include 'moviedb/partials/sort_dropdown_people.html' %}
+                    {% endif %}
+                </div>
+                <span class="total-results" id="total-results">{{ total_results|intcomma }} {{ list_type }}</span>
             </div>
             <div id="content-grid">
                 {% if list_type == 'movies' %}
@@ -15,6 +25,7 @@
                 {% else %}
                     {% include 'moviedb/people_list.html' %}
                 {% endif %}
+                {% include 'moviedb/partials/pagination.html' %}
             </div>
         </div>
     </div>
