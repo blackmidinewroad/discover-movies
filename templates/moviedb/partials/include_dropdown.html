@@ -10,6 +10,7 @@
         hx-target="#content-grid"
         hx-swap="innerHTML"
         hx-include="#include-checkboxes">
+        <input type="hidden" name="include" value="_empty">
         {% for field, verbose in include_dict.items %}
             {% if forloop.counter != 1 %}<div class="dropdown-divider"></div>{% endif %}
             <li>

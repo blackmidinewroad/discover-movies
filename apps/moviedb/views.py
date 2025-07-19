@@ -1,3 +1,4 @@
+from django.db.models import Count, Q
 from django.views.generic import DetailView, ListView
 
 from apps.services.utils import GenreIDs
@@ -31,6 +32,26 @@ class MovieListView(ListView):
         'unreleased': 'Unreleased',
     }
 
+    GENRE_DICT = {
+        'Action': GenreIDs.ACTION,
+        'Adventure': GenreIDs.ADVENTURE,
+        'Animation': GenreIDs.ANIMATION,
+        'Comedy': GenreIDs.COMEDY,
+        'Crime': GenreIDs.CRIME,
+        'Drama': GenreIDs.DRAMA,
+        'Family': GenreIDs.FAMILY,
+        'Fantasy': GenreIDs.FANTASY,
+        'History': GenreIDs.HISTORY,
+        'Horror': GenreIDs.HORROR,
+        'Music': GenreIDs.MUSIC,
+        'Mystery': GenreIDs.MYSTERY,
+        'Romance': GenreIDs.ROMANCE,
+        'Science Fiction': GenreIDs.SCIENCE_FICTION,
+        'Thriller': GenreIDs.THRILLER,
+        'War': GenreIDs.WAR,
+        'Western': GenreIDs.WESTERN,
+    }
+
     def get_queryset(self):
         queryset = Movie.objects.filter(adult=False).prefetch_related('genres')
 
@@ -59,6 +80,16 @@ class MovieListView(ListView):
                 queryset = queryset.exclude(short=True)
             if 'unreleased' not in self.request.session['include']:
                 queryset = queryset.filter(status=6)  # Only include released - status 6
+
+        # Filter genres
+        if 'genres' in self.request.session:
+            if self.request.session['genres']:
+                genre_ids = [self.GENRE_DICT[genre] for genre in self.request.session['genres']]
+                queryset = (
+                    queryset.filter(genres__tmdb_id__in=genre_ids)
+                    .annotate(matching_genre_count=Count('genres', filter=Q(genres__tmdb_id__in=genre_ids), distinct=True))
+                    .filter(matching_genre_count=len(genre_ids))
+                )
 
         # Sort
         sort_by = self.kwargs.get('sort_by', '-tmdb_popularity')
@@ -116,15 +147,21 @@ class MovieListView(ListView):
         context['include_dict'] = self.INCLUDE_DICT
         context['included'] = self.request.session.get('include', list(self.INCLUDE_DICT.keys()))
 
+        context['genres_list'] = list(self.GENRE_DICT.keys())
+        context['checked_genres'] = self.request.session.get('genres', [])
+
         context['total_results'] = context['paginator'].count
 
         return context
 
     def get(self, request, *args, **kwargs):
-        # If HTMX request reder only content grif and update 'include' in session
+        # HTMX request
         if request.headers.get('HX-Request'):
             self.template_name = 'moviedb/partials/content_grid.html'
-            self.request.session['include'] = request.GET.getlist('include')
+            if 'include' in request.GET:
+                self.request.session['include'] = [i for i in request.GET.getlist('include') if i != '_empty']
+            if 'genres' in request.GET:
+                self.request.session['genres'] = [g for g in request.GET.getlist('genres') if g != '_empty']
 
         return super().get(request, *args, **kwargs)
 

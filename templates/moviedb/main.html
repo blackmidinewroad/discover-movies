@@ -8,11 +8,12 @@
                     {% include 'moviedb/partials/data_type_buttons.html' %}
                     {% if list_type == 'movies' %}
                         {% include 'moviedb/partials/sort_dropdown_movies.html' %}
+                        {% include 'moviedb/partials/genres_dropdown.html' %}
                         {% include 'moviedb/partials/decade_dropdown.html' %}
                         {% if decade != 'any' %}
                             {% include 'moviedb/partials/year_dropdown.html' %}
                         {% endif %}
-                        {% include 'moviedb/partials/checkbox_dropdown_movies.html' %}
+                        {% include 'moviedb/partials/include_dropdown.html' %}
                     {% else %}
                         {% include 'moviedb/partials/sort_dropdown_people.html' %}
                     {% endif %}

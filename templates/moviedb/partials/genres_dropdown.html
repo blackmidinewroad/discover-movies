@@ -1,0 +1,27 @@
+<div class="dropdown dropdown-check-list">
+    <button class="dropdown-toggle"
+            type="button"
+            data-bs-toggle="dropdown"
+            aria-expanded="false">Gneres</button>
+    <ul class="dropdown-menu"
+        id="genre-checkboxes"
+        hx-get="{{ request.path }}"
+        hx-trigger="change"
+        hx-target="#content-grid"
+        hx-swap="innerHTML"
+        hx-include="#genre-checkboxes">
+        <input type="hidden" name="genres" value="_empty">
+        {% for genre in genres_list %}
+            {% if forloop.counter != 1 %}<div class="dropdown-divider"></div>{% endif %}
+            <li>
+                <label class="dropdown-item {% if forloop.counter == 1 %}first-item{% elif forloop.counter == genres_list|length %}last-item{% endif %}">
+                    <input type="checkbox"
+                           {% if genre in checked_genres %}checked{% endif %}
+                           name="genres"
+                           value="{{ genre }}">
+                    {{ genre }}
+                </label>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
