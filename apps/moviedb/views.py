@@ -1,9 +1,10 @@
 from django.db.models import Count, Q
-from django.views.generic import DetailView, ListView
+from django.shortcuts import render
+from django.views.generic import DetailView, ListView, View
 
 from apps.services.utils import GenreIDs
 
-from .models import Movie, Person
+from .models import Country, Genre, Language, Movie, Person, ProductionCompany
 
 
 class MovieListView(ListView):
@@ -53,22 +54,37 @@ class MovieListView(ListView):
     }
 
     def get_queryset(self):
-        queryset = Movie.objects.filter(adult=False).prefetch_related('genres')
+        queryset = Movie.objects.filter(adult=False)
+
+        # Filter by country/language
+        if self.filter_type:
+            self.country = self.language = ''
+            self.slug = self.kwargs.get('slug', '')
+            match self.filter_type:
+                case 'country':
+                    queryset = queryset.filter(origin_country__slug=self.slug)
+                    self.country = Country.objects.get(slug=self.slug).name
+                case 'language':
+                    queryset = queryset.filter(original_language__slug=self.slug)
+                    self.language = Language.objects.get(slug=self.slug).name
 
         # Filter by year/decade
-        year = self.kwargs.get('year', 0)
-        if 1880 <= year <= 2030:
-            queryset = queryset.filter(release_date__year=year)
+        self.year = self.kwargs.get('year', 0)
+        if 1880 <= self.year <= 2030:
+            queryset = queryset.filter(release_date__year=self.year)
+            self.decade = f'{self.year // 10}0s'
         else:
-            decade = self.kwargs.get('decade', 'any')
-            if decade != 'any':
+            self.decade = self.kwargs.get('decade', 'any')
+            if self.decade != 'any':
                 try:
-                    decade_int = int(decade[:-1])
+                    decade_int = int(self.decade[:-1])
                 except ValueError:
                     decade_int = 0
 
                 if 1880 <= decade_int <= 2020 and decade_int % 10 == 0:
                     queryset = queryset.filter(release_date__year__in=(year for year in range(decade_int, decade_int + 10)))
+                else:
+                    self.decade = 'any'
 
         # Filter includes
         if 'include' in self.request.session:
@@ -92,19 +108,19 @@ class MovieListView(ListView):
                 )
 
         # Sort
-        sort_by = self.kwargs.get('sort_by', '-tmdb_popularity')
-        sort_by_field = sort_by[1:] if sort_by.startswith('-') else sort_by
+        self.sort_by = self.kwargs.get('sort_by', '-tmdb_popularity')
+        sort_by_field = self.sort_by[1:] if self.sort_by.startswith('-') else self.sort_by
         match sort_by_field:
             case 'tmdb_popularity':
-                queryset = queryset.order_by(sort_by)
+                queryset = queryset.order_by(self.sort_by)
             case 'release_date':
-                queryset = queryset.exclude(release_date=None).order_by(sort_by)
+                queryset = queryset.exclude(release_date=None).order_by(self.sort_by)
             case 'budget':
-                queryset = queryset.exclude(budget=0).order_by(sort_by)
+                queryset = queryset.exclude(budget=0).order_by(self.sort_by)
             case 'revenue':
-                queryset = queryset.exclude(revenue=0).order_by(sort_by)
+                queryset = queryset.exclude(revenue=0).order_by(self.sort_by)
             case 'runtime':
-                queryset = queryset.exclude(runtime=0).order_by(sort_by)
+                queryset = queryset.exclude(runtime=0).order_by(self.sort_by)
             case 'shuffle':
                 queryset = queryset.order_by('?')
             case _:
@@ -117,28 +133,16 @@ class MovieListView(ListView):
         context['title'] = 'Discover Movies'
         context['list_type'] = 'movies'
 
-        context['sort_by'] = self.kwargs.get('sort_by', '-tmdb_popularity')
-        context['verbose_sort_by'] = self.VERBOSE_SORT_BY.get(context['sort_by'], 'Popularity ↓')
+        context['sort_by'] = self.sort_by
+        context['verbose_sort_by'] = self.VERBOSE_SORT_BY.get(self.sort_by, 'Popularity ↓')
         context['sort_by_dict'] = self.VERBOSE_SORT_BY
 
-        context['year'] = self.kwargs.get('year', 0)
-
-        if 1880 <= context['year'] <= 2030:
-            context['decade'] = f'{context['year'] // 10}0s'
-        else:
-            context['decade'] = self.kwargs.get('decade', 'any')
-            if context['decade'] != 'any':
-                try:
-                    decade_int = int(context['decade'][:-1])
-                except ValueError:
-                    decade_int = 0
-
-                if not (1880 <= decade_int <= 2020) or decade_int % 10 != 0:
-                    context['decade'] = 'any'
+        context['year'] = self.year
+        context['decade'] = self.decade
 
         # For createing years dropdown
-        if context['decade'] != 'any':
-            decade_int = int(context['decade'][:-1])
+        if self.decade != 'any':
+            decade_int = int(self.decade[:-1])
             context['years_list'] = list(range(decade_int + 9, decade_int - 1, -1))
 
         # For createing decade dropdown
@@ -150,11 +154,37 @@ class MovieListView(ListView):
         context['genres_list'] = list(self.GENRE_DICT.keys())
         context['checked_genres'] = self.request.session.get('genres', [])
 
+        context['decade_route_name'] = f'movies_decade'
+        context['year_route_name'] = f'movies_year'
+
+        if self.filter_type:
+            context['country'] = self.country
+            context['language'] = self.language
+
+            context['decade_route_name'] += f'_{self.filter_type}'
+            context['year_route_name'] += f'_{self.filter_type}'
+
+            context['slug'] = self.slug
+
         context['total_results'] = context['paginator'].count
 
         return context
 
     def get(self, request, *args, **kwargs):
+        route_name = request.resolver_match.view_name
+
+        if 'country' in route_name:
+            self.filter_type = 'country'
+        elif 'language' in route_name:
+            self.filter_type = 'language'
+        else:
+            self.filter_type = ''
+
+        # Clean session on root page reload
+        if route_name == 'main':
+            for key in ('include', 'genres'):
+                request.session.pop(key, None)
+
         # HTMX request
         if request.headers.get('HX-Request'):
             self.template_name = 'moviedb/partials/content_grid.html'
@@ -225,3 +255,17 @@ class PersonDetailView(DetailView):
         context = super().get_context_data(**kwargs)
         context['title'] = f'{self.object.name}'
         return context
+
+
+class OtherView(View):
+    def get(self, request, *args, **kwargs):
+        countries = Country.objects.exclude(name='unknown')
+        languages = Language.objects.all()
+
+        context = {
+            'countries': countries,
+            'languages': languages,
+            'title': 'Other',
+        }
+
+        return render(request, 'moviedb/other.html', context)

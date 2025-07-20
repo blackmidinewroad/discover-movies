@@ -47,7 +47,7 @@ class Country(SlugMixin):
         return self.name
 
     def get_absolute_url(self):
-        return reverse('movies_by_country', kwargs={'slug': self.slug})
+        return reverse('movies_country', kwargs={'slug': self.slug})
 
 
 class Language(SlugMixin):
@@ -65,7 +65,7 @@ class Language(SlugMixin):
         return self.name
 
     def get_absolute_url(self):
-        return reverse('movies_by_language', kwargs={'slug': self.slug})
+        return reverse('movies_language', kwargs={'slug': self.slug})
 
 
 class Genre(SlugMixin):
@@ -81,7 +81,7 @@ class Genre(SlugMixin):
         return self.name
 
     def get_absolute_url(self):
-        return reverse('movies_by_genre', kwargs={'slug': self.slug})
+        return reverse('movies_genre', kwargs={'slug': self.slug})
 
 
 class ProductionCompany(SlugMixin):
@@ -100,7 +100,7 @@ class ProductionCompany(SlugMixin):
         return self.name
 
     def get_absolute_url(self):
-        return reverse('movies_by_prod_company', kwargs={'slug': self.slug})
+        return reverse('movies_company', kwargs={'slug': self.slug})
 
 
 class Collection(SlugMixin):

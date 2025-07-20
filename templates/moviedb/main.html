@@ -18,7 +18,13 @@
                         {% include 'moviedb/partials/sort_dropdown_people.html' %}
                     {% endif %}
                 </div>
-                <span class="total-results" id="total-results">{{ total_results|intcomma }} {{ list_type }}</span>
+                {% if country %}
+                    <span class="total-results" id="total-results">Country: {{ country }} - {{ total_results|intcomma }} {{ list_type }}</span>
+                {% elif language %}
+                    <span class="total-results" id="total-results">Language: {{ language }} - {{ total_results|intcomma }} {{ list_type }}</span>
+                {% else %}
+                    <span class="total-results" id="total-results">{{ total_results|intcomma }} {{ list_type }}</span>
+                {% endif %}
             </div>
             <div id="content-grid">
                 {% if list_type == 'movies' %}

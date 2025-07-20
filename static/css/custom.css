@@ -44,12 +44,12 @@ footer {
 .poster-grid {
     display: grid;
     gap: 1rem;
-    grid-template-columns: repeat(var(--cols-xs, 2), 1fr);
+    grid-template-columns: repeat(var(--cols-xs, 4), 1fr);
 }
 
 @media (min-width: 576px) {
     .poster-grid {
-        grid-template-columns: repeat(var(--cols-sm, 4), 1fr);
+        grid-template-columns: repeat(var(--cols-sm, 6), 1fr);
     }
 }
 
@@ -176,23 +176,65 @@ footer {
     border: none;
 }
 
+.page-item.active .page-link {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 150px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
 
 /* List navigation layout */
 .list-nav {
     display: flex;
-    justify-content: center;
+    flex-wrap: wrap;
+    flex-direction: column;
     align-items: center;
     margin-top: 1.5rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 0.5rem;
     gap: 0.5rem;
-    position: relative;
+    width: 100%;
 }
 
 .nav-controls {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 0.5rem;
     justify-content: center;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.total-results {
+    color: #a3bff4;
+    line-height: 2.5rem;
+    padding: 0 0.5rem;
+    width: 100%;
+    text-align: center;
+    font-size: 1.3rem;
+    font-weight: normal;
+}
+
+@media (min-width: 576px) {
+    .container {
+        max-width: calc(var(--cols-sm, 4) * (150px + 1rem));
+    }
+}
+
+@media (min-width: 768px) {
+    .container {
+        max-width: calc(var(--cols-md, 6) * (150px + 1rem));
+    }
+}
+
+@media (min-width: 992px) {
+    .container {
+        max-width: calc(var(--cols-lg, 8) * (150px + 1rem));
+    }
 }
 
 /* Toggle buttons */
@@ -357,11 +399,55 @@ footer {
     box-shadow: inset 0 2px 4px rgba(15, 26, 47, 0.5);
 }
 
-/* Total results */
-.total-results {
+
+
+/* 'Other' grid */
+/* Grid for toggle buttons */
+.toggle-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+/* Ensure buttons wrap with proper spacing */
+.toggle-grid::after {
+    content: "";
+    flex-basis: 100%;
+    height: 1rem;
+}
+
+/* Adjust toggle button to prevent text overflow */
+.toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #2d3d62;
     color: #a3bff4;
-    line-height: 2.5rem;
-    padding: 0 0.5rem;
-    position: absolute;
-    right: 0;
+    border: 1px solid #3a4a6f;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: normal;
+    height: 2.5rem;
+    line-height: 1.5;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 0 0 auto;
+    min-width: 0;
+}
+
+/* Headings for sections */
+#other-container h3 {
+    margin: 1.5rem 0 0.5rem 0;
+}
+
+/* Divider styling for toggle-grid */
+#other-container hr {
+    border: 0;
+    border-top: 1px solid white;
+    margin: 0.5rem 0 1rem 0;
+    opacity: 0.5;
 }
