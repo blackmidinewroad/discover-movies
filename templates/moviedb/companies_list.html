@@ -10,7 +10,7 @@
             <a href="{{ company.get_absolute_url }}" class="text-decoration-none">
                 <div class="poster-container rounded">
                     {% if company.logo_path %}
-                        <img src="https://image.tmdb.org/t/p/w342/{{ company.logo_path }}"
+                        <img src="https://image.tmdb.org/t/p/w342{{ company.logo_path }}"
                              class="rounded"
                              alt="{{ company.name }}"
                              loading="lazy">

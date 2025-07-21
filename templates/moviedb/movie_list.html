@@ -10,7 +10,7 @@
             <a href="{{ movie.get_absolute_url }}" class="text-decoration-none">
                 <div class="poster-container rounded">
                     {% if movie.poster_path %}
-                        <img src="https://image.tmdb.org/t/p/w342/{{ movie.poster_path }}"
+                        <img src="https://image.tmdb.org/t/p/w342{{ movie.poster_path }}"
                              class="rounded"
                              alt="{{ movie.title }}"
                              loading="lazy">

@@ -284,15 +284,19 @@ class LanguageListViews(ListView):
 class CollectionsListView(ListView):
     # Order by average popularity of movies in the collection, if only one movie in collection was released
     # put it in the end, put empty collections last
-    queryset = Collection.objects.annotate(
-        avg_popularity=Avg('movies__tmdb_popularity'),
-        n_released=Count('movies__status', filter=Q(movies__status=6)),
-        relesed_more_than_one=Case(
-            When(n_released__gt=1, then=True),
-            default=False,
-            output_field=BooleanField(),
-        ),
-    ).order_by(F('relesed_more_than_one').desc(), F('avg_popularity').desc(nulls_last=True))
+    queryset = (
+        Collection.objects.filter(adult=False)
+        .annotate(
+            avg_popularity=Avg('movies__tmdb_popularity'),
+            n_released=Count('movies__status', filter=Q(movies__status=6)),
+            relesed_more_than_one=Case(
+                When(n_released__gt=1, then=True),
+                default=False,
+                output_field=BooleanField(),
+            ),
+        )
+        .order_by(F('relesed_more_than_one').desc(), F('avg_popularity').desc(nulls_last=True))
+    )
 
     template_name = 'moviedb/other.html'
     context_object_name = 'collections'

@@ -10,7 +10,7 @@
             <a href="{{ person.get_absolute_url }}" class="text-decoration-none">
                 <div class="poster-container rounded">
                     {% if person.profile_path %}
-                        <img src="https://image.tmdb.org/t/p/w342/{{ person.profile_path }}"
+                        <img src="https://image.tmdb.org/t/p/w342{{ person.profile_path }}"
                              class="rounded"
                              alt="{{ person.name }}"
                              loading="lazy">

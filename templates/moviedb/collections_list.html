@@ -10,7 +10,7 @@
             <a href="{{ collection.get_absolute_url }}" class="text-decoration-none">
                 <div class="poster-container rounded">
                     {% if collection.poster_path %}
-                        <img src="https://image.tmdb.org/t/p/w342/{{ collection.poster_path }}"
+                        <img src="https://image.tmdb.org/t/p/w342{{ collection.poster_path }}"
                              class="rounded"
                              alt="{{ collection.name }}"
                              loading="lazy">

@@ -5,7 +5,7 @@
         <h1>{{ person.name }}</h1>
         <h5>{{ person.known_for_department }}</h5>
         {% if person.profile_path %}
-            <img src="https://image.tmdb.org/t/p/w342/{{ person.profile_path }}"
+            <img src="https://image.tmdb.org/t/p/w342{{ person.profile_path }}"
                  class="rounded"
                  alt="{{ person.name }}">
         {% endif %}

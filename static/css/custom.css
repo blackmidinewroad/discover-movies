@@ -11,6 +11,8 @@ nav {
     color: #ffffff;
     padding: 1rem;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    z-index: 10;
+    position: relative;
 }
 
 .navbar {
@@ -50,12 +52,19 @@ nav {
         flex-direction: column;
         height: auto;
         padding: 1rem;
+        align-items: center;
     }
 
     .data-type-links {
-        margin-top: 0.5rem;
         flex-wrap: wrap;
         justify-content: center;
+        width: 100%;
+    }
+
+    .navbar-brand {
+        text-align: center;
+        width: 100%;
+        margin-right: 0;
     }
 }
 
@@ -148,6 +157,7 @@ footer {
     border-radius: inherit;
     overflow: hidden;
     text-overflow: ellipsis;
+    word-break: break-word;
 }
 
 
@@ -271,6 +281,7 @@ footer {
 /* Toggle buttons */
 .toggle-buttons {
     display: flex;
+    flex-wrap: wrap;
     gap: 0.5rem;
     align-items: center;
 }
@@ -487,4 +498,133 @@ footer {
 
 #other-buttons {
     margin-bottom: 1.2rem;
+}
+
+
+/* Backdrop styling */
+.backdrop-container {
+    position: relative;
+    width: 100%;
+    height: 70vh;
+    min-height: 250px;
+    overflow: hidden;
+    margin-bottom: -15vh;
+}
+
+.backdrop-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0;
+
+}
+
+.backdrop-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background:
+        linear-gradient(to bottom,
+            rgba(0, 0, 0, 0) 70%,
+            #1a263f 100%),
+        linear-gradient(to right,
+            #1a263f 0%,
+            rgba(0, 0, 0, 0) 20%,
+            rgba(0, 0, 0, 0) 80%,
+            #1a263f 100%);
+    z-index: 1;
+
+}
+
+
+.collection {
+    position: relative;
+    z-index: 3;
+    margin-top: 0;
+    margin-bottom: 2rem;
+}
+
+.collection-header {
+    margin-top: 2.5rem;
+    margin-bottom: 2rem;
+}
+
+
+.collection-poster {
+    width: 100%;
+    max-width: 342px;
+    aspect-ratio: 2 / 3;
+    object-fit: cover;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.poster-container {
+    position: relative;
+    width: 100%;
+    padding-top: 150%;
+    overflow: hidden;
+    background-color: transparent;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.missing-poster {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: #0f1a2f;
+    color: #e0e0e0;
+    text-align: center;
+    padding: 1rem;
+    font-size: 1rem;
+    border-radius: 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.collection-info {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+
+.collection-title {
+    font-size: 2rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+}
+
+.collection-overview {
+    color: #bacff7;
+    font-size: 1.1rem;
+    line-height: 1.6;
+    margin-bottom: 0;
+}
+
+.movie-list {
+    margin-top: 1rem;
+}
+
+@media (max-width: 767.98px) {
+    .collection-header {
+        text-align: center;
+    }
+
+    .collection-poster {
+        margin: 0 auto 1rem;
+    }
+
+    .collection-info {
+        align-items: center;
+    }
 }

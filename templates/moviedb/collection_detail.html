@@ -1,15 +1,37 @@
 {% extends 'base.html' %}
 {% load static %}
 {% block content %}
+    {% if collection.backdrop_path %}
+        <div class="backdrop-wrapper">
+            <div class="backdrop-container">
+                <img src="https://image.tmdb.org/t/p/w1280{{ collection.backdrop_path }}"
+                     class="backdrop-image"
+                     alt="{{ collection.name }} backdrop">
+                <div class="backdrop-overlay"></div>
+            </div>
+        </div>
+    {% endif %}
     <div class="collection container">
-        <h3>{{ collection.name }}</h3>
-        {% if collection.poster_path %}
-            <img src="https://image.tmdb.org/t/p/w342/{{ collection.poster_path }}"
-                 class="rounded"
-                 alt="{{ collection.title }}">
-        {% endif %}
-        {% if collection.overview %}<p>{{ collection.overview }}</p>{% endif %}
-        <div id="content-grid">{% include 'moviedb/movie_list.html' with movies=object_list %}</div>
+        <div class="row collection-header">
+            <div class="col-12 col-md-4 col-lg-3">
+                {% if collection.poster_path %}
+                    <img src="https://image.tmdb.org/t/p/w500{{ collection.poster_path }}"
+                         class="collection-poster rounded"
+                         alt="{{ collection.name }}">
+                {% else %}
+                    <div class="poster-container">
+                        <div class="missing-poster rounded">
+                            <span>No Poster Available</span>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="col-12 col-md-8 col-lg-9 collection-info">
+                <h3 class="collection-title">{{ collection.name }}</h3>
+                {% if collection.overview %}<p class="collection-overview">{{ collection.overview }}</p>{% endif %}
+            </div>
+        </div>
+        <div id="content-grid" class="movie-list">{% include 'moviedb/movie_list.html' with movies=object_list %}</div>
         {% include 'moviedb/partials/pagination.html' %}
     </div>
 {% endblock %}

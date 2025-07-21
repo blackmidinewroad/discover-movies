@@ -113,6 +113,9 @@ class Collection(SlugMixin):
     poster_path = models.CharField(max_length=64, blank=True, default='')
     backdrop_path = models.CharField(max_length=64, blank=True, default='')
 
+    # Collection contains adult movies
+    adult = models.BooleanField(blank=True, default=False)
+
     class Meta:
         verbose_name = 'collection'
         verbose_name_plural = 'collections'
