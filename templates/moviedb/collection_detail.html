@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 {% block content %}
-    <div class="container my-4">
+    <div class="collection container">
         <h3>{{ collection.name }}</h3>
         {% if collection.poster_path %}
             <img src="https://image.tmdb.org/t/p/w342/{{ collection.poster_path }}"
@@ -9,6 +9,7 @@
                  alt="{{ collection.title }}">
         {% endif %}
         {% if collection.overview %}<p>{{ collection.overview }}</p>{% endif %}
-        <hr />
+        <div id="content-grid">{% include 'moviedb/movie_list.html' with movies=object_list %}</div>
+        {% include 'moviedb/partials/pagination.html' %}
     </div>
 {% endblock %}

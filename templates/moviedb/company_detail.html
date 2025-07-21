@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+    <h3>{{ company.name }}</h3>
+    {% if company.logo_path %}
+        <img src="https://image.tmdb.org/t/p/w342/{{ company.logo_path }}"
+             class="rounded"
+             alt="{{ company.title }}">
+    {% endif %}
+    <div id="content-grid">{% include 'moviedb/movie_list.html' with movies=object_list %}</div>
+    {% include 'moviedb/partials/pagination.html' %}
+{% endblock %}

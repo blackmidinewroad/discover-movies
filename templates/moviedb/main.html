@@ -1,38 +1,34 @@
 {% extends 'base.html' %}
 {% load humanize %}
 {% block content %}
-    <div class="container">
-        <div id="content-container">
-            <div class="list-nav">
-                <div class="nav-controls">
-                    {% if list_type == 'movies' %}
-                        {% include 'moviedb/partials/genres_dropdown.html' %}
-                        {% include 'moviedb/partials/decade_dropdown.html' %}
-                        {% if decade != 'any' %}
-                            {% include 'moviedb/partials/year_dropdown.html' %}
-                        {% endif %}
-                        {% include 'moviedb/partials/include_dropdown.html' %}
-                        {% include 'moviedb/partials/sort_dropdown_movies.html' %}
-                    {% else %}
-                        {% include 'moviedb/partials/sort_dropdown_people.html' %}
-                    {% endif %}
-                </div>
-                {% if country %}
-                    <span class="total-results" id="total-results">Country: {{ country }} - {{ total_results|intcomma }} {{ list_type }}</span>
-                {% elif language %}
-                    <span class="total-results" id="total-results">Language: {{ language }} - {{ total_results|intcomma }} {{ list_type }}</span>
-                {% else %}
-                    <span class="total-results" id="total-results">{{ total_results|intcomma }} {{ list_type }}</span>
+    <div class="list-nav">
+        <div class="nav-controls">
+            {% if list_type == 'movies' %}
+                {% include 'moviedb/partials/genres_dropdown.html' %}
+                {% include 'moviedb/partials/decade_dropdown.html' %}
+                {% if decade != 'any' %}
+                    {% include 'moviedb/partials/year_dropdown.html' %}
                 {% endif %}
-            </div>
-            <div id="content-grid">
-                {% if list_type == 'movies' %}
-                    {% include 'moviedb/movie_list.html' %}
-                {% else %}
-                    {% include 'moviedb/people_list.html' %}
-                {% endif %}
-                {% include 'moviedb/partials/pagination.html' %}
-            </div>
+                {% include 'moviedb/partials/include_dropdown.html' %}
+                {% include 'moviedb/partials/sort_dropdown_movies.html' %}
+            {% else %}
+                {% include 'moviedb/partials/sort_dropdown_people.html' %}
+            {% endif %}
         </div>
+        {% if country %}
+            <span class="total-results" id="total-results">Country: {{ country }} - {{ total_results|intcomma }} {{ list_type }}</span>
+        {% elif language %}
+            <span class="total-results" id="total-results">Language: {{ language }} - {{ total_results|intcomma }} {{ list_type }}</span>
+        {% else %}
+            <span class="total-results" id="total-results">{{ total_results|intcomma }} {{ list_type }}</span>
+        {% endif %}
+    </div>
+    <div id="content-grid">
+        {% if list_type == 'movies' %}
+            {% include 'moviedb/movie_list.html' %}
+        {% else %}
+            {% include 'moviedb/people_list.html' %}
+        {% endif %}
+        {% include 'moviedb/partials/pagination.html' %}
     </div>
 {% endblock %}

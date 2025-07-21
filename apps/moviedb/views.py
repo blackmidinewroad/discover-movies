@@ -1,10 +1,10 @@
-from django.db.models import Count, Q
-from django.shortcuts import render
-from django.views.generic import DetailView, ListView, View
+from django.db.models import Avg, BooleanField, Case, Count, F, Q, When
+from django.views.generic import DetailView, ListView
+from django.views.generic.list import MultipleObjectMixin
 
 from apps.services.utils import GenreIDs
 
-from .models import Country, Genre, Language, Movie, Person, ProductionCompany, Collection
+from .models import Collection, Country, Language, Movie, Person, ProductionCompany
 
 
 class MovieListView(ListView):
@@ -282,7 +282,18 @@ class LanguageListViews(ListView):
 
 
 class CollectionsListView(ListView):
-    model = Collection
+    # Order by average popularity of movies in the collection, if only one movie in collection was released
+    # put it in the end, put empty collections last
+    queryset = Collection.objects.annotate(
+        avg_popularity=Avg('movies__tmdb_popularity'),
+        n_released=Count('movies__status', filter=Q(movies__status=6)),
+        relesed_more_than_one=Case(
+            When(n_released__gt=1, then=True),
+            default=False,
+            output_field=BooleanField(),
+        ),
+    ).order_by(F('relesed_more_than_one').desc(), F('avg_popularity').desc(nulls_last=True))
+
     template_name = 'moviedb/other.html'
     context_object_name = 'collections'
     paginate_by = 24
@@ -294,12 +305,40 @@ class CollectionsListView(ListView):
         return context
 
 
-class CollectionDetailView(DetailView):
+class CollectionDetailView(DetailView, MultipleObjectMixin):
     model = Collection
     template_name = 'moviedb/collection_detail.html'
     context_object_name = 'collection'
+    paginate_by = 24
+
+    def get_context_data(self, **kwargs):
+        movies = self.object.movies.all().order_by('release_date')
+        context = super().get_context_data(object_list=movies, **kwargs)
+        context['title'] = f'{self.object.name}'
+        return context
+
+
+class CompanyListView(ListView):
+    queryset = ProductionCompany.objects.annotate(movie_count=Count('movies')).order_by('-movie_count')
+    template_name = 'moviedb/other.html'
+    context_object_name = 'companies'
+    paginate_by = 24
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context['title'] = 'Production Companies'
+        context['list_type'] = 'companies'
+        return context
+
+
+class CompanyDetailView(DetailView, MultipleObjectMixin):
+    model = ProductionCompany
+    template_name = 'moviedb/company_detail.html'
+    context_object_name = 'company'
+    paginate_by = 24
+
+    def get_context_data(self, **kwargs):
+        movies = self.object.movies.all()
+        context = super().get_context_data(object_list=movies, **kwargs)
         context['title'] = f'{self.object.name}'
         return context

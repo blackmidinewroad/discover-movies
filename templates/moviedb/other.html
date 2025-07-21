@@ -1,21 +1,19 @@
 {% extends 'base.html' %}
 {% load humanize %}
 {% block content %}
-    <div class="container">
-        <div id="content-container">
-            <div class="list-nav" id="other-buttons">
-                <div class="nav-controls">{% include 'moviedb/partials/other_buttons.html' %}</div>
-            </div>
-            <div id="content-grid">
-                {% if list_type == 'countries' %}
-                    {% include 'moviedb/countries_list.html' %}
-                {% elif list_type == 'languages' %}
-                    {% include 'moviedb/languages_list.html' %}
-                {% elif list_type == 'collections' %}
-                    {% include 'moviedb/collections_list.html' %}
-                {% endif %}
-                {% include 'moviedb/partials/pagination.html' %}
-            </div>
-        </div>
+    <div class="list-nav" id="other-buttons">
+        <div class="nav-controls">{% include 'moviedb/partials/other_buttons.html' %}</div>
+    </div>
+    <div id="content-grid">
+        {% if list_type == 'countries' %}
+            {% include 'moviedb/countries_list.html' %}
+        {% elif list_type == 'languages' %}
+            {% include 'moviedb/languages_list.html' %}
+        {% elif list_type == 'collections' %}
+            {% include 'moviedb/collections_list.html' %}
+        {% elif list_type == 'companies' %}
+            {% include 'moviedb/companies_list.html' %}
+        {% endif %}
+        {% include 'moviedb/partials/pagination.html' %}
     </div>
 {% endblock %}

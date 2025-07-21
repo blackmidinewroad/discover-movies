@@ -3,6 +3,8 @@ from django.urls import path
 from .views import (
     CollectionDetailView,
     CollectionsListView,
+    CompanyDetailView,
+    CompanyListView,
     CountryListViews,
     LanguageListViews,
     MovieDetailView,
@@ -23,6 +25,8 @@ urlpatterns = [
     path('languages/', LanguageListViews.as_view(), name='languages'),
     path('collections/', CollectionsListView.as_view(), name='collections'),
     path('collection/<slug:slug>/', CollectionDetailView.as_view(), name='collection_detail'),
+    path('preduction-companies/', CompanyListView.as_view(), name='companies'),
+    path('production-company/<slug:slug>/', CompanyDetailView.as_view(), name='company_detail'),
     path('movies-by-country/<slug:slug>/', MovieListView.as_view(), name='movies_country'),
     path(
         'movies-by-country/<slug:slug>/by/<str:sort_by>/decade/<str:decade>/',
