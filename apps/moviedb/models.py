@@ -122,7 +122,7 @@ class Collection(SlugMixin):
         return self.name
 
     def get_absolute_url(self):
-        return reverse('movie_collection', kwargs={'slug': self.slug})
+        return reverse('collection_detail', kwargs={'slug': self.slug})
 
 
 class Person(SlugMixin):

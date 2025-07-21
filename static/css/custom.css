@@ -15,16 +15,48 @@ nav {
 
 .navbar {
     height: 4rem;
-}
-
-.navbar a {
-    font-size: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 
 .navbar-brand {
     font-weight: normal;
-    font-size: 1.5rem;
+    font-size: 2rem;
     text-decoration: none;
+}
+
+/* Data type links in navbar */
+.data-type-links {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.data-type-link {
+    color: #a3bff4;
+    font-size: 1.3rem;
+    font-weight: normal;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.data-type-link:hover {
+    color: #7594ce;
+}
+
+@media (max-width: 576px) {
+    .navbar {
+        flex-direction: column;
+        height: auto;
+        padding: 1rem;
+    }
+
+    .data-type-links {
+        margin-top: 0.5rem;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
 }
 
 
@@ -32,7 +64,6 @@ nav {
 footer {
     background-color: #0f1a2f;
     color: #ffffff;
-    padding: 1rem;
 }
 
 .footer-text {
@@ -258,16 +289,19 @@ footer {
     height: 2.5rem;
     line-height: 1.5;
     transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .toggle-btn:hover {
     background-color: #7594ce;
     color: #0f1a2f;
+    box-shadow: 0 7px 14px rgba(0, 0, 0, 0.1), 0 3px 6px rgba(0, 0, 0, 0.08);
 }
 
 .toggle-btn.active {
     background-color: #7594ce;
     color: #0f1a2f;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
 /* Dropdowns */
@@ -287,6 +321,7 @@ footer {
     justify-content: center;
     gap: 0.5rem;
     min-width: 120px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .dropdown .dropdown-menu {
@@ -319,6 +354,7 @@ footer {
 .dropdown .dropdown-item.active {
     background-color: #7594ce !important;
     color: #0f1a2f;
+    box-shadow: 0 7px 14px rgba(0, 0, 0, 0.1), 0 3px 6px rgba(0, 0, 0, 0.08);
 }
 
 .dropdown .first-item:hover,
@@ -407,7 +443,7 @@ footer {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
-    margin-bottom: 1rem;
+    margin-top: 1rem;
 }
 
 /* Ensure buttons wrap with proper spacing */
@@ -418,13 +454,13 @@ footer {
 }
 
 /* Adjust toggle button to prevent text overflow */
-.toggle-btn {
+.toggle-grid .toggle-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background-color: #2d3d62;
-    color: #a3bff4;
-    border: 1px solid #3a4a6f;
+    background-color: #1e4075;
+    color: #c6d5f6;
+    border: none;
     padding: 0.5rem 1rem;
     border-radius: 8px;
     text-decoration: none;
@@ -439,15 +475,16 @@ footer {
     min-width: 0;
 }
 
-/* Headings for sections */
-#other-container h3 {
-    margin: 1.5rem 0 0.5rem 0;
+.toggle-grid .toggle-btn:hover {
+    background-color: #2d5ba6;
+    color: white;
+    box-shadow: 0 7px 14px rgba(0, 0, 0, 0.1), 0 3px 6px rgba(0, 0, 0, 0.08);
 }
 
-/* Divider styling for toggle-grid */
-#other-container hr {
-    border: 0;
-    border-top: 1px solid white;
-    margin: 0.5rem 0 1rem 0;
-    opacity: 0.5;
+#content-grid hr:last-child {
+    margin-bottom: 1.2rem;
+}
+
+#other-buttons {
+    margin-bottom: 1.2rem;
 }

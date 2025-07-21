@@ -1,0 +1,8 @@
+<div class="toggle-buttons">
+    <a class="toggle-btn {% if list_type == 'countries' %}active{% endif %}"
+       href="{% url 'countries' %}">Countries</a>
+    <a class="toggle-btn {% if list_type == 'languages' %}active{% endif %}"
+       href="{% url 'languages' %}">Languages</a>
+    <a class="toggle-btn {% if list_type == 'collections' %}active{% endif %}"
+       href="{% url 'collections' %}">Collections</a>
+</div>

@@ -1,7 +1,7 @@
-<div class="toggle-buttons">
-   <a class="toggle-btn {% if list_type == 'movies' %}active{% endif %}"
-      href="{% if list_type == 'movies' %}{% url 'movies_sort' sort_by=sort_by %}{% else %}{% url 'movies' %}{% endif %}">Movies</a>
-   <a class="toggle-btn {% if list_type == 'people' %}active{% endif %}"
+<div class="data-type-links">
+   <a class="data-type-link {% if list_type == 'movies' %}active{% endif %}"
+      href="{% url 'movies' %}">Movies</a>
+   <a class="data-type-link {% if list_type == 'people' %}active{% endif %}"
       href="{% url 'people' %}">People</a>
-   <a class="toggle-btn" href="{% url 'other' %}">Other</a>
+   <a class="data-type-link" href="{% url 'other' %}">Other</a>
 </div>

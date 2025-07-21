@@ -1,0 +1,25 @@
+{% load static %}
+<hr />
+<div class="poster-grid my-4"
+     style="--cols-xs: 4;
+            --cols-sm: 6;
+            --cols-md: 6;
+            --cols-lg: 8">
+    {% for collection in collections %}
+        <div class="poster-wrapper">
+            <a href="{{ collection.get_absolute_url }}" class="text-decoration-none">
+                <div class="poster-container rounded">
+                    {% if collection.poster_path %}
+                        <img src="https://image.tmdb.org/t/p/w342/{{ collection.poster_path }}"
+                             class="rounded"
+                             alt="{{ collection.name }}"
+                             loading="lazy">
+                    {% else %}
+                        <span class="missing-poster">{{ collection.name }}</span>
+                    {% endif %}
+                </div>
+            </a>
+        </div>
+    {% endfor %}
+</div>
+<hr />

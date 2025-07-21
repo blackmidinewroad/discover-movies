@@ -4,7 +4,7 @@ from django.views.generic import DetailView, ListView, View
 
 from apps.services.utils import GenreIDs
 
-from .models import Country, Genre, Language, Movie, Person, ProductionCompany
+from .models import Country, Genre, Language, Movie, Person, ProductionCompany, Collection
 
 
 class MovieListView(ListView):
@@ -181,7 +181,7 @@ class MovieListView(ListView):
             self.filter_type = ''
 
         # Clean session on root page reload
-        if route_name == 'main':
+        if route_name in ('main', 'movies'):
             for key in ('include', 'genres'):
                 request.session.pop(key, None)
 
@@ -236,9 +236,9 @@ class PeopleListView(ListView):
 
 
 class MovieDetailView(DetailView):
+    model = Movie
     template_name = 'moviedb/movie_detail.html'
     context_object_name = 'movie'
-    queryset = Movie.objects.prefetch_related('directors')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -247,9 +247,9 @@ class MovieDetailView(DetailView):
 
 
 class PersonDetailView(DetailView):
+    model = Person
     template_name = 'moviedb/person_detail.html'
     context_object_name = 'person'
-    queryset = Person.objects.prefetch_related('cast_roles', 'crew_roles')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -257,15 +257,49 @@ class PersonDetailView(DetailView):
         return context
 
 
-class OtherView(View):
-    def get(self, request, *args, **kwargs):
-        countries = Country.objects.exclude(name='unknown')
-        languages = Language.objects.all()
+class CountryListViews(ListView):
+    queryset = Country.objects.exclude(name='unknown')
+    template_name = 'moviedb/other.html'
+    context_object_name = 'countries'
 
-        context = {
-            'countries': countries,
-            'languages': languages,
-            'title': 'Other',
-        }
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Countries'
+        context['list_type'] = 'countries'
+        return context
 
-        return render(request, 'moviedb/other.html', context)
+
+class LanguageListViews(ListView):
+    model = Language
+    template_name = 'moviedb/other.html'
+    context_object_name = 'languages'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Languages'
+        context['list_type'] = 'languages'
+        return context
+
+
+class CollectionsListView(ListView):
+    model = Collection
+    template_name = 'moviedb/other.html'
+    context_object_name = 'collections'
+    paginate_by = 24
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Collections'
+        context['list_type'] = 'collections'
+        return context
+
+
+class CollectionDetailView(DetailView):
+    model = Collection
+    template_name = 'moviedb/collection_detail.html'
+    context_object_name = 'collection'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = f'{self.object.name}'
+        return context

@@ -1,0 +1,7 @@
+<hr />
+<div class="toggle-grid">
+    {% for language in languages %}
+        <a class="toggle-btn" href="{{ language.get_absolute_url }}">{{ language }}</a>
+    {% endfor %}
+</div>
+<hr />

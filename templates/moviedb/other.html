@@ -1,20 +1,20 @@
 {% extends 'base.html' %}
+{% load humanize %}
 {% block content %}
     <div class="container">
-        <div id="other-container">
-            <h3>Countries</h3>
-            <hr />
-            <div class="toggle-grid">
-                {% for country in countries %}
-                    <a class="toggle-btn" href="{{ country.get_absolute_url }}">{{ country }}</a>
-                {% endfor %}
+        <div id="content-container">
+            <div class="list-nav" id="other-buttons">
+                <div class="nav-controls">{% include 'moviedb/partials/other_buttons.html' %}</div>
             </div>
-            <h3>Languages</h3>
-            <hr />
-            <div class="toggle-grid">
-                {% for language in languages %}
-                    <a class="toggle-btn" href="{{ language.get_absolute_url }}">{{ language }}</a>
-                {% endfor %}
+            <div id="content-grid">
+                {% if list_type == 'countries' %}
+                    {% include 'moviedb/countries_list.html' %}
+                {% elif list_type == 'languages' %}
+                    {% include 'moviedb/languages_list.html' %}
+                {% elif list_type == 'collections' %}
+                    {% include 'moviedb/collections_list.html' %}
+                {% endif %}
+                {% include 'moviedb/partials/pagination.html' %}
             </div>
         </div>
     </div>

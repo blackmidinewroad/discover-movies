@@ -1,0 +1,7 @@
+<hr />
+<div class="toggle-grid">
+    {% for country in countries %}
+        <a class="toggle-btn" href="{{ country.get_absolute_url }}">{{ country }}</a>
+    {% endfor %}
+</div>
+<hr />
