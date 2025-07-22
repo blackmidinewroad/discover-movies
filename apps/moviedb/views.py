@@ -166,7 +166,7 @@ class MovieListView(ListView):
 
             context['slug'] = self.slug
 
-        context['total_results'] = context['paginator'].count
+        context['total_results'] = self.object_list.count
 
         return context
 
@@ -231,7 +231,7 @@ class PeopleListView(ListView):
         context['verbose_sort_by'] = self.VERBOSE_SORT_BY.get(context['sort_by'], 'Popularity ↓')
         context['sort_by_dict'] = self.VERBOSE_SORT_BY
 
-        context['total_results'] = context['paginator'].count
+        context['total_results'] = self.object_list.count
         return context
 
 
@@ -266,6 +266,7 @@ class CountryListViews(ListView):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Countries'
         context['list_type'] = 'countries'
+        context['total_results'] = self.object_list.count
         return context
 
 
@@ -278,6 +279,7 @@ class LanguageListViews(ListView):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Languages'
         context['list_type'] = 'languages'
+        context['total_results'] = self.object_list.count
         return context
 
 
@@ -286,6 +288,7 @@ class CollectionsListView(ListView):
     # put it in the end, put empty collections last
     queryset = (
         Collection.objects.filter(adult=False)
+        .exclude(movies=None)
         .annotate(
             avg_popularity=Avg('movies__tmdb_popularity'),
             n_released=Count('movies__status', filter=Q(movies__status=6)),
@@ -306,32 +309,63 @@ class CollectionsListView(ListView):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Collections'
         context['list_type'] = 'collections'
+        context['total_results'] = self.object_list.count
         return context
 
 
-class CollectionDetailView(DetailView, MultipleObjectMixin):
+class CollectionDetailView(DetailView):
     model = Collection
     template_name = 'moviedb/collection_detail.html'
     context_object_name = 'collection'
-    paginate_by = 24
 
     def get_context_data(self, **kwargs):
-        movies = self.object.movies.all().order_by('release_date')
-        context = super().get_context_data(object_list=movies, **kwargs)
+        context = super().get_context_data(**kwargs)
         context['title'] = f'{self.object.name}'
+        context['movies'] = self.object.movies.all().order_by('release_date')
+        context['total_movies'] = context['movies'].count
         return context
 
 
 class CompanyListView(ListView):
-    queryset = ProductionCompany.objects.annotate(movie_count=Count('movies')).order_by('-movie_count')
     template_name = 'moviedb/other.html'
     context_object_name = 'companies'
-    paginate_by = 24
+    paginate_by = 128
+
+    VERBOSE_SORT_BY = {
+        '-movie_count': 'Number of movies ↓',
+        '-name': 'Name (A-Z)',
+        'name': 'Name (Z-A)',
+        'shuffle': 'Shuffle',
+    }
+
+    def get_queryset(self):
+        queryset = ProductionCompany.objects.exclude(movies=None).annotate(movie_count=Count('movies'))
+
+        self.sort_by = self.kwargs.get('sort_by', '-movie_count')
+        sort_by_field = self.sort_by[1:] if self.sort_by.startswith('-') else self.sort_by
+        match sort_by_field:
+            case 'movie_count':
+                queryset = queryset.order_by(self.sort_by)
+            case 'name':
+                queryset = queryset.order_by(self.sort_by)
+            case 'shuffle':
+                queryset = queryset.order_by('?')
+            case _:
+                queryset = queryset.order_by('-movie_count')
+
+        return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Production Companies'
         context['list_type'] = 'companies'
+
+        context['sort_by'] = self.sort_by
+        context['verbose_sort_by'] = self.VERBOSE_SORT_BY.get(self.sort_by, 'Number of movies ↓')
+        context['sort_by_dict'] = self.VERBOSE_SORT_BY
+
+        context['total_results'] = self.object_list.count
+
         return context
 
 

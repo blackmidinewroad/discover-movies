@@ -29,9 +29,16 @@
             <div class="col-12 col-md-8 col-lg-9 collection-info">
                 <h3 class="collection-title">{{ collection.name }}</h3>
                 {% if collection.overview %}<p class="collection-overview">{{ collection.overview }}</p>{% endif %}
+                <span class="total-results" id="total-results">
+                    {% if total_movies %}
+                        {{ total_movies }} movie{{ total_movies|pluralize }}
+                    {% else %}
+                        No movies
+                    {% endif %}
+                in collection</span>
             </div>
         </div>
-        <div id="content-grid" class="movie-list">{% include 'moviedb/movie_list.html' with movies=object_list %}</div>
+        <div id="content-grid" class="movie-list">{% include 'moviedb/movie_list.html' %}</div>
         {% include 'moviedb/partials/pagination.html' %}
     </div>
 {% endblock %}

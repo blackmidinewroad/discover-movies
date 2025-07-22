@@ -26,6 +26,7 @@ urlpatterns = [
     path('collections/', CollectionsListView.as_view(), name='collections'),
     path('collection/<slug:slug>/', CollectionDetailView.as_view(), name='collection_detail'),
     path('preduction-companies/', CompanyListView.as_view(), name='companies'),
+    path('preduction-companies/by/<str:sort_by>', CompanyListView.as_view(), name='companies_sort'),
     path('production-company/<slug:slug>/', CompanyDetailView.as_view(), name='company_detail'),
     path('movies-by-country/<slug:slug>/', MovieListView.as_view(), name='movies_country'),
     path(
