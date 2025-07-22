@@ -100,7 +100,7 @@ class ProductionCompany(SlugMixin):
         return self.name
 
     def get_absolute_url(self):
-        return reverse('company_detail', kwargs={'slug': self.slug})
+        return reverse('movies_company', kwargs={'slug': self.slug})
 
 
 class Collection(SlugMixin):

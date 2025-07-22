@@ -2,6 +2,13 @@
 {% load humanize %}
 {% block content %}
     <div class="list-nav">
+        {% if company and company.logo_path %}
+            <div class="logo-floating-left">
+                <img src="https://image.tmdb.org/t/p/w185{{ company.logo_path }}"
+                     class="company-logo"
+                     alt="{{ company.title }}">
+            </div>
+        {% endif %}
         <div class="nav-controls">
             {% if list_type == 'movies' %}
                 {% include 'moviedb/partials/genres_dropdown.html' %}
@@ -19,6 +26,8 @@
             <span class="total-results" id="total-results">Country: {{ country }} - {{ total_results|intcomma }} {{ list_type }}</span>
         {% elif language %}
             <span class="total-results" id="total-results">Language: {{ language }} - {{ total_results|intcomma }} {{ list_type }}</span>
+        {% elif company %}
+            <span class="total-results" id="total-results">{{ company }} - {{ total_results|intcomma }} {{ list_type }}</span>
         {% else %}
             <span class="total-results" id="total-results">{{ total_results|intcomma }} {{ list_type }}</span>
         {% endif %}

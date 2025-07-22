@@ -56,17 +56,20 @@ class MovieListView(ListView):
     def get_queryset(self):
         queryset = Movie.objects.filter(adult=False)
 
-        # Filter by country/language
+        # Filter by country/language/production company
         if self.filter_type:
-            self.country = self.language = ''
+            self.filter_obj = None
             self.slug = self.kwargs.get('slug', '')
             match self.filter_type:
                 case 'country':
                     queryset = queryset.filter(origin_country__slug=self.slug)
-                    self.country = Country.objects.get(slug=self.slug).name
+                    self.filter_obj = Country.objects.get(slug=self.slug)
                 case 'language':
                     queryset = queryset.filter(original_language__slug=self.slug)
-                    self.language = Language.objects.get(slug=self.slug).name
+                    self.filter_obj = Language.objects.get(slug=self.slug)
+                case 'company':
+                    queryset = queryset.filter(production_companies__slug=self.slug)
+                    self.filter_obj = ProductionCompany.objects.get(slug=self.slug)
 
         # Filter by year/decade
         self.year = self.kwargs.get('year', 0)
@@ -130,7 +133,12 @@ class MovieListView(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['title'] = 'Discover Movies'
+
+        if self.filter_type:
+            context['title'] = self.filter_obj.name
+        else:
+            context['title'] = 'Discover Movies'
+
         context['list_type'] = 'movies'
 
         context['sort_by'] = self.sort_by
@@ -158,8 +166,7 @@ class MovieListView(ListView):
         context['year_route_name'] = f'movies_year'
 
         if self.filter_type:
-            context['country'] = self.country
-            context['language'] = self.language
+            context[self.filter_type] = self.filter_obj
 
             context['decade_route_name'] += f'_{self.filter_type}'
             context['year_route_name'] += f'_{self.filter_type}'
@@ -177,6 +184,8 @@ class MovieListView(ListView):
             self.filter_type = 'country'
         elif 'language' in route_name:
             self.filter_type = 'language'
+        elif 'company' in route_name:
+            self.filter_type = 'company'
         else:
             self.filter_type = ''
 
@@ -379,4 +388,5 @@ class CompanyDetailView(DetailView, MultipleObjectMixin):
         movies = self.object.movies.all()
         context = super().get_context_data(object_list=movies, **kwargs)
         context['title'] = f'{self.object.name}'
+        context['total_results'] = movies.count
         return context

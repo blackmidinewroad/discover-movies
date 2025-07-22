@@ -228,18 +228,6 @@ footer {
 }
 
 
-/* List navigation layout */
-.list-nav {
-    display: flex;
-    flex-wrap: wrap;
-    flex-direction: column;
-    align-items: center;
-    margin-top: 1.5rem;
-    margin-bottom: 0.5rem;
-    gap: 0.5rem;
-    width: 100%;
-}
-
 .nav-controls {
     display: flex;
     flex-wrap: wrap;
@@ -248,7 +236,58 @@ footer {
     justify-content: center;
     width: 100%;
     box-sizing: border-box;
+    margin-left: 2rem;
 }
+
+.list-nav {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 1.5rem;
+    margin-bottom: 1rem;
+    gap: 0.5rem;
+}
+
+.logo-floating-left {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.company-logo {
+    max-height: 100px;
+    width: auto;
+    object-fit: contain;
+}
+
+@media (max-width: 992px) {
+    .list-nav {
+        padding-left: 0;
+    }
+
+    .logo-floating-left {
+        position: relative;
+        top: auto;
+        left: auto;
+        height: auto;
+        margin-bottom: 0.5rem;
+        justify-content: center;
+        width: 100%;
+    }
+
+    .company-logo {
+        max-height: 64px;
+    }
+}
+
 
 .total-results {
     color: #a3bff4;
