@@ -18,6 +18,10 @@
         {% elif list_type == 'languages' %}
             {% include 'moviedb/languages_list.html' %}
         {% elif list_type == 'collections' %}
+            <form method="get">
+                {{ form.query }}
+                <input type="submit" value="Search" class="btn btn-primary mb-3 btn-lg">
+            </form>
             {% include 'moviedb/collections_list.html' %}
         {% elif list_type == 'companies' %}
             {% include 'moviedb/companies_list.html' %}

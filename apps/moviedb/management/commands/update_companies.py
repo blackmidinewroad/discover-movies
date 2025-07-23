@@ -1,10 +1,12 @@
 import logging
 
 from django.core.management.base import BaseCommand
+from django.db.models import Count
 
 from apps.moviedb.integrations.tmdb.api import asyncTMDB
 from apps.moviedb.integrations.tmdb.id_exports import IDExport
 from apps.moviedb.models import Country, ProductionCompany
+from apps.services.utils import runtime
 
 logger = logging.getLogger('moviedb')
 
@@ -13,6 +15,13 @@ class Command(BaseCommand):
     help = 'Update production company table'
 
     def add_arguments(self, parser):
+        parser.add_argument(
+            'operation',
+            type=str,
+            choices=['daily_export', 'movie_count'],
+            help='Operation to perform: daily_export or movie_count',
+        )
+
         parser.add_argument(
             '--date',
             type=str,
@@ -35,8 +44,16 @@ class Command(BaseCommand):
             help='Add only specific companies, provide TMDB IDs.',
         )
 
-
+    @runtime
     def handle(self, *args, **options):
+        operation = options['operation']
+        match operation:
+            case 'daily_export':
+                self.daily_export(**options)
+            case 'movie_count':
+                self.update_movie_count()
+
+    def daily_export(self, **options):
         published_date = options['date']
         batch_size = options['batch_size']
         specific_ids = options['specific_ids']
@@ -83,3 +100,16 @@ class Command(BaseCommand):
             logger.info('Created countries: %s.', n_created_countries)
         if missing_ids:
             logger.warning("Couldn't update/create: %s (IDs: %s).", len(missing_ids), ', '.join(map(str, missing_ids)))
+
+    def update_movie_count(self):
+        companies = ProductionCompany.objects.annotate(cur_movie_count=Count('movies'))
+        to_update = []
+
+        for company in companies:
+            if company.movie_count != company.cur_movie_count:
+                company.movie_count = company.cur_movie_count
+                to_update.append(company)
+
+        logger.info('Companies to update: %s.', len(to_update))
+
+        ProductionCompany.objects.bulk_update(to_update, fields=['movie_count'])

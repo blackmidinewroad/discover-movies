@@ -1,10 +1,15 @@
+import logging
+
+from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector, TrigramSimilarity
 from django.db.models import Avg, BooleanField, Case, Count, F, Q, When
 from django.views.generic import DetailView, ListView
-from django.views.generic.list import MultipleObjectMixin
 
 from apps.services.utils import GenreIDs
 
+from .forms import SearchForm
 from .models import Collection, Country, Language, Movie, Person, ProductionCompany
+
+logger = logging.getLogger('moviedb')
 
 
 class MovieListView(ListView):
@@ -173,7 +178,7 @@ class MovieListView(ListView):
 
             context['slug'] = self.slug
 
-        context['total_results'] = self.object_list.count
+        context['total_results'] = context['paginator'].count
 
         return context
 
@@ -240,7 +245,7 @@ class PeopleListView(ListView):
         context['verbose_sort_by'] = self.VERBOSE_SORT_BY.get(context['sort_by'], 'Popularity ↓')
         context['sort_by_dict'] = self.VERBOSE_SORT_BY
 
-        context['total_results'] = self.object_list.count
+        context['total_results'] = context['paginator'].count
         return context
 
 
@@ -293,32 +298,62 @@ class LanguageListViews(ListView):
 
 
 class CollectionsListView(ListView):
-    # Order by average popularity of movies in the collection, if only one movie in collection was released
-    # put it in the end, put empty collections last
-    queryset = (
-        Collection.objects.filter(adult=False)
-        .exclude(movies=None)
-        .annotate(
-            avg_popularity=Avg('movies__tmdb_popularity'),
-            n_released=Count('movies__status', filter=Q(movies__status=6)),
-            relesed_more_than_one=Case(
-                When(n_released__gt=1, then=True),
-                default=False,
-                output_field=BooleanField(),
-            ),
-        )
-        .order_by(F('relesed_more_than_one').desc(), F('avg_popularity').desc(nulls_last=True))
-    )
-
     template_name = 'moviedb/other.html'
     context_object_name = 'collections'
+    form = SearchForm()
     paginate_by = 24
+
+    def get_queryset(self):
+        # Search
+        if 'query' in self.request.GET:
+            self.form = SearchForm(self.request.GET)
+
+            if self.form.is_valid():
+                vector = SearchVector('name')
+                query = self.form.cleaned_data['query']
+                search_query = SearchQuery(query)
+
+                # test search
+                queryset = (
+                    Collection.objects.annotate(
+                        similarity=TrigramSimilarity('name', query),
+                        search=vector,
+                    )
+                    .filter(search=search_query)
+                    .order_by('-similarity')
+                )
+
+                # queryset = Collection.objects.filter(name__search=query)
+                # queryset = Collection.objects.annotate(search=vector).filter(search=query)
+                # queryset = Collection.objects.annotate(rank=SearchRank(vector, query)).filter(rank__gt=0).order_by('-rank')
+
+                # self.template_name = 'moviedb/collections_list.html'
+        else:
+            # Order by average popularity of movies in the collection, if only one movie in collection was released
+            # put it in the end, put empty collections last
+            queryset = (
+                Collection.objects.filter(adult=False)
+                .exclude(movies=None)
+                .annotate(
+                    avg_popularity=Avg('movies__tmdb_popularity'),
+                    n_released=Count('movies__status', filter=Q(movies__status=6)),
+                    relesed_more_than_one=Case(
+                        When(n_released__gt=1, then=True),
+                        default=False,
+                        output_field=BooleanField(),
+                    ),
+                )
+                .order_by(F('relesed_more_than_one').desc(), F('avg_popularity').desc(nulls_last=True))
+            )
+
+        return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Collections'
         context['list_type'] = 'collections'
-        context['total_results'] = self.object_list.count
+        context['total_results'] = context['paginator'].count
+        context['form'] = self.form
         return context
 
 
@@ -338,7 +373,7 @@ class CollectionDetailView(DetailView):
 class CompanyListView(ListView):
     template_name = 'moviedb/other.html'
     context_object_name = 'companies'
-    paginate_by = 128
+    paginate_by = 90
 
     VERBOSE_SORT_BY = {
         '-movie_count': 'Number of movies ↓',
@@ -348,19 +383,19 @@ class CompanyListView(ListView):
     }
 
     def get_queryset(self):
-        queryset = ProductionCompany.objects.exclude(movies=None).annotate(movie_count=Count('movies'))
+        queryset = ProductionCompany.objects.all()
 
         self.sort_by = self.kwargs.get('sort_by', '-movie_count')
         sort_by_field = self.sort_by[1:] if self.sort_by.startswith('-') else self.sort_by
         match sort_by_field:
             case 'movie_count':
-                queryset = queryset.order_by(self.sort_by)
+                pass  # ordered by movie_count by default
             case 'name':
                 queryset = queryset.order_by(self.sort_by)
             case 'shuffle':
                 queryset = queryset.order_by('?')
-            case _:
-                queryset = queryset.order_by('-movie_count')
+
+        logger.info('%s', queryset.explain(analyze=True))
 
         return queryset
 
@@ -373,20 +408,6 @@ class CompanyListView(ListView):
         context['verbose_sort_by'] = self.VERBOSE_SORT_BY.get(self.sort_by, 'Number of movies ↓')
         context['sort_by_dict'] = self.VERBOSE_SORT_BY
 
-        context['total_results'] = self.object_list.count
+        context['total_results'] = context['paginator'].count
 
-        return context
-
-
-class CompanyDetailView(DetailView, MultipleObjectMixin):
-    model = ProductionCompany
-    template_name = 'moviedb/company_detail.html'
-    context_object_name = 'company'
-    paginate_by = 24
-
-    def get_context_data(self, **kwargs):
-        movies = self.object.movies.all()
-        context = super().get_context_data(object_list=movies, **kwargs)
-        context['title'] = f'{self.object.name}'
-        context['total_results'] = movies.count
         return context

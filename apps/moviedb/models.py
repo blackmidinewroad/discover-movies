@@ -1,3 +1,4 @@
+from django.contrib.postgres.indexes import GinIndex
 from django.db import models
 from django.urls import reverse
 from django.utils import timezone
@@ -8,7 +9,7 @@ from apps.services.utils import GenreIDs, unique_slugify
 class SlugMixin(models.Model):
     """Slug Mixin to create slug field, create slug on save and to set slug manually."""
 
-    slug = models.SlugField(max_length=60, unique=True, blank=True, db_index=True)
+    slug = models.SlugField(max_length=60, unique=True, blank=True)
 
     # By default use 'name' field to create slug
     slug_source_field = 'name'
@@ -36,7 +37,7 @@ class Country(SlugMixin):
     """Countries with ISO 3166-1 alpha-2 codes."""
 
     code = models.CharField(max_length=2, primary_key=True)
-    name = models.CharField(max_length=64, db_index=True)
+    name = models.CharField(max_length=64)
 
     class Meta:
         verbose_name = 'country'
@@ -54,7 +55,7 @@ class Language(SlugMixin):
     """Languages with ISO 639-1 codes."""
 
     code = models.CharField(max_length=2, primary_key=True)
-    name = models.CharField(max_length=32, db_index=True)
+    name = models.CharField(max_length=32)
 
     class Meta:
         verbose_name = 'language'
@@ -70,7 +71,7 @@ class Language(SlugMixin):
 
 class Genre(SlugMixin):
     tmdb_id = models.PositiveIntegerField(primary_key=True)
-    name = models.CharField(max_length=32, db_index=True)
+    name = models.CharField(max_length=32)
 
     class Meta:
         verbose_name = 'genre'
@@ -91,10 +92,12 @@ class ProductionCompany(SlugMixin):
     logo_path = models.CharField(max_length=64, blank=True, default='')
     origin_country = models.ForeignKey(Country, on_delete=models.SET_NULL, null=True, blank=True, related_name='production_companies')
 
+    movie_count = models.PositiveIntegerField(blank=True, default=0, db_index=True)
+
     class Meta:
         verbose_name = 'production company'
         verbose_name_plural = 'production companies'
-        ordering = ['name']
+        ordering = ['-movie_count']
 
     def __str__(self):
         return self.name
