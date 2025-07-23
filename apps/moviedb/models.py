@@ -168,6 +168,9 @@ class Person(SlugMixin):
 
     tmdb_popularity = models.FloatField(blank=True, default=0.0)
 
+    cast_roles_count = models.PositiveIntegerField(blank=True, default=0)
+    crew_roles_count = models.PositiveIntegerField(blank=True, default=0)
+
     # Actors in adult movies
     adult = models.BooleanField(blank=True, default=False)
 
@@ -178,7 +181,11 @@ class Person(SlugMixin):
         verbose_name = 'person'
         verbose_name_plural = 'people'
         ordering = ['-tmdb_popularity']
-        indexes = [models.Index(fields=['adult', '-tmdb_popularity'])]
+        indexes = [
+            models.Index(fields=['adult', '-tmdb_popularity']),
+            models.Index(fields=['adult', '-cast_roles_count']),
+            models.Index(fields=['adult', '-crew_roles_count']),
+        ]
 
     def __str__(self):
         return self.name
@@ -269,6 +276,10 @@ class Movie(SlugMixin):
         verbose_name = 'movie'
         verbose_name_plural = 'movies'
         ordering = ['-tmdb_popularity']
+        indexes = [
+            models.Index(fields=['-tmdb_popularity']),
+            models.Index(fields=['adult', '-tmdb_popularity']),
+        ]
 
     def __str__(self):
         return self.title

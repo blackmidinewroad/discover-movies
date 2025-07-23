@@ -236,7 +236,6 @@ footer {
     justify-content: center;
     width: 100%;
     box-sizing: border-box;
-    margin-left: 2rem;
 }
 
 .list-nav {
@@ -507,6 +506,7 @@ footer {
 
 .nav-top-row .company-dropdown {
     position: absolute;
+    margin-right: 1rem;
     right: 0;
 }
 

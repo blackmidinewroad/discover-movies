@@ -2,6 +2,7 @@ import logging
 from datetime import date
 
 from django.core.management.base import BaseCommand, CommandError
+from django.db.models import Count
 
 from apps.moviedb.integrations.tmdb.api import asyncTMDB
 from apps.moviedb.integrations.tmdb.id_exports import IDExport
@@ -20,8 +21,8 @@ class Command(BaseCommand):
         parser.add_argument(
             'operation',
             type=str,
-            choices=['update_changed', 'daily_export', 'specific_ids'],
-            help='Operation to perform: update_changed, daily_export or specific_ids',
+            choices=['update_changed', 'daily_export', 'specific_ids', 'roles_count'],
+            help='Operation to perform: update_changed, daily_export, specific_ids or roles_count',
         )
 
         parser.add_argument(
@@ -80,6 +81,12 @@ class Command(BaseCommand):
     @runtime
     def handle(self, *args, **options):
         operation = options['operation']
+        if operation == 'roles_count':
+            self.update_roles_count()
+        else:
+            self.full_update(**options)
+
+    def full_update(self, **options):
         ids = options['ids']
         published_date = options['date']
         days = options['days']
@@ -197,3 +204,24 @@ class Command(BaseCommand):
         logger.info('People processed: %s.', len(people))
         if missing_ids:
             logger.warning("Couldn't update/create: %s (IDs: %s).", len(missing_ids), ', '.join(map(str, missing_ids)))
+
+    def update_roles_count(self):
+        people = Person.objects.annotate(
+            n_cast_roles=Count('cast_roles__movie', distinct=True),
+            n_crew_roles=Count('crew_roles__movie', distinct=True),
+        ).only('cast_roles_count', 'crew_roles_count')
+        to_update = []
+
+        for person in people:
+            cast_changed = person.cast_roles_count != person.n_cast_roles
+            crew_changed = person.crew_roles_count != person.n_crew_roles
+            if cast_changed:
+                person.cast_roles_count = person.n_cast_roles
+            if crew_changed:
+                person.crew_roles_count = person.n_crew_roles
+            if cast_changed or crew_changed:
+                to_update.append(person)
+
+        logger.info('People to update: %s.', len(to_update))
+
+        Person.objects.bulk_update(to_update, fields=['cast_roles_count', 'crew_roles_count'])

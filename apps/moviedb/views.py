@@ -1,10 +1,10 @@
 import logging
 
 from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector, TrigramSimilarity
-from django.db.models import Count, Q
+from django.db.models import Count, Q, F
 from django.views.generic import DetailView, ListView
 
-from apps.services.utils import GenreIDs
+from apps.services.utils import GenreIDs, GENRE_DICT
 
 from .forms import SearchForm
 from .models import Collection, Country, Language, Movie, Person, ProductionCompany
@@ -36,26 +36,6 @@ class MovieListView(ListView):
         'tv_movie': 'TV Movie',
         'short': 'Short',
         'unreleased': 'Unreleased',
-    }
-
-    GENRE_DICT = {
-        'Action': GenreIDs.ACTION,
-        'Adventure': GenreIDs.ADVENTURE,
-        'Animation': GenreIDs.ANIMATION,
-        'Comedy': GenreIDs.COMEDY,
-        'Crime': GenreIDs.CRIME,
-        'Drama': GenreIDs.DRAMA,
-        'Family': GenreIDs.FAMILY,
-        'Fantasy': GenreIDs.FANTASY,
-        'History': GenreIDs.HISTORY,
-        'Horror': GenreIDs.HORROR,
-        'Music': GenreIDs.MUSIC,
-        'Mystery': GenreIDs.MYSTERY,
-        'Romance': GenreIDs.ROMANCE,
-        'Science Fiction': GenreIDs.SCIENCE_FICTION,
-        'Thriller': GenreIDs.THRILLER,
-        'War': GenreIDs.WAR,
-        'Western': GenreIDs.WESTERN,
     }
 
     def get_queryset(self):
@@ -108,7 +88,7 @@ class MovieListView(ListView):
         # Filter genres
         if 'genres' in self.request.session:
             if self.request.session['genres']:
-                genre_ids = [self.GENRE_DICT[genre] for genre in self.request.session['genres']]
+                genre_ids = [GENRE_DICT[genre] for genre in self.request.session['genres']]
                 queryset = (
                     queryset.filter(genres__tmdb_id__in=genre_ids)
                     .annotate(matching_genre_count=Count('genres', filter=Q(genres__tmdb_id__in=genre_ids), distinct=True))
@@ -133,6 +113,9 @@ class MovieListView(ListView):
                 queryset = queryset.order_by('?')
             case _:
                 queryset = queryset.order_by('-tmdb_popularity')
+
+        # logger.info('%s', queryset[:24].explain(analyze=True))
+        # logger.info('%s', queryset.query)
 
         return queryset
 
@@ -164,7 +147,7 @@ class MovieListView(ListView):
         context['include_dict'] = self.INCLUDE_DICT
         context['included'] = self.request.session.get('include', list(self.INCLUDE_DICT.keys()))
 
-        context['genres_list'] = list(self.GENRE_DICT.keys())
+        context['genres_list'] = list(GENRE_DICT.keys())
         context['checked_genres'] = self.request.session.get('genres', [])
 
         context['decade_route_name'] = f'movies_decade'
@@ -218,6 +201,9 @@ class PeopleListView(ListView):
     VERBOSE_SORT_BY = {
         '-tmdb_popularity': 'Popularity ↓',
         'tmdb_popularity': 'Popularity ↑',
+        '-cast_roles_count': 'Cast Roles ↓',
+        '-crew_roles_count': 'Crew Roles ↓',
+        '-combined_roles': 'Combined Roles ↓',
         'shuffle': 'Shuffle',
     }
 
@@ -227,14 +213,15 @@ class PeopleListView(ListView):
         sort_by = self.kwargs.get('sort_by', '-tmdb_popularity')
         sort_by_field = sort_by[1:] if sort_by.startswith('-') else sort_by
         match sort_by_field:
-            case 'tmdb_popularity':
-                queryset = queryset.order_by(sort_by)
+            case 'combined_roles':
+                queryset = queryset.annotate(combines_roles=F('cast_roles_count') + F('crew_roles_count')).order_by('-combines_roles')
             case 'shuffle':
                 queryset = queryset.order_by('?')
             case _:
-                queryset = queryset.order_by('-tmdb_popularity')
-
-        logger.info('%s', queryset.explain(analyze=True))
+                if sort_by in self.VERBOSE_SORT_BY:
+                    queryset = queryset.order_by(sort_by)
+                else:
+                    queryset = queryset.order_by('-tmdb_popularity')
 
         return queryset
 

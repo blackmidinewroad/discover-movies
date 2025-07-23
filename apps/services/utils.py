@@ -43,6 +43,27 @@ class GenreIDs:
     WESTERN = 37
 
 
+GENRE_DICT = {
+    'Action': GenreIDs.ACTION,
+    'Adventure': GenreIDs.ADVENTURE,
+    'Animation': GenreIDs.ANIMATION,
+    'Comedy': GenreIDs.COMEDY,
+    'Crime': GenreIDs.CRIME,
+    'Drama': GenreIDs.DRAMA,
+    'Family': GenreIDs.FAMILY,
+    'Fantasy': GenreIDs.FANTASY,
+    'History': GenreIDs.HISTORY,
+    'Horror': GenreIDs.HORROR,
+    'Music': GenreIDs.MUSIC,
+    'Mystery': GenreIDs.MYSTERY,
+    'Romance': GenreIDs.ROMANCE,
+    'Science Fiction': GenreIDs.SCIENCE_FICTION,
+    'Thriller': GenreIDs.THRILLER,
+    'War': GenreIDs.WAR,
+    'Western': GenreIDs.WESTERN,
+}
+
+
 def unique_slugify(instance, value: str, cur_bulk_slugs: set[str] = None) -> str:
     """Generate unique slug for a model.
 
