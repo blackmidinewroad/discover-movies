@@ -87,17 +87,18 @@ class Genre(SlugMixin):
 
 class ProductionCompany(SlugMixin):
     tmdb_id = models.PositiveIntegerField(primary_key=True)
-    name = models.CharField(max_length=256, db_index=True)
+    name = models.CharField(max_length=256)
 
     logo_path = models.CharField(max_length=64, blank=True, default='')
     origin_country = models.ForeignKey(Country, on_delete=models.SET_NULL, null=True, blank=True, related_name='production_companies')
 
-    movie_count = models.PositiveIntegerField(blank=True, default=0, db_index=True)
+    movie_count = models.PositiveIntegerField(blank=True, default=0)
 
     class Meta:
         verbose_name = 'production company'
         verbose_name_plural = 'production companies'
         ordering = ['-movie_count']
+        indexes = [models.Index(fields=['-movie_count'])]
 
     def __str__(self):
         return self.name
@@ -110,11 +111,16 @@ class Collection(SlugMixin):
     """Collection of movies model (e.g. Star Wars Collection, Indiana Jones Collection)."""
 
     tmdb_id = models.PositiveIntegerField(primary_key=True)
-    name = models.CharField(max_length=256, db_index=True)
+    name = models.CharField(max_length=256)
 
     overview = models.TextField(blank=True, default='')
     poster_path = models.CharField(max_length=64, blank=True, default='')
     backdrop_path = models.CharField(max_length=64, blank=True, default='')
+
+    # How many movies were released in collection
+    movies_released = models.PositiveIntegerField(blank=True, default=0)
+    # Average TMDB popularity of movies in collection
+    avg_popularity = models.FloatField(blank=True, default=0.0)
 
     # Collection contains adult movies
     adult = models.BooleanField(blank=True, default=False)
@@ -122,7 +128,8 @@ class Collection(SlugMixin):
     class Meta:
         verbose_name = 'collection'
         verbose_name_plural = 'collections'
-        ordering = ['name']
+        ordering = ['-avg_popularity']
+        indexes = [models.Index(fields=['adult', 'movies_released', '-avg_popularity'])]
 
     def __str__(self):
         return self.name
@@ -135,7 +142,7 @@ class Person(SlugMixin):
     """Any person involved in the making of movies (e.g. actors, directors, writers)."""
 
     tmdb_id = models.PositiveIntegerField(primary_key=True)
-    name = models.CharField(max_length=128, db_index=True)
+    name = models.CharField(max_length=128)
 
     imdb_id = models.CharField(max_length=16, blank=True, default='')
 
@@ -159,7 +166,7 @@ class Person(SlugMixin):
 
     profile_path = models.CharField(max_length=64, blank=True, default='')
 
-    tmdb_popularity = models.FloatField(blank=True, default=0.0, db_index=True)
+    tmdb_popularity = models.FloatField(blank=True, default=0.0)
 
     # Actors in adult movies
     adult = models.BooleanField(blank=True, default=False)
@@ -171,6 +178,7 @@ class Person(SlugMixin):
         verbose_name = 'person'
         verbose_name_plural = 'people'
         ordering = ['-tmdb_popularity']
+        indexes = [models.Index(fields=['adult', '-tmdb_popularity'])]
 
     def __str__(self):
         return self.name
@@ -186,18 +194,18 @@ class Person(SlugMixin):
 
 class Movie(SlugMixin):
     tmdb_id = models.PositiveIntegerField(primary_key=True)
-    title = models.CharField(max_length=512, db_index=True)
+    title = models.CharField(max_length=512)
 
     # Use title to create slug
     slug_source_field = 'title'
 
     imdb_id = models.CharField(max_length=16, blank=True, default='')
 
-    directors = models.ManyToManyField(Person, blank=True, verbose_name='Directed by', related_name='directed_movies', db_index=True)
+    directors = models.ManyToManyField(Person, blank=True, verbose_name='Directed by', related_name='directed_movies')
 
-    release_date = models.DateField(null=True, blank=True, db_index=True)
+    release_date = models.DateField(null=True, blank=True)
 
-    genres = models.ManyToManyField(Genre, blank=True, related_name='movies', db_index=True)
+    genres = models.ManyToManyField(Genre, blank=True, related_name='movies')
 
     # Is this a documentary
     documentary = models.BooleanField(blank=True, default=False)
@@ -284,16 +292,16 @@ class Movie(SlugMixin):
 class MovieEngagement(models.Model):
     """Movie engagement model with ratings and popularity scores from TMDB, IMDB, letterboxd and Kinopoisk."""
 
-    movie = models.OneToOneField(Movie, on_delete=models.CASCADE, related_name='engagement', db_index=True)
+    movie = models.OneToOneField(Movie, on_delete=models.CASCADE, related_name='engagement')
 
     tmdb_rating = models.FloatField(blank=True, default=0.0)
     tmdb_vote_count = models.PositiveIntegerField(blank=True, default=0)
     tmdb_popularity = models.FloatField(blank=True, default=0.0)
 
-    lb_rating = models.FloatField(null=True, blank=True, db_index=True)
+    lb_rating = models.FloatField(null=True, blank=True)
     lb_vote_count = models.PositiveIntegerField(null=True, blank=True)
     lb_fans = models.PositiveIntegerField(null=True, blank=True)
-    lb_watched = models.PositiveIntegerField(null=True, blank=True, db_index=True)
+    lb_watched = models.PositiveIntegerField(null=True, blank=True)
     lb_liked = models.PositiveIntegerField(null=True, blank=True)
 
     imdb_rating = models.FloatField(null=True, blank=True)
@@ -306,7 +314,6 @@ class MovieEngagement(models.Model):
     class Meta:
         verbose_name = 'engagement'
         verbose_name_plural = 'engagements'
-        ordering = ['-lb_rating']
 
     def __str__(self):
         return f'{self.movie} engagement'
@@ -315,8 +322,8 @@ class MovieEngagement(models.Model):
 class MovieCast(models.Model):
     """Cast of a movie - all actors."""
 
-    movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name='cast', db_index=True)
-    person = models.ForeignKey(Person, on_delete=models.CASCADE, related_name='cast_roles', db_index=True)
+    movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name='cast')
+    person = models.ForeignKey(Person, on_delete=models.CASCADE, related_name='cast_roles')
     character = models.CharField(max_length=512, blank=True, default='')
     order = models.PositiveIntegerField(default=0)
 
@@ -324,7 +331,6 @@ class MovieCast(models.Model):
         verbose_name = 'cast'
         verbose_name_plural = 'cast'
         unique_together = ('movie', 'person', 'character')
-        ordering = ['order']
 
     def __str__(self):
         return f'{self.person} as "{self.character}" in «{self.movie}»'
@@ -333,8 +339,8 @@ class MovieCast(models.Model):
 class MovieCrew(models.Model):
     """Crew of a movie (e.g. director, writer)."""
 
-    movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name='crew', db_index=True)
-    person = models.ForeignKey(Person, on_delete=models.CASCADE, related_name='crew_roles', db_index=True)
+    movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name='crew')
+    person = models.ForeignKey(Person, on_delete=models.CASCADE, related_name='crew_roles')
     department = models.CharField(max_length=32)
     job = models.CharField(max_length=64)
 
@@ -342,7 +348,6 @@ class MovieCrew(models.Model):
         verbose_name = 'crew'
         verbose_name_plural = 'crew'
         unique_together = ('movie', 'person', 'department', 'job')
-        indexes = [models.Index(fields=['department', 'job'])]
 
     def __str__(self):
         return f'{self.person} as "{self.job}" in «{self.movie}»'

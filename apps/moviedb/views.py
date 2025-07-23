@@ -1,7 +1,7 @@
 import logging
 
 from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector, TrigramSimilarity
-from django.db.models import Avg, BooleanField, Case, Count, F, Q, When
+from django.db.models import Count, Q
 from django.views.generic import DetailView, ListView
 
 from apps.services.utils import GenreIDs
@@ -234,6 +234,8 @@ class PeopleListView(ListView):
             case _:
                 queryset = queryset.order_by('-tmdb_popularity')
 
+        logger.info('%s', queryset.explain(analyze=True))
+
         return queryset
 
     def get_context_data(self, **kwargs):
@@ -329,22 +331,7 @@ class CollectionsListView(ListView):
 
                 # self.template_name = 'moviedb/collections_list.html'
         else:
-            # Order by average popularity of movies in the collection, if only one movie in collection was released
-            # put it in the end, put empty collections last
-            queryset = (
-                Collection.objects.filter(adult=False)
-                .exclude(movies=None)
-                .annotate(
-                    avg_popularity=Avg('movies__tmdb_popularity'),
-                    n_released=Count('movies__status', filter=Q(movies__status=6)),
-                    relesed_more_than_one=Case(
-                        When(n_released__gt=1, then=True),
-                        default=False,
-                        output_field=BooleanField(),
-                    ),
-                )
-                .order_by(F('relesed_more_than_one').desc(), F('avg_popularity').desc(nulls_last=True))
-            )
+            queryset = Collection.objects.filter(adult=False, movies_released__gt=1).order_by('-avg_popularity')
 
         return queryset
 
@@ -366,7 +353,7 @@ class CollectionDetailView(DetailView):
         context = super().get_context_data(**kwargs)
         context['title'] = f'{self.object.name}'
         context['movies'] = self.object.movies.all().order_by('release_date')
-        context['total_movies'] = context['movies'].count
+        context['total_movies'] = context['movies'].count()
         return context
 
 
@@ -377,8 +364,6 @@ class CompanyListView(ListView):
 
     VERBOSE_SORT_BY = {
         '-movie_count': 'Number of movies ↓',
-        '-name': 'Name (A-Z)',
-        'name': 'Name (Z-A)',
         'shuffle': 'Shuffle',
     }
 
@@ -389,13 +374,9 @@ class CompanyListView(ListView):
         sort_by_field = self.sort_by[1:] if self.sort_by.startswith('-') else self.sort_by
         match sort_by_field:
             case 'movie_count':
-                pass  # ordered by movie_count by default
-            case 'name':
                 queryset = queryset.order_by(self.sort_by)
             case 'shuffle':
                 queryset = queryset.order_by('?')
-
-        logger.info('%s', queryset.explain(analyze=True))
 
         return queryset
 

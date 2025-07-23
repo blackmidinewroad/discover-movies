@@ -5,7 +5,7 @@
             aria-expanded="false">{{ verbose_sort_by }}</button>
     <ul class="dropdown-menu">
         {% for field, verbose_field in sort_by_dict.items %}
-            {% if forloop.counter|divisibleby:2 and forloop.counter != 0 %}<div class="dropdown-divider"></div>{% endif %}
+            {% if forloop.counter != 0 %}<div class="dropdown-divider"></div>{% endif %}
             <li>
                 <a class="dropdown-item {% if forloop.counter == 1 %}first-item{% elif forloop.counter == sort_by_dict|length %}last-item{% endif %} {% if sort_by == field %}active{% endif %}"
                    href="{% url 'companies_sort' sort_by=field %}">{{ verbose_field }}</a>
