@@ -1,0 +1,21 @@
+<div class="dropdown department-dropdown">
+    <button class="toggle-btn dropdown-toggle"
+            type="button"
+            data-bs-toggle="dropdown"
+            aria-expanded="false">
+        {% if verbose_department == 'Any' %}
+            Department
+        {% else %}
+            {{ verbose_department }}
+        {% endif %}
+    </button>
+    <ul class="dropdown-menu">
+        {% for field, verbose_field in department_dict.items %}
+            {% if forloop.counter != 1 %}<div class="dropdown-divider"></div>{% endif %}
+            <li>
+                <a class="dropdown-item {% if forloop.counter == 1 %}first-item{% elif forloop.counter == department_dict|length %}last-item{% endif %} {% if department == field %}active{% endif %}"
+                   href="{% url 'people_department_sort' department=field sort_by=sort_by %}">{{ verbose_field }}</a>
+            </li>
+        {% endfor %}
+    </ul>
+</div>

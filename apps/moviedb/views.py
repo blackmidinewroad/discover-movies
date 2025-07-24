@@ -114,9 +114,6 @@ class MovieListView(ListView):
             case _:
                 queryset = queryset.order_by('-tmdb_popularity')
 
-        # logger.info('%s', queryset[:24].explain(analyze=True))
-        # logger.info('%s', queryset.query)
-
         return queryset
 
     def get_context_data(self, **kwargs):
@@ -207,8 +204,33 @@ class PeopleListView(ListView):
         'shuffle': 'Shuffle',
     }
 
+    VERBOSE_DEPARTMENT = {
+        'any': 'Any',
+        'acting': 'Acting',
+        'art': 'Art',
+        'camera': 'Camera',
+        'costume-make-up': 'Costume & Make-Up',
+        'directing': 'Directing',
+        'editing': 'Editing',
+        'lighting': 'Lighting',
+        'production': 'Production',
+        'sound': 'Sound',
+        'visual-effects': 'Visual Effects',
+        'writing': 'Writing',
+        'other': 'Other',
+    }
+
     def get_queryset(self):
         queryset = Person.objects.filter(adult=False)
+
+        department = self.kwargs.get('department', 'any')
+        if department != 'any' and department in self.VERBOSE_DEPARTMENT:
+            if department == 'acting':
+                queryset = queryset.filter(known_for_department__in=('Acting', 'Actors'))
+            elif department == 'other':
+                queryset = queryset.filter(known_for_department__in=('', 'Creator', 'Crew'))
+            else:
+                queryset = queryset.filter(known_for_department=self.VERBOSE_DEPARTMENT[department])
 
         sort_by = self.kwargs.get('sort_by', '-tmdb_popularity')
         sort_by_field = sort_by[1:] if sort_by.startswith('-') else sort_by
@@ -233,6 +255,10 @@ class PeopleListView(ListView):
         context['sort_by'] = self.kwargs.get('sort_by', '-tmdb_popularity')
         context['verbose_sort_by'] = self.VERBOSE_SORT_BY.get(context['sort_by'], 'Popularity ↓')
         context['sort_by_dict'] = self.VERBOSE_SORT_BY
+
+        context['department'] = self.kwargs.get('department', 'any')
+        context['verbose_department'] = self.VERBOSE_DEPARTMENT.get(context['department'], 'Any')
+        context['department_dict'] = self.VERBOSE_DEPARTMENT
 
         context['total_results'] = context['paginator'].count
         return context

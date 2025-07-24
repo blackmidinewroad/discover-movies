@@ -438,6 +438,11 @@ footer {
     min-width: 80px;
 }
 
+.department-dropdown .dropdown-toggle,
+.department-dropdown .dropdown-menu {
+    min-width: 170px;
+}
+
 /* Checkbox dropdown */
 .dropdown-check-list .dropdown-toggle {
     transition: 0.3s ease;

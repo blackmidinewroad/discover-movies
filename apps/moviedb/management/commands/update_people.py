@@ -87,6 +87,7 @@ class Command(BaseCommand):
             self.full_update(**options)
 
     def full_update(self, **options):
+        operation = options['operation']
         ids = options['ids']
         published_date = options['date']
         days = options['days']

@@ -185,6 +185,7 @@ class Person(SlugMixin):
             models.Index(fields=['adult', '-tmdb_popularity']),
             models.Index(fields=['adult', '-cast_roles_count']),
             models.Index(fields=['adult', '-crew_roles_count']),
+            models.Index(fields=['adult', 'known_for_department', '-tmdb_popularity']),
         ]
 
     def __str__(self):
@@ -279,6 +280,8 @@ class Movie(SlugMixin):
         indexes = [
             models.Index(fields=['-tmdb_popularity']),
             models.Index(fields=['adult', '-tmdb_popularity']),
+            models.Index(fields=['adult', '-release_date']),
+            models.Index(fields=['adult', '-tmdb_popularity', '-release_date']),
         ]
 
     def __str__(self):
