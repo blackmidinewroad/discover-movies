@@ -1,4 +1,5 @@
 from django.contrib.postgres.indexes import GinIndex
+from django.contrib.postgres.search import SearchVector
 from django.db import models
 from django.urls import reverse
 from django.utils import timezone
@@ -129,7 +130,9 @@ class Collection(SlugMixin):
         verbose_name = 'collection'
         verbose_name_plural = 'collections'
         ordering = ['-avg_popularity']
-        indexes = [models.Index(fields=['adult', 'movies_released', '-avg_popularity'])]
+        indexes = [
+            models.Index(fields=['adult', 'movies_released', '-avg_popularity']),
+        ]
 
     def __str__(self):
         return self.name

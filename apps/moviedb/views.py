@@ -1,10 +1,10 @@
 import logging
 
 from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector, TrigramSimilarity
-from django.db.models import Count, Q, F
+from django.db.models import Count, F, Q
 from django.views.generic import DetailView, ListView
 
-from apps.services.utils import GenreIDs, GENRE_DICT
+from apps.services.utils import GENRE_DICT, GenreIDs
 
 from .forms import SearchForm
 from .models import Collection, Country, Language, Movie, Person, ProductionCompany
@@ -160,6 +160,8 @@ class MovieListView(ListView):
 
         context['total_results'] = context['paginator'].count
 
+        context['base_query'] = self.base_query
+
         return context
 
     def get(self, request, *args, **kwargs):
@@ -181,11 +183,17 @@ class MovieListView(ListView):
 
         # HTMX request
         if request.headers.get('HX-Request'):
-            self.template_name = 'moviedb/partials/content_grid_movies.html'
+            self.template_name = 'moviedb/partials/content_grid.html'
             if 'include' in request.GET:
                 self.request.session['include'] = [i for i in request.GET.getlist('include') if i != '_empty']
             if 'genres' in request.GET:
                 self.request.session['genres'] = [g for g in request.GET.getlist('genres') if g != '_empty']
+
+        # Separate other queries from page for pagination
+        query_params = request.GET.copy()
+        if 'page' in query_params:
+            del query_params['page']
+        self.base_query = query_params.urlencode()
 
         return super().get(request, *args, **kwargs)
 
@@ -324,25 +332,19 @@ class CollectionsListView(ListView):
             self.form = SearchForm(self.request.GET)
 
             if self.form.is_valid():
-                vector = SearchVector('name')
+                vector = SearchVector('name', weight='A') + SearchVector('overview', weight='B')
                 query = self.form.cleaned_data['query']
                 search_query = SearchQuery(query)
 
-                # test search
                 queryset = (
                     Collection.objects.annotate(
                         similarity=TrigramSimilarity('name', query),
-                        search=vector,
+                        rank=SearchRank(vector, search_query),
                     )
-                    .filter(search=search_query)
+                    .filter(Q(similarity__gt=0.2) | Q(rank__gt=0.2))
                     .order_by('-similarity')
                 )
 
-                # queryset = Collection.objects.filter(name__search=query)
-                # queryset = Collection.objects.annotate(search=vector).filter(search=query)
-                # queryset = Collection.objects.annotate(rank=SearchRank(vector, query)).filter(rank__gt=0).order_by('-rank')
-
-                self.template_name = 'moviedb/partials/content_grid_collections.html'
         else:
             queryset = Collection.objects.filter(adult=False, movies_released__gt=1).order_by('-avg_popularity')
 
@@ -354,7 +356,17 @@ class CollectionsListView(ListView):
         context['list_type'] = 'collections'
         context['total_results'] = context['paginator'].count
         context['form'] = self.form
+        context['base_query'] = self.base_query
         return context
+
+    def get(self, request, *args, **kwargs):
+        # Separate other queries from page for pagination
+        query_params = request.GET.copy()
+        if 'page' in query_params:
+            del query_params['page']
+        self.base_query = query_params.urlencode()
+
+        return super().get(request, *args, **kwargs)
 
 
 class CollectionDetailView(DetailView):
@@ -373,6 +385,7 @@ class CollectionDetailView(DetailView):
 class CompanyListView(ListView):
     template_name = 'moviedb/other.html'
     context_object_name = 'companies'
+    form = SearchForm()
     paginate_by = 90
 
     VERBOSE_SORT_BY = {
@@ -381,15 +394,29 @@ class CompanyListView(ListView):
     }
 
     def get_queryset(self):
-        queryset = ProductionCompany.objects.all()
-
         self.sort_by = self.kwargs.get('sort_by', '-movie_count')
-        sort_by_field = self.sort_by[1:] if self.sort_by.startswith('-') else self.sort_by
-        match sort_by_field:
-            case 'movie_count':
-                queryset = queryset.order_by(self.sort_by)
-            case 'shuffle':
-                queryset = queryset.order_by('?')
+
+        # Search
+        if 'query' in self.request.GET:
+            self.form = SearchForm(self.request.GET)
+
+            if self.form.is_valid():
+                query = self.form.cleaned_data['query']
+
+                queryset = (
+                    ProductionCompany.objects.annotate(similarity=TrigramSimilarity('name', query))
+                    .filter(similarity__gt=0.2)
+                    .order_by('-similarity')
+                )
+        else:
+            queryset = ProductionCompany.objects.all()
+
+            sort_by_field = self.sort_by[1:] if self.sort_by.startswith('-') else self.sort_by
+            match sort_by_field:
+                case 'movie_count':
+                    queryset = queryset.order_by(self.sort_by)
+                case 'shuffle':
+                    queryset = queryset.order_by('?')
 
         return queryset
 
@@ -402,6 +429,19 @@ class CompanyListView(ListView):
         context['verbose_sort_by'] = self.VERBOSE_SORT_BY.get(self.sort_by, 'Number of movies ↓')
         context['sort_by_dict'] = self.VERBOSE_SORT_BY
 
+        context['form'] = self.form
+
         context['total_results'] = context['paginator'].count
 
+        context['base_query'] = self.base_query
+
         return context
+
+    def get(self, request, *args, **kwargs):
+        # Separate other queries from page for pagination
+        query_params = request.GET.copy()
+        if 'page' in query_params:
+            del query_params['page']
+        self.base_query = query_params.urlencode()
+
+        return super().get(request, *args, **kwargs)

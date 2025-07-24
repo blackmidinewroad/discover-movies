@@ -9,25 +9,24 @@
                     {% include 'moviedb/includes/sort_dropdown_companies.html' %}
                 {% endif %}
             </div>
+            {% if list_type == 'collections' or list_type == 'companies' %}
+                {% include 'moviedb/includes/search_form.html' with route_name=list_type %}
+            {% endif %}
             <span class="total-results" id="total-results">{{ total_results|intcomma }} {{ list_type }}</span>
         </div>
     </div>
     <div id="content-grid">
-        {% if list_type == 'countries' %}
-            {% include 'moviedb/countries_list.html' %}
-        {% elif list_type == 'languages' %}
-            {% include 'moviedb/languages_list.html' %}
-        {% elif list_type == 'collections' %}
-            <form hx-get="{% url 'collections' %}"
-                  hx-target="#content-grid"
-                  hx-swap="outerHTML">
-                {{ form.query }}
-                <input type="submit" value="Search">
-            </form>
-            {% include 'moviedb/collections_list.html' %}
-        {% elif list_type == 'companies' %}
-            {% include 'moviedb/companies_list.html' %}
+        {% if total_results %}
+            {% if list_type == 'countries' %}
+                {% include 'moviedb/countries_list.html' %}
+            {% elif list_type == 'languages' %}
+                {% include 'moviedb/languages_list.html' %}
+            {% elif list_type == 'collections' %}
+                {% include 'moviedb/collections_list.html' %}
+            {% elif list_type == 'companies' %}
+                {% include 'moviedb/companies_list.html' %}
+            {% endif %}
+            {% include 'moviedb/includes/pagination.html' %}
         {% endif %}
-        {% include 'moviedb/includes/pagination.html' %}
     </div>
 {% endblock %}

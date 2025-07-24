@@ -34,11 +34,13 @@
         {% endif %}
     </div>
     <div id="content-grid">
-        {% if list_type == 'movies' %}
-            {% include 'moviedb/movie_list.html' %}
-        {% else %}
-            {% include 'moviedb/people_list.html' %}
+        {% if total_results %}
+            {% if list_type == 'movies' %}
+                {% include 'moviedb/movie_list.html' %}
+            {% else %}
+                {% include 'moviedb/people_list.html' %}
+            {% endif %}
+            {% include 'moviedb/includes/pagination.html' %}
         {% endif %}
-        {% include 'moviedb/includes/pagination.html' %}
     </div>
 {% endblock %}
