@@ -4,9 +4,9 @@
     <div class="list-nav" id="other-buttons">
         <div class="nav-controls">
             <div class="nav-top-row">
-                {% include 'moviedb/partials/other_buttons.html' %}
+                {% include 'moviedb/includes/other_buttons.html' %}
                 {% if list_type == 'companies' %}
-                    {% include 'moviedb/partials/sort_dropdown_companies.html' %}
+                    {% include 'moviedb/includes/sort_dropdown_companies.html' %}
                 {% endif %}
             </div>
             <span class="total-results" id="total-results">{{ total_results|intcomma }} {{ list_type }}</span>
@@ -18,14 +18,16 @@
         {% elif list_type == 'languages' %}
             {% include 'moviedb/languages_list.html' %}
         {% elif list_type == 'collections' %}
-            <form method="get">
+            <form hx-get="{% url 'collections' %}"
+                  hx-target="#content-grid"
+                  hx-swap="outerHTML">
                 {{ form.query }}
-                <input type="submit" value="Search" class="btn btn-primary mb-3 btn-lg">
+                <input type="submit" value="Search">
             </form>
             {% include 'moviedb/collections_list.html' %}
         {% elif list_type == 'companies' %}
             {% include 'moviedb/companies_list.html' %}
         {% endif %}
-        {% include 'moviedb/partials/pagination.html' %}
+        {% include 'moviedb/includes/pagination.html' %}
     </div>
 {% endblock %}

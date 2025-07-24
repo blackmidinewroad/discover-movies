@@ -8,7 +8,7 @@
         hx-get="{{ request.path }}"
         hx-trigger="change"
         hx-target="#content-grid"
-        hx-swap="innerHTML"
+        hx-swap="outerHTML"
         hx-include="#genre-checkboxes">
         <input type="hidden" name="genres" value="_empty">
         {% for genre in genres_list %}

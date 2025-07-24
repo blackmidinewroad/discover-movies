@@ -181,7 +181,7 @@ class MovieListView(ListView):
 
         # HTMX request
         if request.headers.get('HX-Request'):
-            self.template_name = 'moviedb/partials/content_grid.html'
+            self.template_name = 'moviedb/partials/content_grid_movies.html'
             if 'include' in request.GET:
                 self.request.session['include'] = [i for i in request.GET.getlist('include') if i != '_empty']
             if 'genres' in request.GET:
@@ -342,7 +342,7 @@ class CollectionsListView(ListView):
                 # queryset = Collection.objects.annotate(search=vector).filter(search=query)
                 # queryset = Collection.objects.annotate(rank=SearchRank(vector, query)).filter(rank__gt=0).order_by('-rank')
 
-                # self.template_name = 'moviedb/collections_list.html'
+                self.template_name = 'moviedb/partials/content_grid_collections.html'
         else:
             queryset = Collection.objects.filter(adult=False, movies_released__gt=1).order_by('-avg_popularity')
 

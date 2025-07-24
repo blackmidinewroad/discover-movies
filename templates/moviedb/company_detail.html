@@ -1,9 +1,0 @@
-{% extends 'base.html' %}
-{% load static %}
-{% block content %}
-    
-    <h3 class="collection-title">{{ company.name }}</h3>
-    <h3 class="collection-title">{{ total_results }}</h3>
-    <div id="content-grid">{% include 'moviedb/movie_list.html' with movies=object_list %}</div>
-    {% include 'moviedb/partials/pagination.html' %}
-{% endblock %}

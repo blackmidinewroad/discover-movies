@@ -11,16 +11,16 @@
         {% endif %}
         <div class="nav-controls">
             {% if list_type == 'movies' %}
-                {% include 'moviedb/partials/genres_dropdown.html' %}
-                {% include 'moviedb/partials/decade_dropdown.html' %}
+                {% include 'moviedb/includes/genres_dropdown.html' %}
+                {% include 'moviedb/includes/decade_dropdown.html' %}
                 {% if decade != 'any' %}
-                    {% include 'moviedb/partials/year_dropdown.html' %}
+                    {% include 'moviedb/includes/year_dropdown.html' %}
                 {% endif %}
-                {% include 'moviedb/partials/include_dropdown.html' %}
-                {% include 'moviedb/partials/sort_dropdown_movies.html' %}
+                {% include 'moviedb/includes/include_dropdown.html' %}
+                {% include 'moviedb/includes/sort_dropdown_movies.html' %}
             {% else %}
-                {% include 'moviedb/partials/department_dropdown.html' %}
-                {% include 'moviedb/partials/sort_dropdown_people.html' %}
+                {% include 'moviedb/includes/department_dropdown.html' %}
+                {% include 'moviedb/includes/sort_dropdown_people.html' %}
             {% endif %}
         </div>
         {% if country %}
@@ -39,6 +39,6 @@
         {% else %}
             {% include 'moviedb/people_list.html' %}
         {% endif %}
-        {% include 'moviedb/partials/pagination.html' %}
+        {% include 'moviedb/includes/pagination.html' %}
     </div>
 {% endblock %}
