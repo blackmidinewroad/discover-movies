@@ -563,6 +563,11 @@ footer {
     min-width: 150px;
 }
 
+.filter-dropdown .dropdown-toggle,
+.filter-dropdown .dropdown-menu {
+    min-width: 180px;
+}
+
 .dropdown-check-list .dropdown-item input[type="checkbox"] {
     margin: 0 0.2rem;
     cursor: pointer;

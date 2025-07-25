@@ -2,6 +2,7 @@ import logging
 
 from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector, TrigramSimilarity
 from django.db.models import Count, F, Q
+from django.utils.http import urlencode
 from django.views.generic import DetailView, ListView
 
 from apps.services.utils import GENRE_DICT, GenreIDs
@@ -31,11 +32,15 @@ class MovieListView(ListView):
         'shuffle': 'Shuffle',
     }
 
-    INCLUDE_DICT = {
-        'documentary': 'Documentary',
-        'tv_movie': 'TV Movie',
-        'short': 'Short',
-        'unreleased': 'Unreleased',
+    FILTER_DICT = {
+        'show_documentary': 'Show Documentary',
+        'hide_documentary': 'Hide Documentary',
+        'show_tv_movie': 'Show TV Movie',
+        'hide_tv_movie': 'Hide TV Movie',
+        'show_short': 'Show Short',
+        'hide_short': 'Hide Short',
+        'show_unreleased': 'Show Unreleased',
+        'hide_unreleased': 'Hide Unreleased',
     }
 
     def get_queryset(self):
@@ -74,16 +79,24 @@ class MovieListView(ListView):
                 else:
                     self.decade = 'any'
 
-        # Filter includes
-        if 'include' in self.request.session:
-            if 'documentary' not in self.request.session['include']:
+        # Apply filters
+        if 'filter' in self.request.session:
+            if 'show_documentary' in self.request.session['filter']:
+                queryset = queryset.filter(genres__tmdb_id=GenreIDs.DOCUMENTARY)
+            if 'hide_documentary' in self.request.session['filter']:
                 queryset = queryset.exclude(genres__tmdb_id=GenreIDs.DOCUMENTARY)
-            if 'tv_movie' not in self.request.session['include']:
+            if 'show_tv_movie' in self.request.session['filter']:
+                queryset = queryset.filter(genres__tmdb_id=GenreIDs.TV_MOVIE)
+            if 'hide_tv_movie' in self.request.session['filter']:
                 queryset = queryset.exclude(genres__tmdb_id=GenreIDs.TV_MOVIE)
-            if 'short' not in self.request.session['include']:
+            if 'show_short' in self.request.session['filter']:
+                queryset = queryset.filter(short=True)
+            if 'hide_short' in self.request.session['filter']:
                 queryset = queryset.exclude(short=True)
-            if 'unreleased' not in self.request.session['include']:
-                queryset = queryset.filter(status=6)  # Only include released - status 6
+            if 'show_unreleased' in self.request.session['filter']:
+                queryset = queryset.exclude(status=6)
+            if 'hide_unreleased' in self.request.session['filter']:
+                queryset = queryset.filter(status=6)
 
         # Filter genres
         if 'genres' in self.request.session:
@@ -141,8 +154,8 @@ class MovieListView(ListView):
         # For createing decade dropdown
         context['decade_list'] = [f'{decade}s' for decade in range(2020, 1879, -10)]
 
-        context['include_dict'] = self.INCLUDE_DICT
-        context['included'] = self.request.session.get('include', list(self.INCLUDE_DICT.keys()))
+        context['filter_dict'] = self.FILTER_DICT
+        context['filtered'] = self.request.session.get('filter', [])
 
         context['genres_list'] = list(GENRE_DICT.keys())
         context['checked_genres'] = self.request.session.get('genres', [])
@@ -176,24 +189,25 @@ class MovieListView(ListView):
         else:
             self.filter_type = ''
 
-        # Clean session on root page reload
-        if route_name in ('main', 'movies'):
-            for key in ('include', 'genres'):
+        # Clear session
+        if request.get_full_path() in ('/', '/movies/'):
+            for key in ('filter', 'genres'):
                 request.session.pop(key, None)
 
         # HTMX request
         if request.headers.get('HX-Request'):
             self.template_name = 'moviedb/partials/content_grid.html'
-            if 'include' in request.GET:
-                self.request.session['include'] = [i for i in request.GET.getlist('include') if i != '_empty']
+            if 'filter' in request.GET:
+                self.request.session['filter'] = [i for i in request.GET.getlist('filter') if i != '_empty']
             if 'genres' in request.GET:
                 self.request.session['genres'] = [g for g in request.GET.getlist('genres') if g != '_empty']
 
-        # Separate other queries from page for pagination
+        # Get base query for pagination
         query_params = request.GET.copy()
-        if 'page' in query_params:
-            del query_params['page']
-        self.base_query = query_params.urlencode()
+        base_query = {}
+        if 'query' in query_params:
+            base_query['query'] = query_params['query']
+        self.base_query = urlencode(base_query)
 
         return super().get(request, *args, **kwargs)
 
@@ -306,6 +320,14 @@ class CountryListViews(ListView):
         context['total_results'] = self.object_list.count
         return context
 
+    def get(self, request, *args, **kwargs):
+        # Clear session
+        if request.get_full_path() == '/other/':
+            for key in ('filter', 'genres'):
+                request.session.pop(key, None)
+
+        return super().get(request, *args, **kwargs)
+
 
 class LanguageListViews(ListView):
     model = Language
@@ -360,11 +382,12 @@ class CollectionsListView(ListView):
         return context
 
     def get(self, request, *args, **kwargs):
-        # Separate other queries from page for pagination
+        # Get base query for pagination
         query_params = request.GET.copy()
-        if 'page' in query_params:
-            del query_params['page']
-        self.base_query = query_params.urlencode()
+        base_query = {}
+        if 'query' in query_params:
+            base_query['query'] = query_params['query']
+        self.base_query = urlencode(base_query)
 
         return super().get(request, *args, **kwargs)
 
@@ -438,10 +461,11 @@ class CompanyListView(ListView):
         return context
 
     def get(self, request, *args, **kwargs):
-        # Separate other queries from page for pagination
+        # Get base query for pagination
         query_params = request.GET.copy()
-        if 'page' in query_params:
-            del query_params['page']
-        self.base_query = query_params.urlencode()
+        base_query = {}
+        if 'query' in query_params:
+            base_query['query'] = query_params['query']
+        self.base_query = urlencode(base_query)
 
         return super().get(request, *args, **kwargs)

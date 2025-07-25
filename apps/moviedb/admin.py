@@ -1,5 +1,4 @@
 from django.contrib import admin
-from django.db.models import F
 
 from . import models
 
@@ -52,7 +51,7 @@ class PersonAdmin(admin.ModelAdmin):
 @admin.register(models.Movie)
 class MovieAdmin(admin.ModelAdmin):
     list_display = ('title', 'release_date')
-    search_fields = ('title', 'directors__name', 'tmdb_id')
+    search_fields = ('title', 'tmdb_id')
     prepopulated_fields = {'slug': ('title',)}
     autocomplete_fields = [
         'genres',
@@ -64,13 +63,7 @@ class MovieAdmin(admin.ModelAdmin):
         'collection',
         'directors',
     ]
-    # ordering = ['-status', F('release_date').desc(nulls_last=True)]
     ordering = ['-tmdb_popularity']
-
-    def get_directors(self, obj):
-        return ", ".join(d.name for d in obj.directors.all())
-
-    get_directors.short_description = 'Directed by'
 
 
 @admin.register(models.MovieEngagement)

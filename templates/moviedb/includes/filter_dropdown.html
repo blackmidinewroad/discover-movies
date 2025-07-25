@@ -1,0 +1,32 @@
+<div class="dropdown dropdown-check-list filter-dropdown">
+    <button class="dropdown-toggle"
+            type="button"
+            data-bs-toggle="dropdown"
+            aria-expanded="false">Filter</button>
+    <ul class="dropdown-menu"
+        id="filter-checkboxes"
+        hx-get="{{ request.path }}"
+        hx-trigger="change"
+        hx-target="#content-grid"
+        hx-swap="outerHTML"
+        hx-include="#filter-checkboxes">
+        <input type="hidden" name="filter" value="_empty">
+        {% for field, verbose in filter_dict.items %}
+            <li>
+                <label class="dropdown-item {% if forloop.counter == 1 %}first-item{% elif forloop.counter == filter_dict|length %}last-item{% endif %}">
+                    <input type="checkbox"
+                           {% if field in filtered %}checked{% endif %}
+                           name="filter"
+                           value="{{ field }}"
+                           id="{{ field }}"
+                           class="mutually-exclusive"
+                           data-group="{{ field|slice:'5:' }}">
+                    {{ verbose }}
+                </label>
+            </li>
+            {% if forloop.counter|divisibleby:2 and forloop.counter != filter_dict|length %}
+                <div class="dropdown-divider"></div>
+            {% endif %}
+        {% endfor %}
+    </ul>
+</div>

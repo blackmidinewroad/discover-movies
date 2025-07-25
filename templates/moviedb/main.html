@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 {% load humanize %}
 {% block content %}
     <div class="list-nav">
@@ -16,7 +17,7 @@
                 {% if decade != 'any' %}
                     {% include 'moviedb/includes/year_dropdown.html' %}
                 {% endif %}
-                {% include 'moviedb/includes/include_dropdown.html' %}
+                {% include 'moviedb/includes/filter_dropdown.html' %}
                 {% include 'moviedb/includes/sort_dropdown_movies.html' %}
             {% else %}
                 {% include 'moviedb/includes/department_dropdown.html' %}
@@ -43,4 +44,7 @@
             {% include 'moviedb/includes/pagination.html' %}
         {% endif %}
     </div>
+{% endblock %}
+{% block script %}
+    <script src="{% static 'js/mutually_exclusive.js' %}"></script>
 {% endblock %}

@@ -1,12 +1,6 @@
 {% load humanize %}
 <div id="content-grid">
-    {% if list_type == 'movie' %}
-        {% include 'moviedb/movie_list.html' %}
-    {% elif list_type == 'collections' %}
-        {% include 'moviedb/collections_list.html' %}
-    {% elif list_type == 'companies' %}
-        {% include 'moviedb/companies_list.html' %}
-    {% endif %}
+    {% include 'moviedb/movie_list.html' %}
     {% include 'moviedb/includes/pagination.html' %}
 </div>
 <span class="total-results" id="total-results" hx-swap-oob="true">{{ total_results|intcomma }} {{ list_type }}</span>
