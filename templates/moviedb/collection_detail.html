@@ -11,12 +11,12 @@
             </div>
         </div>
     {% endif %}
-    <div class="collection container">
-        <div class="row collection-header">
+    <div class="detail collection container">
+        <div class="row detail-header collection-header">
             <div class="col-12 col-md-4 col-lg-3">
                 {% if collection.poster_path %}
                     <img src="https://image.tmdb.org/t/p/w500{{ collection.poster_path }}"
-                         class="collection-poster rounded"
+                         class="detail-poster collection-poster rounded"
                          alt="{{ collection.name }}">
                 {% else %}
                     <div class="poster-container">
@@ -26,9 +26,9 @@
                     </div>
                 {% endif %}
             </div>
-            <div class="col-12 col-md-8 col-lg-9 collection-info">
-                <h3 class="collection-title">{{ collection.name }}</h3>
-                {% if collection.overview %}<p class="collection-overview">{{ collection.overview }}</p>{% endif %}
+            <div class="col-12 col-md-8 col-lg-9 detail-info collection-info">
+                <h3 class="detail-title collection-title">{{ collection.name }}</h3>
+                {% if collection.overview %}<p class="detail-overview collection-overview">{{ collection.overview }}</p>{% endif %}
                 <span class="total-results" id="total-results">
                     {% if total_movies %}
                         {{ total_movies }} movie{{ total_movies|pluralize }}
@@ -39,6 +39,5 @@
             </div>
         </div>
         <div id="content-grid" class="movie-list">{% include 'moviedb/movie_list.html' %}</div>
-        {% include 'moviedb/includes/pagination.html' %}
     </div>
 {% endblock %}

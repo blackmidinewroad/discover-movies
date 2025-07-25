@@ -1,0 +1,6 @@
+<form class="search-form"
+      method="get"
+      action="{% if country or language or company %}{% url year_route_name slug=slug sort_by=sort_by decade=decade year=year %}{% else %}{% url 'movies' %}{% endif %}">
+    {{ form.query }}
+    <input type="submit" value="Search">
+</form>

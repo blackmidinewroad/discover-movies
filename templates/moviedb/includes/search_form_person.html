@@ -1,0 +1,6 @@
+<form class="search-form"
+      method="get"
+      action="{% if department == 'any' %}{% url 'people' %}{% else %}{% url 'people_department_sort' department=department sort_by=sort_by %}{% endif %}">
+    {{ form.query }}
+    <input type="submit" value="Search">
+</form>

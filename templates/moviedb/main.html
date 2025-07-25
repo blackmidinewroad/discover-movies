@@ -11,28 +11,35 @@
             </div>
         {% endif %}
         <div class="nav-controls">
-            {% if list_type == 'movies' %}
-                {% include 'moviedb/includes/genres_dropdown.html' %}
-                {% include 'moviedb/includes/decade_dropdown.html' %}
-                {% if decade != 'any' %}
-                    {% include 'moviedb/includes/year_dropdown.html' %}
+            <div class="nav-top-row">
+                {% if list_type == 'movies' %}
+                    {% include 'moviedb/includes/genres_dropdown.html' %}
+                    {% include 'moviedb/includes/decade_dropdown.html' %}
+                    {% if decade != 'any' %}
+                        {% include 'moviedb/includes/year_dropdown.html' %}
+                    {% endif %}
+                    {% include 'moviedb/includes/filter_dropdown.html' %}
+                    {% include 'moviedb/includes/sort_dropdown_movies.html' %}
+                {% else %}
+                    {% include 'moviedb/includes/department_dropdown.html' %}
+                    {% include 'moviedb/includes/sort_dropdown_people.html' %}
                 {% endif %}
-                {% include 'moviedb/includes/filter_dropdown.html' %}
-                {% include 'moviedb/includes/sort_dropdown_movies.html' %}
+            </div>
+            {% if list_type == 'movies' %}
+                {% include 'moviedb/includes/search_form_movie.html' %}
             {% else %}
-                {% include 'moviedb/includes/department_dropdown.html' %}
-                {% include 'moviedb/includes/sort_dropdown_people.html' %}
+                {% include 'moviedb/includes/search_form_person.html' %}
+            {% endif %}
+            {% if country %}
+                <span class="total-results" id="total-results">Country: {{ country }} - {{ total_results|intcomma }} {{ list_type }}</span>
+            {% elif language %}
+                <span class="total-results" id="total-results">Language: {{ language }} - {{ total_results|intcomma }} {{ list_type }}</span>
+            {% elif company %}
+                <span class="total-results" id="total-results">{{ company }} - {{ total_results|intcomma }} {{ list_type }}</span>
+            {% else %}
+                <span class="total-results" id="total-results">{{ total_results|intcomma }} {{ list_type }}</span>
             {% endif %}
         </div>
-        {% if country %}
-            <span class="total-results" id="total-results">Country: {{ country }} - {{ total_results|intcomma }} {{ list_type }}</span>
-        {% elif language %}
-            <span class="total-results" id="total-results">Language: {{ language }} - {{ total_results|intcomma }} {{ list_type }}</span>
-        {% elif company %}
-            <span class="total-results" id="total-results">{{ company }} - {{ total_results|intcomma }} {{ list_type }}</span>
-        {% else %}
-            <span class="total-results" id="total-results">{{ total_results|intcomma }} {{ list_type }}</span>
-        {% endif %}
     </div>
     <div id="content-grid">
         {% if total_results %}

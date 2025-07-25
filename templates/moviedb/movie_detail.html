@@ -1,23 +1,42 @@
 {% extends 'base.html' %}
 {% load static %}
 {% block content %}
-    <div class="container my-4">
-        <h1>
-            {{ movie.title }}
-            {% if movie.release_date %}- {{ movie.release_date.year }}{% endif %}
-        </h1>
-        {% with movie.directors.all as directors %}
-            {% if directors %}<h5>Directed by {{ directors|join:", " }}</h5>{% endif %}
-        {% endwith %}
-        {% if movie.poster_path %}
-            <img src="https://image.tmdb.org/t/p/w342{{ movie.poster_path }}"
-                 class="rounded"
-                 alt="{{ movie.title }}">
-        {% endif %}
-        {% if movie.tagline %}<h5>{{ movie.tagline }}</h5>{% endif %}
-        {% if movie.overview %}<p>{{ movie.overview }}</p>{% endif %}
-        {% if movie.runtime %}<p>Runtime: {{ movie.runtime }} min.</p>{% endif %}
-        {% if movie.budget %}<p>Budget: {{ movie.budget }}$</p>{% endif %}
-        {% if movie.revenue %}<p>Revenue: {{ movie.runtime }}$</p>{% endif %}
+    {% if movie.backdrop_path %}
+        <div class="backdrop-wrapper">
+            <div class="backdrop-container">
+                <img src="https://image.tmdb.org/t/p/w1280{{ movie.backdrop_path }}"
+                     class="backdrop-image"
+                     alt="{{ movie.title }} backdrop">
+                <div class="backdrop-overlay"></div>
+            </div>
+        </div>
+    {% endif %}
+    <div class="detail movie container">
+        <div class="row detail-header movie-header">
+            <div class="col-12 col-md-4 col-lg-3">
+                {% if movie.poster_path %}
+                    <img src="https://image.tmdb.org/t/p/w500{{ movie.poster_path }}"
+                         class="detail-poster movie-poster rounded"
+                         alt="{{ movie.title }}">
+                {% else %}
+                    <div class="poster-container">
+                        <div class="missing-poster rounded">
+                            <span>No Poster Available</span>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="col-12 col-md-8 col-lg-9 detail-info movie-info">
+                <h3 class="detail-title movie-title">
+                    {{ movie.title }}
+                    {% if movie.release_date %}
+                        <a class="movie-year"
+                           href="{% url 'movies_year' sort_by='-tmdb_popularity' decade='any' year=movie.release_date.year %}">{{ movie.release_date.year }}</a>
+                    {% endif %}
+                </h3>
+                {% if movie.tagline %}<p class="movie-tagline">{{ movie.tagline }}</p>{% endif %}
+                {% if movie.overview %}<p class="detail-overview movie-overview">{{ movie.overview }}</p>{% endif %}
+            </div>
+        </div>
     </div>
 {% endblock %}

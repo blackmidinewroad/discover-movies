@@ -16,6 +16,7 @@ logger = logging.getLogger('moviedb')
 class MovieListView(ListView):
     template_name = 'moviedb/main.html'
     context_object_name = 'movies'
+    form = SearchForm()
     paginate_by = 24
 
     VERBOSE_SORT_BY = {
@@ -44,7 +45,7 @@ class MovieListView(ListView):
     }
 
     def get_queryset(self):
-        queryset = Movie.objects.filter(adult=False)
+        queryset = Movie.objects.all()
 
         # Filter by country/language/production company
         if self.filter_type:
@@ -61,71 +62,93 @@ class MovieListView(ListView):
                     queryset = queryset.filter(production_companies__slug=self.slug)
                     self.filter_obj = ProductionCompany.objects.get(slug=self.slug)
 
-        # Filter by year/decade
         self.year = self.kwargs.get('year', 0)
-        if 1880 <= self.year <= 2030:
-            queryset = queryset.filter(release_date__year=self.year)
-            self.decade = f'{self.year // 10}0s'
-        else:
-            self.decade = self.kwargs.get('decade', 'any')
-            if self.decade != 'any':
-                try:
-                    decade_int = int(self.decade[:-1])
-                except ValueError:
-                    decade_int = 0
-
-                if 1880 <= decade_int <= 2020 and decade_int % 10 == 0:
-                    queryset = queryset.filter(release_date__year__in=(year for year in range(decade_int, decade_int + 10)))
-                else:
-                    self.decade = 'any'
-
-        # Apply filters
-        if 'filter' in self.request.session:
-            if 'show_documentary' in self.request.session['filter']:
-                queryset = queryset.filter(genres__tmdb_id=GenreIDs.DOCUMENTARY)
-            if 'hide_documentary' in self.request.session['filter']:
-                queryset = queryset.exclude(genres__tmdb_id=GenreIDs.DOCUMENTARY)
-            if 'show_tv_movie' in self.request.session['filter']:
-                queryset = queryset.filter(genres__tmdb_id=GenreIDs.TV_MOVIE)
-            if 'hide_tv_movie' in self.request.session['filter']:
-                queryset = queryset.exclude(genres__tmdb_id=GenreIDs.TV_MOVIE)
-            if 'show_short' in self.request.session['filter']:
-                queryset = queryset.filter(short=True)
-            if 'hide_short' in self.request.session['filter']:
-                queryset = queryset.exclude(short=True)
-            if 'show_unreleased' in self.request.session['filter']:
-                queryset = queryset.exclude(status=6)
-            if 'hide_unreleased' in self.request.session['filter']:
-                queryset = queryset.filter(status=6)
-
-        # Filter genres
-        if 'genres' in self.request.session:
-            if self.request.session['genres']:
-                genre_ids = [GENRE_DICT[genre] for genre in self.request.session['genres']]
-                queryset = (
-                    queryset.filter(genres__tmdb_id__in=genre_ids)
-                    .annotate(matching_genre_count=Count('genres', filter=Q(genres__tmdb_id__in=genre_ids), distinct=True))
-                    .filter(matching_genre_count=len(genre_ids))
-                )
-
-        # Sort
+        self.decade = 'any'
         self.sort_by = self.kwargs.get('sort_by', '-tmdb_popularity')
-        sort_by_field = self.sort_by[1:] if self.sort_by.startswith('-') else self.sort_by
-        match sort_by_field:
-            case 'tmdb_popularity':
-                queryset = queryset.order_by(self.sort_by)
-            case 'release_date':
-                queryset = queryset.exclude(release_date=None).order_by(self.sort_by)
-            case 'budget':
-                queryset = queryset.exclude(budget=0).order_by(self.sort_by)
-            case 'revenue':
-                queryset = queryset.exclude(revenue=0).order_by(self.sort_by)
-            case 'runtime':
-                queryset = queryset.exclude(runtime=0).order_by(self.sort_by)
-            case 'shuffle':
-                queryset = queryset.order_by('?')
-            case _:
-                queryset = queryset.order_by('-tmdb_popularity')
+
+        # Search
+        if 'query' in self.request.GET and self.request.GET.get('query'):
+            self.form = SearchForm(self.request.GET)
+            if self.form.is_valid():
+                vector = SearchVector('title', weight='A') + SearchVector('original_title', weight='B')
+                query = self.form.cleaned_data['query']
+                search_query = SearchQuery(query)
+
+                queryset = (
+                    queryset.annotate(
+                        similarity=TrigramSimilarity('title', query),
+                        similarity_orig=TrigramSimilarity('original_title', query),
+                        rank=SearchRank(vector, search_query),
+                    )
+                    .filter(Q(similarity__gt=0.2) | Q(similarity_orig__gt=0.2) | Q(rank__gt=0.2))
+                    .order_by('-rank')
+                )
+        else:
+            queryset = queryset.filter(adult=False)
+
+            # Filter by year/decade
+            if 1880 <= self.year <= 2030:
+                queryset = queryset.filter(release_date__year=self.year)
+                self.decade = f'{self.year // 10}0s'
+            else:
+                self.decade = self.kwargs.get('decade', 'any')
+                if self.decade != 'any':
+                    try:
+                        decade_int = int(self.decade[:-1])
+                    except ValueError:
+                        decade_int = 0
+
+                    if 1880 <= decade_int <= 2020 and decade_int % 10 == 0:
+                        queryset = queryset.filter(release_date__year__in=(year for year in range(decade_int, decade_int + 10)))
+                    else:
+                        self.decade = 'any'
+
+            # Apply filters
+            if 'filter' in self.request.session:
+                if 'show_documentary' in self.request.session['filter']:
+                    queryset = queryset.filter(genres__tmdb_id=GenreIDs.DOCUMENTARY)
+                if 'hide_documentary' in self.request.session['filter']:
+                    queryset = queryset.exclude(genres__tmdb_id=GenreIDs.DOCUMENTARY)
+                if 'show_tv_movie' in self.request.session['filter']:
+                    queryset = queryset.filter(genres__tmdb_id=GenreIDs.TV_MOVIE)
+                if 'hide_tv_movie' in self.request.session['filter']:
+                    queryset = queryset.exclude(genres__tmdb_id=GenreIDs.TV_MOVIE)
+                if 'show_short' in self.request.session['filter']:
+                    queryset = queryset.filter(short=True)
+                if 'hide_short' in self.request.session['filter']:
+                    queryset = queryset.exclude(short=True)
+                if 'show_unreleased' in self.request.session['filter']:
+                    queryset = queryset.exclude(status=6)
+                if 'hide_unreleased' in self.request.session['filter']:
+                    queryset = queryset.filter(status=6)
+
+            # Filter genres
+            if 'genres' in self.request.session:
+                if self.request.session['genres']:
+                    genre_ids = [GENRE_DICT[genre] for genre in self.request.session['genres']]
+                    queryset = (
+                        queryset.filter(genres__tmdb_id__in=genre_ids)
+                        .annotate(matching_genre_count=Count('genres', filter=Q(genres__tmdb_id__in=genre_ids), distinct=True))
+                        .filter(matching_genre_count=len(genre_ids))
+                    )
+
+            # Sort
+            sort_by_field = self.sort_by[1:] if self.sort_by.startswith('-') else self.sort_by
+            match sort_by_field:
+                case 'tmdb_popularity':
+                    queryset = queryset.order_by(self.sort_by)
+                case 'release_date':
+                    queryset = queryset.exclude(release_date=None).order_by(self.sort_by)
+                case 'budget':
+                    queryset = queryset.exclude(budget=0).order_by(self.sort_by)
+                case 'revenue':
+                    queryset = queryset.exclude(revenue=0).order_by(self.sort_by)
+                case 'runtime':
+                    queryset = queryset.exclude(runtime=0).order_by(self.sort_by)
+                case 'shuffle':
+                    queryset = queryset.order_by('?')
+                case _:
+                    queryset = queryset.order_by('-tmdb_popularity')
 
         return queryset
 
@@ -173,6 +196,8 @@ class MovieListView(ListView):
 
         context['total_results'] = context['paginator'].count
 
+        context['form'] = self.form
+
         context['base_query'] = self.base_query
 
         return context
@@ -215,6 +240,7 @@ class MovieListView(ListView):
 class PeopleListView(ListView):
     template_name = 'moviedb/main.html'
     context_object_name = 'people'
+    form = SearchForm()
     paginate_by = 24
 
     VERBOSE_SORT_BY = {
@@ -243,7 +269,7 @@ class PeopleListView(ListView):
     }
 
     def get_queryset(self):
-        queryset = Person.objects.filter(adult=False)
+        queryset = Person.objects.all()
 
         department = self.kwargs.get('department', 'any')
         if department != 'any' and department in self.VERBOSE_DEPARTMENT:
@@ -254,18 +280,27 @@ class PeopleListView(ListView):
             else:
                 queryset = queryset.filter(known_for_department=self.VERBOSE_DEPARTMENT[department])
 
-        sort_by = self.kwargs.get('sort_by', '-tmdb_popularity')
-        sort_by_field = sort_by[1:] if sort_by.startswith('-') else sort_by
-        match sort_by_field:
-            case 'combined_roles':
-                queryset = queryset.annotate(combines_roles=F('cast_roles_count') + F('crew_roles_count')).order_by('-combines_roles')
-            case 'shuffle':
-                queryset = queryset.order_by('?')
-            case _:
-                if sort_by in self.VERBOSE_SORT_BY:
-                    queryset = queryset.order_by(sort_by)
-                else:
-                    queryset = queryset.order_by('-tmdb_popularity')
+        # Search
+        if 'query' in self.request.GET and self.request.GET.get('query'):
+            self.form = SearchForm(self.request.GET)
+            if self.form.is_valid():
+                query = self.form.cleaned_data['query']
+
+                queryset = queryset.annotate(similarity=TrigramSimilarity('name', query)).filter(similarity__gt=0.3).order_by('-similarity')
+        else:
+            queryset = queryset.filter(adult=False)
+            sort_by = self.kwargs.get('sort_by', '-tmdb_popularity')
+            sort_by_field = sort_by[1:] if sort_by.startswith('-') else sort_by
+            match sort_by_field:
+                case 'combined_roles':
+                    queryset = queryset.annotate(combines_roles=F('cast_roles_count') + F('crew_roles_count')).order_by('-combines_roles')
+                case 'shuffle':
+                    queryset = queryset.order_by('?')
+                case _:
+                    if sort_by in self.VERBOSE_SORT_BY:
+                        queryset = queryset.order_by(sort_by)
+                    else:
+                        queryset = queryset.order_by('-tmdb_popularity')
 
         return queryset
 
@@ -283,7 +318,22 @@ class PeopleListView(ListView):
         context['department_dict'] = self.VERBOSE_DEPARTMENT
 
         context['total_results'] = context['paginator'].count
+
+        context['form'] = self.form
+
+        context['base_query'] = self.base_query
+
         return context
+
+    def get(self, request, *args, **kwargs):
+        # Get base query for pagination
+        query_params = request.GET.copy()
+        base_query = {}
+        if 'query' in query_params:
+            base_query['query'] = query_params['query']
+        self.base_query = urlencode(base_query)
+
+        return super().get(request, *args, **kwargs)
 
 
 class MovieDetailView(DetailView):
@@ -350,9 +400,8 @@ class CollectionsListView(ListView):
 
     def get_queryset(self):
         # Search
-        if 'query' in self.request.GET:
+        if 'query' in self.request.GET and self.request.GET.get('query'):
             self.form = SearchForm(self.request.GET)
-
             if self.form.is_valid():
                 vector = SearchVector('name', weight='A') + SearchVector('overview', weight='B')
                 query = self.form.cleaned_data['query']
@@ -364,7 +413,7 @@ class CollectionsListView(ListView):
                         rank=SearchRank(vector, search_query),
                     )
                     .filter(Q(similarity__gt=0.2) | Q(rank__gt=0.2))
-                    .order_by('-similarity')
+                    .order_by('-rank')
                 )
 
         else:
@@ -420,9 +469,8 @@ class CompanyListView(ListView):
         self.sort_by = self.kwargs.get('sort_by', '-movie_count')
 
         # Search
-        if 'query' in self.request.GET:
+        if 'query' in self.request.GET and self.request.GET.get('query'):
             self.form = SearchForm(self.request.GET)
-
             if self.form.is_valid():
                 query = self.form.cleaned_data['query']
 

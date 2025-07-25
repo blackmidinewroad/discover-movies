@@ -735,22 +735,22 @@ footer {
     }
 }
 
-.collection {
+/* Collection detail */
+.detail {
     position: relative;
     z-index: 3;
     margin-top: 0;
     margin-bottom: 2rem;
 }
 
-.collection-header {
+.detail-header {
     margin-top: 2.5rem;
     margin-bottom: 2rem;
     margin-left: 0;
     margin-right: 0;
 }
 
-
-.collection-poster {
+.detail-poster {
     width: 100%;
     max-width: 342px;
     aspect-ratio: 2 / 3;
@@ -758,7 +758,7 @@ footer {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
-.poster-container {
+.detail-header .poster-container {
     position: relative;
     width: 100%;
     padding-top: 150%;
@@ -768,32 +768,32 @@ footer {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
-.collection-header .poster-container:hover {
+.detail-header .poster-container:hover {
     transform: none;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
-.collection-info {
+.detail-info {
     position: relative;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
 }
 
-.collection-title {
+.detail-title {
     font-size: 2rem;
     font-weight: bold;
     margin-bottom: 1rem;
 }
 
-.collection-overview {
+.detail-overview {
     color: #bacff7;
     font-size: 1.1rem;
     line-height: 1.6;
     margin-bottom: 1rem;
 }
 
-.collection-info .total-results {
+.detail-info .total-results {
     font-size: 1.1rem;
     position: static;
     bottom: 0;
@@ -808,17 +808,17 @@ footer {
 }
 
 @media (max-width: 768px) {
-    .collection-header {
+    .detail-header {
         text-align: center;
         margin-bottom: 1rem;
     }
 
-    .collection-info {
+    .detail-info {
         align-items: center;
         margin-top: 1rem;
     }
 
-    .collection-info .total-results {
+    .detail-info .total-results {
         text-align: center;
         width: 100%;
     }
@@ -893,4 +893,31 @@ footer {
     .search-form input[type="text"] {
         width: 100%;
     }
+}
+
+
+/* Movie detail */
+.movie-year {
+    color: #c6d6f4;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+    margin-left: 0.5rem;
+    font-size: 1.5rem;
+    font-weight: normal;
+    transition: all 0.3s ease;
+    position: relative;
+    top: -1px;
+}
+
+.movie-year:hover {
+    color: #7594ce;
+}
+
+.movie-tagline {
+    color: #cadaf7;
+    font-size: 1rem;
+    line-height: 1.6;
+    margin-bottom: 1rem;
+    text-transform: uppercase;
 }
