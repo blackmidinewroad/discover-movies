@@ -30,13 +30,49 @@
                 <h3 class="detail-title movie-title">
                     {{ movie.title }}
                     {% if movie.release_date %}
-                        <a class="movie-year"
+                        <a class="dtail-link year-link"
                            href="{% url 'movies_year' sort_by='-tmdb_popularity' decade='any' year=movie.release_date.year %}">{{ movie.release_date.year }}</a>
                     {% endif %}
+                    {% if directors %}
+                        <span class="directed-by-wrapper">
+                            <span class="directed-by">Directed by</span>
+                            <span class="director-wrapper">
+                                <a class="dtail-link director-link"
+                                   href="{{ directors.0.get_absolute_url }}">{{ directors.0.name }}</a>
+                                {% if directors|length > 1 %}<span class="director-comma">,</span>{% endif %}
+                            </span>
+                        </span>
+                        {% if directors|length > 1 %}
+                            <span class="director-wrapper">
+                                {% spaceless %}
+                                    <a class="dtail-link director-link"
+                                       href="{{ directors.1.get_absolute_url }}">{{ directors.1.name }}</a>
+                                    {% if directors|length > 2 %}
+                                        <button class="toggle-directors-btn show-more" onclick="toggleDirectors()">Show More</button>
+                                    {% endif %}
+                                {% endspaceless %}
+                            </span>
+                        {% endif %}
+                        {% if directors|length > 2 %}
+                            <span class="directors-list" style="display: none;">
+                                {% for director in directors|slice:"2:" %}
+                                    <span class="director-wrapper">
+                                        <a class="dtail-link director-link"
+                                           href="{{ director.get_absolute_url }}">{{ director.name }}</a>
+                                        {% if not forloop.last %}<span class="director-comma">,</span>{% endif %}
+                                    </span>
+                                {% endfor %}
+                            </span>
+                        {% endif %}
+                    {% endif %}
+                    {% if movie.original_title != movie.title %}<span class="original-title">{{ movie.original_title }}</span>{% endif %}
                 </h3>
                 {% if movie.tagline %}<p class="movie-tagline">{{ movie.tagline }}</p>{% endif %}
                 {% if movie.overview %}<p class="detail-overview movie-overview">{{ movie.overview }}</p>{% endif %}
             </div>
         </div>
     </div>
+{% endblock %}
+{% block script %}
+    <script src="{% static 'js/show_more_less.js' %}"></script>
 {% endblock %}

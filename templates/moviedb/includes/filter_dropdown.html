@@ -13,7 +13,7 @@
         <input type="hidden" name="filter" value="_empty">
         {% for field, verbose in filter_dict.items %}
             <li>
-                <label class="dropdown-item {% if forloop.counter == 1 %}first-item{% elif forloop.counter == filter_dict|length %}last-item{% endif %}">
+                <label class="dropdown-item {% if forloop.first %}first-item{% elif forloop.last %}last-item{% endif %}">
                     <input type="checkbox"
                            {% if field in filtered %}checked{% endif %}
                            name="filter"
@@ -24,7 +24,7 @@
                     {{ verbose }}
                 </label>
             </li>
-            {% if forloop.counter|divisibleby:2 and forloop.counter != filter_dict|length %}
+            {% if forloop.counter|divisibleby:2 and not forloop.last %}
                 <div class="dropdown-divider"></div>
             {% endif %}
         {% endfor %}

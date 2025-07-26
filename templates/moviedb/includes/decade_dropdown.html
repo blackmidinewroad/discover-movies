@@ -16,7 +16,7 @@
         </li>
         <div class="dropdown-divider"></div>
         {% for cur_decade in decade_list %}
-            {% if forloop.counter != 1 %}<div class="dropdown-divider"></div>{% endif %}
+            {% if not forloop.first %}<div class="dropdown-divider"></div>{% endif %}
             <li>
                 <a class="dropdown-item {% if cur_decade == '1880s' %}last-item{% endif %} {% if decade == cur_decade %}active{% endif %}"
                    href="{% if country or language or company %}{% url decade_route_name slug=slug sort_by=sort_by decade=cur_decade %}{% else %}{% url 'movies_decade' sort_by=sort_by decade=cur_decade %}{% endif %}">{{ cur_decade }}</a>

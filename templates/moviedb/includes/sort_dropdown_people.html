@@ -7,7 +7,7 @@
         {% for field, verbose_field in sort_by_dict.items %}
             {% if forloop.counter == 3 or forloop.counter == 6 %}<div class="dropdown-divider"></div>{% endif %}
             <li>
-                <a class="dropdown-item {% if forloop.counter == 1 %}first-item{% elif forloop.counter == sort_by_dict|length %}last-item{% endif %} {% if sort_by == field %}active{% endif %}"
+                <a class="dropdown-item {% if forloop.first %}first-item{% elif forloop.last %}last-item{% endif %} {% if sort_by == field %}active{% endif %}"
                    href="{% url 'people_department_sort' department=department sort_by=field %}">{{ verbose_field }}</a>
             </li>
         {% endfor %}
