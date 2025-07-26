@@ -100,7 +100,7 @@ class Command(BaseCommand):
 
         logger.info('Collections processed: %s.', len(collections))
         if missing_ids:
-            logger.warning("Couldn't update/create: %s (IDs: %s).", len(missing_ids), ', '.join(map(str, missing_ids)))
+            logger.warning("Couldn't update/create: %s.", len(missing_ids))
 
     def update_movies_released(self):
         collections = Collection.objects.annotate(n_released=Count('movies__status', filter=Q(movies__status=6)))

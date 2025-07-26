@@ -111,9 +111,9 @@ class Command(BaseCommand):
                     models.Movie.objects.filter(
                         last_update__lt=earliest_date,
                         tmdb_id__in=movie_ids,
+                        removed_from_tmdb=False,
                     ).values_list('tmdb_id', flat=True)
                 )
-                logger.info('Movies to update: %s.', len(movie_ids))
             case 'daily_export':
                 existing_ids = set(models.Movie.objects.only('tmdb_id').values_list('tmdb_id', flat=True))
                 movie_ids = IDExport().fetch_ids('movie', published_date=published_date, sort_by_popularity=sort_by_popularity)
@@ -144,8 +144,6 @@ class Command(BaseCommand):
             language=language,
             append_to_response=['credits'],
         )
-
-        logger.info('Finished fetching movies.')
 
         # Existing countreis/languages/genres in db
         self.countries = {c.code for c in models.Country.objects.all()}
@@ -391,12 +389,26 @@ class Command(BaseCommand):
         models.MovieCast.objects.bulk_create(cast_relations, ignore_conflicts=True)
         models.MovieCrew.objects.bulk_create(crew_relations, ignore_conflicts=True)
 
+        # Update removed_from_tmdb field
+        removed_ids = [id for id in not_fetched_movie_ids if id]
+        missing_movie_ids = [id for id in not_fetched_movie_ids if not id]
+        movies_to_remove = models.Movie.objects.filter(tmdb_id__in=removed_ids)
+        removed_objs = []
+
+        for removed_movie in movies_to_remove:
+            removed_movie.removed_from_tmdb = True
+            removed_objs.append(removed_movie)
+
+        models.Movie.objects.bulk_update(removed_objs, fields=['removed_from_tmdb'])
+
         logger.info('Movies processed: %s (skipped: %s).', len(movies), skipped)
+        if removed_objs:
+            logger.info('Updated removed: %s.', len(removed_objs))
         for obj_type, counter in created_counter.items():
             if counter:
                 logger.info('Created %s: %s.', obj_type, counter)
-        if not_fetched_movie_ids:
-            logger.warning("Couldn't update/create: %s (IDs: %s).", len(not_fetched_movie_ids), ', '.join(map(str, not_fetched_movie_ids)))
+        if missing_movie_ids:
+            logger.warning("Couldn't update/create: %s.", len(missing_movie_ids))
 
     def create_missing_people(self, tmdb_instance: asyncTMDB, credits: list[dict], batch_size: int) -> tuple[int, list[int] | None]:
         """Add to db missing people from credits so all movies can have full cast and crew.
@@ -474,8 +486,6 @@ class Command(BaseCommand):
             ),
             unique_fields=('tmdb_id',),
         )
-
-        logger.info('Finished processing missing people.')
 
         return len(people), not_fetched
 

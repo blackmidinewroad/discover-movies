@@ -33,7 +33,9 @@ def retry_error_callback(retry_state: RetryCallState):
     is_by_id = retry_state.kwargs.get('is_by_id', False)
 
     if is_by_id and path:
-        return int(path.split('/')[-1])
+        if e.status and e.status == 404:
+            return int(path.split('/')[-1])
+        return 0
 
 
 class BaseTMDB:
@@ -357,10 +359,13 @@ class asyncTMDB(BaseTMDB):
                 if e.status in (429, 500, 502, 503, 504):
                     raise RetryableError(e.__class__.__name__, status=e.status)
 
-                logger.warning('Failed to fetch data: %s, status: %s.', e.__class__.__name__, e.status)
+                if e.status != 404:
+                    logger.warning('Failed to fetch data: %s, status: %s.', e.__class__.__name__, e.status)
 
                 if is_by_id:
-                    return int(path.split('/')[-1])
+                    if e.status == 404:
+                        return int(path.split('/')[-1])
+                    return 0
 
             except asyncio.TimeoutError as e:
                 raise RetryableError(e.__class__.__name__)
@@ -369,7 +374,7 @@ class asyncTMDB(BaseTMDB):
                 logger.warning('Failed to fetch data: %s.', e.__class__.__name__)
 
                 if is_by_id:
-                    return int(path.split('/')[-1])
+                    return 0
 
     async def _batch_fetch(
         self,

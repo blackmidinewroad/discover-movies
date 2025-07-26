@@ -109,9 +109,9 @@ class Command(BaseCommand):
                     Person.objects.filter(
                         last_update__lt=earliest_date,
                         tmdb_id__in=person_ids,
+                        removed_from_tmdb=False,
                     ).values_list('tmdb_id', flat=True)
                 )
-                logger.info('People to update: %s.', len(person_ids))
             case 'daily_export':
                 existing_ids = set(Person.objects.only('tmdb_id').values_list('tmdb_id', flat=True))
                 person_ids = IDExport().fetch_ids('person', published_date=published_date, sort_by_popularity=sort_by_popularity)
@@ -134,8 +134,6 @@ class Command(BaseCommand):
         logger.info('Starting to fetch %s people...', len(person_ids))
 
         people, missing_ids = tmdb.fetch_people_by_id(person_ids, batch_size=batch_size, language=language)
-
-        logger.info('Finished fetching people.')
 
         person_objs = []
         new_slugs = set()
@@ -202,9 +200,23 @@ class Command(BaseCommand):
             unique_fields=('tmdb_id',),
         )
 
+        # Update removed_from_tmdb field
+        removed_ids = [id for id in missing_ids if id]
+        missing_person_ids = [id for id in missing_ids if not id]
+        people_to_remove = Person.objects.filter(tmdb_id__in=removed_ids)
+        removed_objs = []
+
+        for removed_person in people_to_remove:
+            removed_person.removed_from_tmdb = True
+            removed_objs.append(removed_person)
+
+        Person.objects.bulk_update(removed_objs, fields=['removed_from_tmdb'])
+
         logger.info('People processed: %s.', len(people))
-        if missing_ids:
-            logger.warning("Couldn't update/create: %s (IDs: %s).", len(missing_ids), ', '.join(map(str, missing_ids)))
+        if removed_objs:
+            logger.info('Updated removed: %s.', len(removed_objs))
+        if missing_person_ids:
+            logger.warning("Couldn't update/create: %s.", len(missing_person_ids))
 
     def update_roles_count(self):
         people = Person.objects.annotate(

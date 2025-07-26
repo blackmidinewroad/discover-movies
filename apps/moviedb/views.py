@@ -45,7 +45,7 @@ class MovieListView(ListView):
     }
 
     def get_queryset(self):
-        queryset = Movie.objects.all()
+        queryset = Movie.objects.filter(removed_from_tmdb=False)
 
         # Filter by country/language/production company
         if self.filter_type:
@@ -269,7 +269,7 @@ class PeopleListView(ListView):
     }
 
     def get_queryset(self):
-        queryset = Person.objects.all()
+        queryset = Person.objects.filter(removed_from_tmdb=False)
 
         department = self.kwargs.get('department', 'any')
         if department != 'any' and department in self.VERBOSE_DEPARTMENT:
@@ -399,6 +399,8 @@ class CollectionsListView(ListView):
     paginate_by = 24
 
     def get_queryset(self):
+        queryset = Collection.objects.filter(removed_from_tmdb=False)
+
         # Search
         if 'query' in self.request.GET and self.request.GET.get('query'):
             self.form = SearchForm(self.request.GET)
@@ -408,7 +410,7 @@ class CollectionsListView(ListView):
                 search_query = SearchQuery(query)
 
                 queryset = (
-                    Collection.objects.annotate(
+                    queryset.annotate(
                         similarity=TrigramSimilarity('name', query),
                         rank=SearchRank(vector, search_query),
                     )
@@ -417,7 +419,7 @@ class CollectionsListView(ListView):
                 )
 
         else:
-            queryset = Collection.objects.filter(adult=False, movies_released__gt=1).order_by('-avg_popularity')
+            queryset = queryset.filter(adult=False, movies_released__gt=1).order_by('-avg_popularity')
 
         return queryset
 
@@ -466,6 +468,8 @@ class CompanyListView(ListView):
     }
 
     def get_queryset(self):
+        queryset = ProductionCompany.objects.filter(removed_from_tmdb=False)
+
         self.sort_by = self.kwargs.get('sort_by', '-movie_count')
 
         # Search
@@ -474,14 +478,8 @@ class CompanyListView(ListView):
             if self.form.is_valid():
                 query = self.form.cleaned_data['query']
 
-                queryset = (
-                    ProductionCompany.objects.annotate(similarity=TrigramSimilarity('name', query))
-                    .filter(similarity__gt=0.2)
-                    .order_by('-similarity')
-                )
+                queryset = queryset.annotate(similarity=TrigramSimilarity('name', query)).filter(similarity__gt=0.2).order_by('-similarity')
         else:
-            queryset = ProductionCompany.objects.all()
-
             sort_by_field = self.sort_by[1:] if self.sort_by.startswith('-') else self.sort_by
             match sort_by_field:
                 case 'movie_count':

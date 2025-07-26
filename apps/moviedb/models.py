@@ -95,11 +95,16 @@ class ProductionCompany(SlugMixin):
 
     movie_count = models.PositiveIntegerField(blank=True, default=0)
 
+    removed_from_tmdb = models.BooleanField(blank=True, default=False)
+
     class Meta:
         verbose_name = 'production company'
         verbose_name_plural = 'production companies'
         ordering = ['-movie_count']
-        indexes = [models.Index(fields=['-movie_count'])]
+        indexes = [
+            models.Index(fields=['-movie_count']),
+            models.Index(fields=['removed_from_tmdb', '-movie_count']),
+        ]
 
     def __str__(self):
         return self.name
@@ -126,12 +131,15 @@ class Collection(SlugMixin):
     # Collection contains adult movies
     adult = models.BooleanField(blank=True, default=False)
 
+    removed_from_tmdb = models.BooleanField(blank=True, default=False)
+
     class Meta:
         verbose_name = 'collection'
         verbose_name_plural = 'collections'
         ordering = ['-avg_popularity']
         indexes = [
-            models.Index(fields=['adult', 'movies_released', '-avg_popularity']),
+            models.Index(fields=['-avg_popularity']),
+            models.Index(fields=['removed_from_tmdb', 'adult', 'movies_released', '-avg_popularity']),
         ]
 
     def __str__(self):
@@ -177,6 +185,8 @@ class Person(SlugMixin):
     # Actors in adult movies
     adult = models.BooleanField(blank=True, default=False)
 
+    removed_from_tmdb = models.BooleanField(blank=True, default=False)
+
     last_update = models.DateField(blank=True, default=timezone.now)
     created_at = models.DateField(blank=True, null=True)
 
@@ -185,10 +195,11 @@ class Person(SlugMixin):
         verbose_name_plural = 'people'
         ordering = ['-tmdb_popularity']
         indexes = [
-            models.Index(fields=['adult', '-tmdb_popularity']),
-            models.Index(fields=['adult', '-cast_roles_count']),
-            models.Index(fields=['adult', '-crew_roles_count']),
-            models.Index(fields=['adult', 'known_for_department', '-tmdb_popularity']),
+            models.Index(fields=['-tmdb_popularity']),
+            models.Index(fields=['removed_from_tmdb', 'adult', '-tmdb_popularity']),
+            models.Index(fields=['removed_from_tmdb', 'adult', '-cast_roles_count']),
+            models.Index(fields=['removed_from_tmdb', 'adult', '-crew_roles_count']),
+            models.Index(fields=['removed_from_tmdb', 'adult', 'known_for_department', '-tmdb_popularity']),
         ]
 
     def __str__(self):
@@ -273,6 +284,8 @@ class Movie(SlugMixin):
     # This field is for filtering out adult movies and manually change them to adult if needed.
     adult = models.BooleanField(blank=True, default=False)
 
+    removed_from_tmdb = models.BooleanField(blank=True, default=False)
+
     last_update = models.DateField(blank=True, default=timezone.now)
     created_at = models.DateField(blank=True, null=True)
 
@@ -282,9 +295,10 @@ class Movie(SlugMixin):
         ordering = ['-tmdb_popularity']
         indexes = [
             models.Index(fields=['-tmdb_popularity']),
-            models.Index(fields=['adult', '-tmdb_popularity']),
-            models.Index(fields=['adult', '-release_date']),
-            models.Index(fields=['adult', '-tmdb_popularity', '-release_date']),
+            models.Index(fields=['removed_from_tmdb', '-tmdb_popularity']),
+            models.Index(fields=['removed_from_tmdb', 'adult', '-tmdb_popularity']),
+            models.Index(fields=['removed_from_tmdb', 'adult', '-release_date']),
+            models.Index(fields=['removed_from_tmdb', 'adult', '-tmdb_popularity', '-release_date']),
         ]
 
     def __str__(self):

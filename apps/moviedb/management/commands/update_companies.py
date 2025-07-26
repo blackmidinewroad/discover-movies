@@ -99,7 +99,7 @@ class Command(BaseCommand):
         if n_created_countries:
             logger.info('Created countries: %s.', n_created_countries)
         if missing_ids:
-            logger.warning("Couldn't update/create: %s (IDs: %s).", len(missing_ids), ', '.join(map(str, missing_ids)))
+            logger.warning("Couldn't update/create: %s.", len(missing_ids))
 
     def update_movie_count(self):
         companies = ProductionCompany.objects.annotate(cur_movie_count=Count('movies'))
