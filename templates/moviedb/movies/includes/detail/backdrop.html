@@ -1,0 +1,10 @@
+{% if movie.backdrop_path %}
+    <div class="backdrop-wrapper">
+        <div class="backdrop-container">
+            <img src="https://image.tmdb.org/t/p/w1280{{ movie.backdrop_path }}"
+                 class="backdrop-image"
+                 alt="{{ movie.title }} backdrop">
+            <div class="backdrop-overlay"></div>
+        </div>
+    </div>
+{% endif %}

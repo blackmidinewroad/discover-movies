@@ -4,13 +4,13 @@
     <div class="list-nav" id="other-buttons">
         <div class="nav-controls">
             <div class="nav-top-row">
-                {% include 'moviedb/includes/other_buttons.html' %}
+                {% include 'moviedb/other/includes/other_buttons.html' %}
                 {% if list_type == 'companies' %}
-                    {% include 'moviedb/includes/sort_dropdown_companies.html' %}
+                    {% include 'moviedb/other/includes/sort_dropdown_companies.html' %}
                 {% endif %}
             </div>
             {% if list_type == 'collections' or list_type == 'companies' %}
-                {% include 'moviedb/includes/search_form.html' with route_name=list_type %}
+                {% include 'moviedb/other/includes/search_form.html' with route_name=list_type %}
             {% endif %}
             <span class="total-results" id="total-results">{{ total_results|intcomma }} {{ list_type }}</span>
         </div>
@@ -18,13 +18,13 @@
     <div id="content-grid">
         {% if total_results %}
             {% if list_type == 'countries' %}
-                {% include 'moviedb/countries_list.html' %}
+                {% include 'moviedb/other/countries_list.html' %}
             {% elif list_type == 'languages' %}
-                {% include 'moviedb/languages_list.html' %}
+                {% include 'moviedb/other/languages_list.html' %}
             {% elif list_type == 'collections' %}
-                {% include 'moviedb/collections_list.html' %}
+                {% include 'moviedb/other/collections_list.html' %}
             {% elif list_type == 'companies' %}
-                {% include 'moviedb/companies_list.html' %}
+                {% include 'moviedb/other/companies_list.html' %}
             {% endif %}
             {% include 'moviedb/includes/pagination.html' %}
         {% endif %}

@@ -221,7 +221,7 @@ class MovieListView(ListView):
 
         # HTMX request
         if request.headers.get('HX-Request'):
-            self.template_name = 'moviedb/partials/content_grid.html'
+            self.template_name = 'moviedb/movies/partials/content_grid.html'
             if 'filter' in request.GET:
                 self.request.session['filter'] = [i for i in request.GET.getlist('filter') if i != '_empty']
             if 'genres' in request.GET:
@@ -338,7 +338,7 @@ class PeopleListView(ListView):
 
 class MovieDetailView(DetailView):
     model = Movie
-    template_name = 'moviedb/movie_detail.html'
+    template_name = 'moviedb/movies/movie_detail.html'
     context_object_name = 'movie'
 
     def get_context_data(self, **kwargs):
@@ -350,7 +350,7 @@ class MovieDetailView(DetailView):
 
 class PersonDetailView(DetailView):
     model = Person
-    template_name = 'moviedb/person_detail.html'
+    template_name = 'moviedb/people/person_detail.html'
     context_object_name = 'person'
 
     def get_context_data(self, **kwargs):
@@ -446,7 +446,7 @@ class CollectionsListView(ListView):
 
 class CollectionDetailView(DetailView):
     model = Collection
-    template_name = 'moviedb/collection_detail.html'
+    template_name = 'moviedb/other/collection_detail.html'
     context_object_name = 'collection'
 
     def get_context_data(self, **kwargs):

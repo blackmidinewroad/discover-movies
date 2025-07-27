@@ -13,22 +13,22 @@
         <div class="nav-controls">
             <div class="nav-top-row">
                 {% if list_type == 'movies' %}
-                    {% include 'moviedb/includes/genres_dropdown.html' %}
-                    {% include 'moviedb/includes/decade_dropdown.html' %}
+                    {% include 'moviedb/movies/includes/genres_dropdown.html' %}
+                    {% include 'moviedb/movies/includes/decade_dropdown.html' %}
                     {% if decade != 'any' %}
-                        {% include 'moviedb/includes/year_dropdown.html' %}
+                        {% include 'moviedb/movies/includes/year_dropdown.html' %}
                     {% endif %}
-                    {% include 'moviedb/includes/filter_dropdown.html' %}
-                    {% include 'moviedb/includes/sort_dropdown_movies.html' %}
+                    {% include 'moviedb/movies/includes/filter_dropdown.html' %}
+                    {% include 'moviedb/movies/includes/sort_dropdown.html' %}
                 {% else %}
-                    {% include 'moviedb/includes/department_dropdown.html' %}
-                    {% include 'moviedb/includes/sort_dropdown_people.html' %}
+                    {% include 'moviedb/people/includes/department_dropdown.html' %}
+                    {% include 'moviedb/people/includes/sort_dropdown.html' %}
                 {% endif %}
             </div>
             {% if list_type == 'movies' %}
-                {% include 'moviedb/includes/search_form_movie.html' %}
+                {% include 'moviedb/movies/includes/search_form.html' %}
             {% else %}
-                {% include 'moviedb/includes/search_form_person.html' %}
+                {% include 'moviedb/people/includes/search_form.html' %}
             {% endif %}
             {% if country %}
                 <span class="total-results" id="total-results">Country: {{ country }} - {{ total_results|intcomma }} {{ list_type }}</span>
@@ -44,9 +44,9 @@
     <div id="content-grid">
         {% if total_results %}
             {% if list_type == 'movies' %}
-                {% include 'moviedb/movie_list.html' %}
+                {% include 'moviedb/movies/movie_list.html' %}
             {% else %}
-                {% include 'moviedb/people_list.html' %}
+                {% include 'moviedb/people/people_list.html' %}
             {% endif %}
             {% include 'moviedb/includes/pagination.html' %}
         {% endif %}

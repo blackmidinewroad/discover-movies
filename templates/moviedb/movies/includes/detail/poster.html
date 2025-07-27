@@ -1,0 +1,11 @@
+{% if movie.poster_path %}
+    <img src="https://image.tmdb.org/t/p/w500{{ movie.poster_path }}"
+         class="detail-poster movie-poster rounded"
+         alt="{{ movie.title }}">
+{% else %}
+    <div class="poster-container">
+        <div class="missing-poster rounded">
+            <span>No Poster Available</span>
+        </div>
+    </div>
+{% endif %}

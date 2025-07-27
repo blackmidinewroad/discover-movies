@@ -1,0 +1,32 @@
+{% if directors %}
+    <span class="directed-by-wrapper">
+        <span class="directed-by">Directed by</span>
+        <span class="director-wrapper">
+            <a class="dtail-link director-link"
+               href="{{ directors.0.get_absolute_url }}">{{ directors.0.name }}</a>
+            {% if directors|length > 1 %}<span class="director-comma">,</span>{% endif %}
+        </span>
+    </span>
+    {% if directors|length > 1 %}
+        <span class="director-wrapper">
+            {% spaceless %}
+                <a class="dtail-link director-link"
+                   href="{{ directors.1.get_absolute_url }}">{{ directors.1.name }}</a>
+                {% if directors|length > 2 %}
+                    <button class="toggle-directors-btn show-more" onclick="toggleDirectors()">Show More</button>
+                {% endif %}
+            {% endspaceless %}
+        </span>
+    {% endif %}
+    {% if directors|length > 2 %}
+        <span class="directors-list" style="display: none;">
+            {% for director in directors|slice:"2:" %}
+                <span class="director-wrapper">
+                    <a class="dtail-link director-link"
+                       href="{{ director.get_absolute_url }}">{{ director.name }}</a>
+                    {% if not forloop.last %}<span class="director-comma">,</span>{% endif %}
+                </span>
+            {% endfor %}
+        </span>
+    {% endif %}
+{% endif %}

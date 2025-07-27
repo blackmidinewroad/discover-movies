@@ -1,16 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 {% block content %}
-    {% if collection.backdrop_path %}
-        <div class="backdrop-wrapper">
-            <div class="backdrop-container">
-                <img src="https://image.tmdb.org/t/p/w1280{{ collection.backdrop_path }}"
-                     class="backdrop-image"
-                     alt="{{ collection.name }} backdrop">
-                <div class="backdrop-overlay"></div>
-            </div>
-        </div>
-    {% endif %}
+    {% include 'moviedb/other/includes/collection_backdrop.html' %}
     <div class="detail collection container">
         <div class="row detail-header collection-header">
             <div class="col-12 col-md-4 col-lg-3">
@@ -38,6 +29,6 @@
                 in collection</span>
             </div>
         </div>
-        <div id="content-grid" class="movie-list">{% include 'moviedb/movie_list.html' %}</div>
+        <div id="content-grid" class="movie-list">{% include 'moviedb/movies/movie_list.html' %}</div>
     </div>
 {% endblock %}
