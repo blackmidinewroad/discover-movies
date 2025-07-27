@@ -11,7 +11,7 @@ nav {
     color: #ffffff;
     padding: 1rem;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    z-index: 10;
+    z-index: 10000;
     position: relative;
 }
 
@@ -97,7 +97,7 @@ nav {
         height: 2rem;
         margin-right: 0.3rem;
         cursor: pointer;
-        transition: all 0.3s ease;
+        transition: all 0.2s ease;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
     }
 
@@ -156,6 +156,7 @@ nav {
 footer {
     background-color: #0f1a2f;
     color: #ffffff;
+    z-index: 10000;
 }
 
 .footer-text {
@@ -266,7 +267,7 @@ footer {
     border: 1px solid #3a4a6f;
     margin: 0 0.4rem;
     height: 2.5rem;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
 }
 
 .page-item.active .page-link,
@@ -447,7 +448,7 @@ footer {
     font-weight: normal;
     height: 2.5rem;
     line-height: 1.5;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
@@ -490,14 +491,33 @@ footer {
     min-width: 120px;
     width: 100%;
     margin: 0;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease;
 }
 
+.dropdown.show .dropdown-menu {
+    display: block;
+    opacity: 1;
+    visibility: visible;
+    position: absolute;
+    top: calc(100% + 3px);
+    left: 0;
+}
+
+.dropdown:hover .dropdown-menu {
+    display: block;
+}
+
+.dropdown:hover .dropdown-menu,
 .dropdown .dropdown-menu.show {
     padding: 0;
+    border-radius: 8px;
 }
 
 .dropdown .dropdown-toggle:hover,
-.dropdown.show .dropdown-toggle {
+.dropdown.show .dropdown-toggle,
+.dropdown:hover .dropdown-toggle {
     background-color: #7594ce;
     color: #0f1a2f;
 }
@@ -555,7 +575,7 @@ footer {
 
 /* Checkbox dropdown */
 .dropdown-check-list .dropdown-toggle {
-    transition: 0.3s ease;
+    transition: 0.2s ease;
 }
 
 .dropdown-check-list .dropdown-toggle,
@@ -703,7 +723,7 @@ footer {
     height: 2.5rem;
     font-size: 1rem;
     line-height: 1.5;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
     box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2), 0 4px 6px rgba(0, 0, 0, 0.1);
     background-color: #243154;
     flex: 1;
@@ -726,7 +746,7 @@ footer {
     height: 2.5rem;
     font-size: 1rem;
     line-height: 1.5;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
     cursor: pointer;
 }
@@ -1004,14 +1024,6 @@ footer {
     display: flex;
     justify-content: center;
     gap: 0.5rem;
-}
-
-.external-link {
-    text-decoration: none;
-    font-size: 1.1rem;
-    font-weight: normal;
-    transition: all 0.3s ease;
-    top: 0;
 }
 
 .external-link img {
