@@ -1,7 +1,7 @@
 import logging
 
 from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector, TrigramSimilarity
-from django.db.models import Count, F, Q
+from django.db.models import F, Q
 from django.utils.http import urlencode
 from django.views.generic import DetailView, ListView
 
@@ -45,22 +45,24 @@ class MovieListView(ListView):
     }
 
     def get_queryset(self):
-        queryset = Movie.objects.filter(removed_from_tmdb=False)
-
         # Filter by country/language/production company
         if self.filter_type:
             self.filter_obj = None
             self.slug = self.kwargs.get('slug', '')
             match self.filter_type:
                 case 'country':
-                    queryset = queryset.filter(origin_country__slug=self.slug)
                     self.filter_obj = Country.objects.get(slug=self.slug)
+                    queryset = self.filter_obj.movies_originating_from.all()
                 case 'language':
-                    queryset = queryset.filter(original_language__slug=self.slug)
                     self.filter_obj = Language.objects.get(slug=self.slug)
+                    queryset = self.filter_obj.movies_as_original_language.all()
                 case 'company':
-                    queryset = queryset.filter(production_companies__slug=self.slug)
                     self.filter_obj = ProductionCompany.objects.get(slug=self.slug)
+                    queryset = self.filter_obj.movies.all()
+        else:
+            queryset = Movie.objects.all()
+
+        queryset = queryset.filter(removed_from_tmdb=False)
 
         self.year = self.kwargs.get('year', 0)
         self.decade = 'any'
@@ -99,7 +101,9 @@ class MovieListView(ListView):
                         decade_int = 0
 
                     if 1880 <= decade_int <= 2020 and decade_int % 10 == 0:
-                        queryset = queryset.filter(release_date__year__in=(year for year in range(decade_int, decade_int + 10)))
+                        start_date = f'{decade_int}-01-01'
+                        end_date = f'{decade_int + 9}-12-31'
+                        queryset = queryset.filter(release_date__range=(start_date, end_date))
                     else:
                         self.decade = 'any'
 
@@ -107,30 +111,27 @@ class MovieListView(ListView):
             if 'filter' in self.request.session:
                 if 'show_documentary' in self.request.session['filter']:
                     queryset = queryset.filter(genres__tmdb_id=GenreIDs.DOCUMENTARY)
-                if 'hide_documentary' in self.request.session['filter']:
+                elif 'hide_documentary' in self.request.session['filter']:
                     queryset = queryset.exclude(genres__tmdb_id=GenreIDs.DOCUMENTARY)
                 if 'show_tv_movie' in self.request.session['filter']:
                     queryset = queryset.filter(genres__tmdb_id=GenreIDs.TV_MOVIE)
-                if 'hide_tv_movie' in self.request.session['filter']:
+                elif 'hide_tv_movie' in self.request.session['filter']:
                     queryset = queryset.exclude(genres__tmdb_id=GenreIDs.TV_MOVIE)
                 if 'show_short' in self.request.session['filter']:
                     queryset = queryset.filter(short=True)
-                if 'hide_short' in self.request.session['filter']:
+                elif 'hide_short' in self.request.session['filter']:
                     queryset = queryset.exclude(short=True)
                 if 'show_unreleased' in self.request.session['filter']:
                     queryset = queryset.exclude(status=6)
-                if 'hide_unreleased' in self.request.session['filter']:
+                elif 'hide_unreleased' in self.request.session['filter']:
                     queryset = queryset.filter(status=6)
 
             # Filter genres
-            if 'genres' in self.request.session:
-                if self.request.session['genres']:
-                    genre_ids = [GENRE_DICT[genre] for genre in self.request.session['genres']]
-                    queryset = (
-                        queryset.filter(genres__tmdb_id__in=genre_ids)
-                        .annotate(matching_genre_count=Count('genres', filter=Q(genres__tmdb_id__in=genre_ids), distinct=True))
-                        .filter(matching_genre_count=len(genre_ids))
-                    )
+            if 'genres' in self.request.session and self.request.session['genres']:
+                genre_ids = [GENRE_DICT[genre] for genre in self.request.session['genres']]
+                for genre_id in genre_ids:
+                    queryset = queryset.filter(genres__tmdb_id=genre_id)
+                queryset = queryset.distinct()
 
             # Sort
             sort_by_field = self.sort_by[1:] if self.sort_by.startswith('-') else self.sort_by
