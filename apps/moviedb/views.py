@@ -452,7 +452,7 @@ class CollectionDetailView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['title'] = f'{self.object.name}'
-        context['movies'] = self.object.movies.all().order_by('release_date')
+        context['movies'] = self.object.movies.filter(removed_from_tmdb=False).order_by('release_date')
         context['total_movies'] = context['movies'].count()
         return context
 

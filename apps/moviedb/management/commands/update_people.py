@@ -2,7 +2,7 @@ import logging
 from datetime import date
 
 from django.core.management.base import BaseCommand, CommandError
-from django.db.models import Count
+from django.db.models import Count, Q
 
 from apps.moviedb.integrations.tmdb.api import asyncTMDB
 from apps.moviedb.integrations.tmdb.id_exports import IDExport
@@ -220,8 +220,8 @@ class Command(BaseCommand):
 
     def update_roles_count(self):
         people = Person.objects.annotate(
-            n_cast_roles=Count('cast_roles__movie', distinct=True),
-            n_crew_roles=Count('crew_roles__movie', distinct=True),
+            n_cast_roles=Count('cast_roles__movie', filter=Q(cast_roles__movie__removed_from_tmdb=False), distinct=True),
+            n_crew_roles=Count('crew_roles__movie', filter=Q(crew_roles__movie__removed_from_tmdb=False), distinct=True),
         ).only('cast_roles_count', 'crew_roles_count')
         to_update = []
 

@@ -46,7 +46,7 @@ class Command(BaseCommand):
         if ids is None:
             return
         popularity = {id: popularity for id, popularity in ids[:limit]}
-        existing_objs = Model.objects.only('tmdb_id', 'tmdb_popularity')
+        existing_objs = Model.objects.filter(removed_from_tmdb=False).only('tmdb_id', 'tmdb_popularity')
 
         to_update = [obj for obj in existing_objs if obj.tmdb_id in popularity and obj.tmdb_popularity != popularity[obj.tmdb_id]]
 

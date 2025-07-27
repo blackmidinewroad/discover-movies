@@ -103,7 +103,9 @@ class Command(BaseCommand):
             logger.warning("Couldn't update/create: %s.", len(missing_ids))
 
     def update_movies_released(self):
-        collections = Collection.objects.annotate(n_released=Count('movies__status', filter=Q(movies__status=6)))
+        collections = Collection.objects.annotate(
+            n_released=Count('movies__status', filter=Q(movies__status=6, movies__removed_from_tmdb=False))
+        )
         to_update = []
 
         for collection in collections:
@@ -116,7 +118,9 @@ class Command(BaseCommand):
         Collection.objects.bulk_update(to_update, fields=['movies_released'])
 
     def update_avg_popularity(self):
-        collections = Collection.objects.annotate(cur_avg_popularity=Avg('movies__tmdb_popularity'))
+        collections = Collection.objects.annotate(
+            cur_avg_popularity=Avg('movies__tmdb_popularity', filter=Q(movies__removed_from_tmdb=False))
+        )
         to_update = []
 
         for collection in collections:

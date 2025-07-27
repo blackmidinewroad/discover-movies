@@ -1,7 +1,7 @@
 import logging
 
 from django.core.management.base import BaseCommand
-from django.db.models import Count
+from django.db.models import Count, Q
 
 from apps.moviedb.integrations.tmdb.api import asyncTMDB
 from apps.moviedb.integrations.tmdb.id_exports import IDExport
@@ -102,7 +102,7 @@ class Command(BaseCommand):
             logger.warning("Couldn't update/create: %s.", len(missing_ids))
 
     def update_movie_count(self):
-        companies = ProductionCompany.objects.annotate(cur_movie_count=Count('movies'))
+        companies = ProductionCompany.objects.annotate(cur_movie_count=Count('movies', filter=Q(movies__removed_from_tmdb=False)))
         to_update = []
 
         for company in companies:
