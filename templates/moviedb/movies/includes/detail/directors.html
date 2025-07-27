@@ -12,6 +12,7 @@
             {% spaceless %}
                 <a class="dtail-link director-link"
                    href="{{ directors.1.get_absolute_url }}">{{ directors.1.name }}</a>
+                <span class="director-comma optional-comma" style="display: none;">,</span>
                 {% if directors|length > 2 %}
                     <button class="toggle-directors-btn show-more" onclick="toggleDirectors()">Show More</button>
                 {% endif %}

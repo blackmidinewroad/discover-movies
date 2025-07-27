@@ -4,7 +4,10 @@
     {% include 'moviedb/movies/includes/detail/backdrop.html' %}
     <div class="detail movie container">
         <div class="row detail-header movie-header">
-            <div class="col-12 col-md-4 col-lg-3">{% include 'moviedb/movies/includes/detail/poster.html' %}</div>
+            <div class="col-12 col-md-4 col-lg-3">
+                {% include 'moviedb/movies/includes/detail/poster.html' %}
+                {% include 'moviedb/movies/includes/detail/external_links.html' %}
+            </div>
             <div class="col-12 col-md-8 col-lg-9 detail-info movie-info">
                 <h3 class="detail-title movie-title">
                     {{ movie.title }}

@@ -808,7 +808,7 @@ footer {
 
 .detail-header {
     margin-top: 2.5rem;
-    margin-bottom: 2rem;
+    margin-bottom: 1rem;
     margin-left: 0;
     margin-right: 0;
 }
@@ -873,7 +873,7 @@ footer {
 @media (max-width: 768px) {
     .detail-header {
         text-align: center;
-        margin-bottom: 1rem;
+        margin-bottom: 0.2rem;
     }
 
     .detail-info {
@@ -900,7 +900,7 @@ footer {
     text-underline-offset: 3px;
     font-size: 1.5rem;
     font-weight: normal;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
     position: relative;
     top: -1px;
 }
@@ -973,6 +973,11 @@ footer {
     margin-right: 0.1rem;
 }
 
+.optional-comma {
+    margin-left: 0.18rem;
+    margin-right: -0.35rem;
+}
+
 
 .original-title {
     color: #9cafce;
@@ -990,4 +995,31 @@ footer {
     line-height: 1.6;
     margin-bottom: 1rem;
     text-transform: uppercase;
+}
+
+
+.external-links-container {
+    text-align: center;
+    margin-top: 1rem;
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.external-link {
+    text-decoration: none;
+    font-size: 1.1rem;
+    font-weight: normal;
+    transition: all 0.3s ease;
+    top: 0;
+}
+
+.external-link img {
+    height: 30px;
+    width: auto;
+    transition: transform 0.2s ease;
+}
+
+.external-link:hover img {
+    transform: scale(1.1);
 }
