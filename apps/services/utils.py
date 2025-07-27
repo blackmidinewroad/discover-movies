@@ -4,6 +4,7 @@ from functools import wraps
 from uuid import uuid4
 
 from django.template.defaultfilters import slugify
+from django.utils.http import urlencode
 from unidecode import unidecode
 
 logger = logging.getLogger('moviedb')
@@ -61,6 +62,20 @@ GENRE_DICT = {
     'Thriller': GenreIDs.THRILLER,
     'War': GenreIDs.WAR,
     'Western': GenreIDs.WESTERN,
+}
+
+# Map to convert TMDB gender of people
+GENDERS = {0: '', 1: 'F', 2: 'M', 3: 'NB'}
+
+# Map of statuses for movies
+STATUS_MAP = {
+    '': 0,
+    'Canceled': 1,
+    'Rumored': 2,
+    'Planned': 3,
+    'In Production': 4,
+    'Post Production': 5,
+    'Released': 6,
 }
 
 
@@ -124,3 +139,15 @@ def runtime(func):
         return res
 
     return wrapper
+
+
+def get_base_query(request):
+    query_params = request.GET.copy()
+    base_query = {}
+
+    if 'query' in query_params:
+        base_query['query'] = query_params['query']
+
+    base_query = urlencode(base_query)
+
+    return base_query

@@ -2,10 +2,9 @@ import logging
 
 from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector, TrigramSimilarity
 from django.db.models import F, Q
-from django.utils.http import urlencode
 from django.views.generic import DetailView, ListView
 
-from apps.services.utils import GENRE_DICT, GenreIDs
+from apps.services.utils import GENRE_DICT, GenreIDs, get_base_query
 
 from .forms import SearchForm
 from .models import Collection, Country, Language, Movie, Person, ProductionCompany
@@ -229,11 +228,7 @@ class MovieListView(ListView):
                 self.request.session['genres'] = [g for g in request.GET.getlist('genres') if g != '_empty']
 
         # Get base query for pagination
-        query_params = request.GET.copy()
-        base_query = {}
-        if 'query' in query_params:
-            base_query['query'] = query_params['query']
-        self.base_query = urlencode(base_query)
+        self.base_query = get_base_query(request)
 
         return super().get(request, *args, **kwargs)
 
@@ -328,11 +323,7 @@ class PeopleListView(ListView):
 
     def get(self, request, *args, **kwargs):
         # Get base query for pagination
-        query_params = request.GET.copy()
-        base_query = {}
-        if 'query' in query_params:
-            base_query['query'] = query_params['query']
-        self.base_query = urlencode(base_query)
+        self.base_query = get_base_query(request)
 
         return super().get(request, *args, **kwargs)
 
@@ -436,11 +427,7 @@ class CollectionsListView(ListView):
 
     def get(self, request, *args, **kwargs):
         # Get base query for pagination
-        query_params = request.GET.copy()
-        base_query = {}
-        if 'query' in query_params:
-            base_query['query'] = query_params['query']
-        self.base_query = urlencode(base_query)
+        self.base_query = get_base_query(request)
 
         return super().get(request, *args, **kwargs)
 
@@ -510,10 +497,6 @@ class CompanyListView(ListView):
 
     def get(self, request, *args, **kwargs):
         # Get base query for pagination
-        query_params = request.GET.copy()
-        base_query = {}
-        if 'query' in query_params:
-            base_query['query'] = query_params['query']
-        self.base_query = urlencode(base_query)
+        self.base_query = get_base_query(request)
 
         return super().get(request, *args, **kwargs)

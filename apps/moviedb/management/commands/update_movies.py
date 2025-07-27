@@ -6,25 +6,13 @@ from django.core.management.base import BaseCommand, CommandError
 from apps.moviedb import models
 from apps.moviedb.integrations.tmdb.api import asyncTMDB
 from apps.moviedb.integrations.tmdb.id_exports import IDExport
-from apps.services.utils import runtime
+from apps.services.utils import GENDERS, STATUS_MAP, runtime
 
 logger = logging.getLogger('moviedb')
 
 
 class Command(BaseCommand):
     help = 'Update movie table'
-
-    # Genders for creating people
-    GENDERS = {0: '', 1: 'F', 2: 'M', 3: 'NB'}
-    STATUS_MAP = {
-        '': 0,
-        'Canceled': 1,
-        'Rumored': 2,
-        'Planned': 3,
-        'In Production': 4,
-        'Post Production': 5,
-        'Released': 6,
-    }
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -267,7 +255,7 @@ class Command(BaseCommand):
                 collection_id=collection_id,
                 poster_path=movie_data.get('poster_path') or '',
                 backdrop_path=movie_data.get('backdrop_path') or '',
-                status=self.STATUS_MAP[movie_data.get('status', '')],
+                status=STATUS_MAP[movie_data.get('status', '')],
                 budget=movie_data.get('budget', 0),
                 revenue=movie_data.get('revenue', 0),
                 runtime=movie_data.get('runtime', 0),
@@ -454,7 +442,7 @@ class Command(BaseCommand):
                 known_for_department=person_data.get('known_for_department') or '',
                 biography=person_data.get('biography') or '',
                 place_of_birth=person_data.get('place_of_birth') or '',
-                gender=self.GENDERS[person_data.get('gender', 0)],
+                gender=GENDERS[person_data.get('gender', 0)],
                 birthday=birthday,
                 deathday=deathday,
                 profile_path=person_data.get('profile_path') or '',
