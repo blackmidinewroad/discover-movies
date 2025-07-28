@@ -1,0 +1,105 @@
+{% load humanize %}
+<div class="detail-info-table">
+    <div class="detail-info-group">
+        {% if countries %}
+            <div class="detail-info-element" id='countries'>
+                Countr{{ countries|pluralize:"y,ies" }}:
+                {% for country in countries %}
+                    <a class="dtail-link info-table-link"
+                       href="{{ country.get_absolute_url }}">
+                        {% if country.alias_name %}
+                            {{ country.alias_name }}
+                        {% else %}
+                            {{ country }}
+                        {% endif %}
+                    </a>
+                    {% if not forloop.last %}<span class="links-list-comma info-comma">,</span>{% endif %}
+                {% endfor %}
+            </div>
+        {% endif %}
+        {% if production_countries %}
+            <div class="detail-info-element" id='production-countries'>
+                Production Countr{{ production_countries|pluralize:"y,ies" }}:
+                {% for prod_country in production_countries %}
+                    <a class="dtail-link info-table-link"
+                       href="{{ prod_country.get_absolute_url }}">
+                        {% if prod_country.alias_name %}
+                            {{ prod_country.alias_name }}
+                        {% else %}
+                            {{ prod_country }}
+                        {% endif %}
+                    </a>
+                    {% if not forloop.last %}<span class="links-list-comma info-comma">,</span>{% endif %}
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+    <div class="detail-info-group">
+        {% if language %}
+            <div class="detail-info-element" id='language'>
+                Language:
+                <a class="dtail-link info-table-link"
+                   href="{{ language.get_absolute_url }}">{{ language }}</a>
+            </div>
+        {% endif %}
+        {% if spoken_languages %}
+            <div class="detail-info-element" id='spoken-languages'>
+                Spoken Language{{ spoken_languages|pluralize }}:
+                {% for spoken_language in spoken_languages %}
+                    <a class="dtail-link info-table-link"
+                       href="{{ spoken_language.get_absolute_url }}">{{ spoken_language }}</a>
+                    {% if not forloop.last %}<span class="links-list-comma info-comma">,</span>{% endif %}
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+    <div class="detail-info-group">
+        {% if genres %}
+            <div class="detail-info-element" id='genres'>
+                Gnere{{ genres|pluralize }}:
+                {% for genre in genres %}
+                    <a class="dtail-link info-table-link"
+                       href="{{ genre.get_absolute_url }}">{{ genre }}</a>
+                    {% if not forloop.last %}<span class="links-list-comma info-comma">,</span>{% endif %}
+                {% endfor %}
+            </div>
+        {% endif %}
+        {% if companies %}
+            <div class="detail-info-element" id='companies'>
+                Production Compan{{ companies|pluralize:"y,ies" }}:
+                {% for company in companies %}
+                    <a class="dtail-link info-table-link"
+                       href="{{ company.get_absolute_url }}">{{ company }}</a>
+                    {% if not forloop.last %}<span class="links-list-comma info-comma">,</span>{% endif %}
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+    <div class="detail-info-group">
+        {% if movie.budget %}
+            <div class="detail-info-element" id='budget'>
+                Budget: <span class="detail-info-text">${{ movie.budget|intcomma }}</span>
+            </div>
+        {% endif %}
+        {% if movie.revenue %}
+            <div class="detail-info-element" id='revenue'>
+                Revenue: <span class="detail-info-text">${{ movie.revenue|intcomma }}</span>
+            </div>
+        {% endif %}
+    </div>
+    <div class="detail-info-group">
+        <div class="detail-info-element" id='status'>
+            Status: <span class="detail-info-text">{{ movie.get_status_display }}</span>
+        </div>
+        {% if movie.release_date %}
+            <div class="detail-info-element" id='release-date'>
+                Release Date: <span class="detail-info-text">{{ movie.release_date|date:"j F Y" }}</span>
+            </div>
+        {% endif %}
+    </div>
+    {% if movie.runtime %}
+        <div class="detail-info-element" id='runtime'>
+            <span class="detail-info-text">{{ movie.runtime|intcomma }} mins</span>
+        </div>
+    {% endif %}
+</div>

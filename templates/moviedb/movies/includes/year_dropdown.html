@@ -11,14 +11,14 @@
     <ul class="dropdown-menu">
         <li>
             <a class="dropdown-item first-item {% if year == 0 %}active{% endif %}"
-               href="{% if country or language or company %}{% url decade_route_name slug=slug sort_by=sort_by decade=decade %}{% else %}{% url 'movies_decade' sort_by=sort_by decade=decade %}{% endif %}">Any</a>
+               href="{% if filtered %}{% url decade_route_name slug=slug sort_by=sort_by decade=decade %}{% else %}{% url 'movies_decade' sort_by=sort_by decade=decade %}{% endif %}">Any</a>
         </li>
         <div class="dropdown-divider"></div>
         {% for cur_year in years_list %}
             {% if not forloop.first %}<div class="dropdown-divider"></div>{% endif %}
             <li>
                 <a class="dropdown-item {% if forloop.last %}last-item{% endif %} {% if year == cur_year %}active{% endif %}"
-                   href="{% if country or language or company %}{% url year_route_name slug=slug sort_by=sort_by decade=decade year=cur_year %}{% else %}{% url 'movies_year' sort_by=sort_by decade=decade year=cur_year %}{% endif %}">{{ cur_year }}</a>
+                   href="{% if filtered %}{% url year_route_name slug=slug sort_by=sort_by decade=decade year=cur_year %}{% else %}{% url 'movies_year' sort_by=sort_by decade=decade year=cur_year %}{% endif %}">{{ cur_year }}</a>
             </li>
         {% endfor %}
     </ul>

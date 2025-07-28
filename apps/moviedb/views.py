@@ -7,7 +7,7 @@ from django.views.generic import DetailView, ListView
 from apps.services.utils import GENRE_DICT, GenreIDs, get_base_query
 
 from .forms import SearchForm
-from .models import Collection, Country, Language, Movie, Person, ProductionCompany
+from .models import Collection, Country, Genre, Language, Movie, Person, ProductionCompany
 
 logger = logging.getLogger('moviedb')
 
@@ -58,6 +58,9 @@ class MovieListView(ListView):
                 case 'company':
                     self.filter_obj = ProductionCompany.objects.get(slug=self.slug)
                     queryset = self.filter_obj.movies.all()
+                case 'genre':
+                    self.filter_obj = Genre.objects.get(slug=self.slug)
+                    queryset = self.filter_obj.movies.all()
         else:
             queryset = Movie.objects.all()
 
@@ -85,7 +88,8 @@ class MovieListView(ListView):
                     .order_by('-rank')
                 )
         else:
-            queryset = queryset.filter(adult=False)
+            if not self.filter_type or self.filter_type != 'company':
+                queryset = queryset.filter(adult=False)
 
             # Filter by year/decade
             if 1880 <= self.year <= 2030:
@@ -187,6 +191,7 @@ class MovieListView(ListView):
         context['year_route_name'] = f'movies_year'
 
         if self.filter_type:
+            context['filtered'] = True
             context[self.filter_type] = self.filter_obj
 
             context['decade_route_name'] += f'_{self.filter_type}'
@@ -211,6 +216,8 @@ class MovieListView(ListView):
             self.filter_type = 'language'
         elif 'company' in route_name:
             self.filter_type = 'company'
+        elif 'genre' in route_name:
+            self.filter_type = 'genre'
         else:
             self.filter_type = ''
 
@@ -337,6 +344,19 @@ class MovieDetailView(DetailView):
         context = super().get_context_data(**kwargs)
         context['title'] = f'{self.object.title}{f" - {self.object.release_date.year}" if self.object.release_date else ""}'
         context['directors'] = self.object.directors.all()
+        context['genres'] = self.object.genres.all()
+        context['countries'] = self.object.origin_country.all()
+        context['production_countries'] = self.object.production_countries.all()
+        context['language'] = self.object.original_language
+        context['spoken_languages'] = self.object.spoken_languages.all()
+        context['companies'] = self.object.production_companies.all()
+
+        context['collection'] = self.object.collection
+        if context['collection'] and not context['collection'].removed_from_tmdb:
+            context['collection_movies'] = (
+                context['collection'].movies.exclude(Q(removed_from_tmdb=True) | Q(slug=self.object.slug)).order_by('release_date')
+            )
+
         return context
 
 
@@ -490,7 +510,11 @@ class CompanyListView(ListView):
             self.form = SearchForm(self.request.GET)
             if self.form.is_valid() and (query := self.form.cleaned_data['query']):
                 queryset = queryset.annotate(similarity=TrigramSimilarity('name', query)).filter(similarity__gt=0.3).order_by('-similarity')
+            else:
+                queryset = queryset.filter(adult=False)
         else:
+            queryset = queryset.filter(adult=False)
+
             sort_by_field = self.sort_by[1:] if self.sort_by.startswith('-') else self.sort_by
             match sort_by_field:
                 case 'movie_count':

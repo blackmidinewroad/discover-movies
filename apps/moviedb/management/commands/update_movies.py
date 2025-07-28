@@ -191,6 +191,7 @@ class Command(BaseCommand):
             'short',
             'last_update',
             'tmdb_popularity',
+            'adult',
         ]
 
         # Also add slug and created_at fields if not updating changes

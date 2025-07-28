@@ -39,6 +39,7 @@ class Country(SlugMixin):
 
     code = models.CharField(max_length=2, primary_key=True)
     name = models.CharField(max_length=64)
+    alias_name = models.CharField(max_length=64, blank=True, default='')
 
     class Meta:
         verbose_name = 'country'
@@ -95,6 +96,9 @@ class ProductionCompany(SlugMixin):
 
     movie_count = models.PositiveIntegerField(blank=True, default=0)
 
+    # Production company makes adult movies
+    adult = models.BooleanField(blank=True, default=False)
+
     removed_from_tmdb = models.BooleanField(blank=True, default=False)
 
     class Meta:
@@ -104,6 +108,7 @@ class ProductionCompany(SlugMixin):
         indexes = [
             models.Index(fields=['-movie_count']),
             models.Index(fields=['removed_from_tmdb', '-movie_count']),
+            models.Index(fields=['removed_from_tmdb', 'adult', '-movie_count']),
         ]
 
     def __str__(self):

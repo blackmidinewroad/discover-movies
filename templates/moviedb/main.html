@@ -13,7 +13,9 @@
         <div class="nav-controls">
             <div class="nav-top-row">
                 {% if list_type == 'movies' %}
-                    {% include 'moviedb/movies/includes/genres_dropdown.html' %}
+                    {% if not genre %}
+                        {% include 'moviedb/movies/includes/genres_dropdown.html' %}
+                    {% endif %}
                     {% include 'moviedb/movies/includes/decade_dropdown.html' %}
                     {% if decade != 'any' %}
                         {% include 'moviedb/movies/includes/year_dropdown.html' %}

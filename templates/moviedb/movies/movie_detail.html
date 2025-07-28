@@ -20,8 +20,21 @@
                 </h3>
                 {% if movie.tagline %}<p class="movie-tagline">{{ movie.tagline }}</p>{% endif %}
                 {% if movie.overview %}<p class="detail-overview movie-overview">{{ movie.overview }}</p>{% endif %}
+                {% include 'moviedb/movies/includes/detail/info_table.html' %}
             </div>
         </div>
+        {% if collection_movies %}
+            <div class="row movie-collection">
+                <div class="col-12">
+                    <div id="content-grid" class="movie-list">
+                        Part of
+                        <a class="dtail-link collection-link"
+                           href="{{ collection.get_absolute_url }}">{{ collection }}</a>
+                        {% include 'moviedb/movies/movie_list.html' with movies=collection_movies %}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
     </div>
 {% endblock %}
 {% block script %}

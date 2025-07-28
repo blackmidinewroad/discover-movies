@@ -17,7 +17,7 @@
                 {% endif %}
             </div>
             <div class="col-12 col-md-8 col-lg-9 detail-info person-info">
-                <h3 class="detail-title person-title">{{ person.name }}</h3>
+                <h3 class="detail-title person-title">{{ person.name }} {{ person.tmdb_id }}</h3>
                 {% if person.biography %}<p class="detail-overview person-overview">{{ person.biography }}</p>{% endif %}
             </div>
         </div>

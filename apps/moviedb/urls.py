@@ -59,6 +59,17 @@ urlpatterns = [
         MovieListView.as_view(),
         name='movies_year_company',
     ),
+    path('genre/<slug:slug>/', MovieListView.as_view(), name='movies_genre'),
+    path(
+        'genre/<slug:slug>/by/<str:sort_by>/decade/<str:decade>/',
+        MovieListView.as_view(),
+        name='movies_decade_genre',
+    ),
+    path(
+        'genre/<slug:slug>/by/<str:sort_by>/decade/<str:decade>/year/<int:year>/',
+        MovieListView.as_view(),
+        name='movies_year_genre',
+    ),
     path('people/', PeopleListView.as_view(), name='people'),
     path('people/by/<str:sort_by>/', PeopleListView.as_view(), name='people_sort'),
     path('people/department/<str:department>/by/<str:sort_by>/', PeopleListView.as_view(), name='people_department_sort'),
