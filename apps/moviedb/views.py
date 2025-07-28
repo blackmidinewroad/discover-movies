@@ -423,22 +423,15 @@ class CollectionsListView(ListView):
         queryset = Collection.objects.filter(removed_from_tmdb=False)
 
         # Search
-        if 'query' in self.request.GET and self.request.GET.get('query'):
+        if 'query' in self.request.GET:
+            if self.request.headers.get('HX-Request'):
+                self.template_name = 'moviedb/other/partials/content_grid.html'
+
             self.form = SearchForm(self.request.GET)
-            if self.form.is_valid():
-                vector = SearchVector('name', weight='A') + SearchVector('overview', weight='B')
-                query = self.form.cleaned_data['query']
-                search_query = SearchQuery(query)
-
-                queryset = (
-                    queryset.annotate(
-                        similarity=TrigramSimilarity('name', query),
-                        rank=SearchRank(vector, search_query),
-                    )
-                    .filter(Q(similarity__gt=0.2) | Q(rank__gt=0.2))
-                    .order_by('-rank')
-                )
-
+            if self.form.is_valid() and (query := self.form.cleaned_data['query']):
+                queryset = queryset.annotate(similarity=TrigramSimilarity('name', query)).filter(similarity__gt=0.2).order_by('-similarity')
+            else:
+                queryset = queryset.filter(adult=False, movies_released__gt=1).order_by('-avg_popularity')
         else:
             queryset = queryset.filter(adult=False, movies_released__gt=1).order_by('-avg_popularity')
 
@@ -490,12 +483,13 @@ class CompanyListView(ListView):
         self.sort_by = self.kwargs.get('sort_by', '-movie_count')
 
         # Search
-        if 'query' in self.request.GET and self.request.GET.get('query'):
-            self.form = SearchForm(self.request.GET)
-            if self.form.is_valid():
-                query = self.form.cleaned_data['query']
+        if 'query' in self.request.GET:
+            if self.request.headers.get('HX-Request'):
+                self.template_name = 'moviedb/other/partials/content_grid.html'
 
-                queryset = queryset.annotate(similarity=TrigramSimilarity('name', query)).filter(similarity__gt=0.2).order_by('-similarity')
+            self.form = SearchForm(self.request.GET)
+            if self.form.is_valid() and (query := self.form.cleaned_data['query']):
+                queryset = queryset.annotate(similarity=TrigramSimilarity('name', query)).filter(similarity__gt=0.3).order_by('-similarity')
         else:
             sort_by_field = self.sort_by[1:] if self.sort_by.startswith('-') else self.sort_by
             match sort_by_field:
