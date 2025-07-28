@@ -352,15 +352,29 @@ class PersonDetailView(DetailView):
 
 
 class CountryListViews(ListView):
-    queryset = Country.objects.exclude(name='unknown')
     template_name = 'moviedb/other.html'
     context_object_name = 'countries'
+    form = SearchForm()
+
+    def get_queryset(self):
+        queryset = Country.objects.exclude(name='unknown')
+
+        # Search
+        if 'query' in self.request.GET:
+            self.template_name = 'moviedb/other/partials/content_grid.html'
+            self.form = SearchForm(self.request.GET)
+
+            if self.form.is_valid() and (query := self.form.cleaned_data['query']):
+                queryset = queryset.annotate(similarity=TrigramSimilarity('name', query)).filter(similarity__gt=0.2).order_by('-similarity')
+
+        return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Countries'
         context['list_type'] = 'countries'
         context['total_results'] = self.object_list.count
+        context['form'] = self.form
         return context
 
     def get(self, request, *args, **kwargs):
@@ -373,15 +387,29 @@ class CountryListViews(ListView):
 
 
 class LanguageListViews(ListView):
-    model = Language
     template_name = 'moviedb/other.html'
     context_object_name = 'languages'
+    form = SearchForm()
+
+    def get_queryset(self):
+        queryset = Language.objects.all()
+
+        # Search
+        if 'query' in self.request.GET:
+            self.template_name = 'moviedb/other/partials/content_grid.html'
+            self.form = SearchForm(self.request.GET)
+
+            if self.form.is_valid() and (query := self.form.cleaned_data['query']):
+                queryset = queryset.annotate(similarity=TrigramSimilarity('name', query)).filter(similarity__gt=0.2).order_by('-similarity')
+
+        return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Languages'
         context['list_type'] = 'languages'
         context['total_results'] = self.object_list.count
+        context['form'] = self.form
         return context
 
 

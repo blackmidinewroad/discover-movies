@@ -1,0 +1,9 @@
+<form class="search-form"
+      hx-get="{% url route_name %}"
+      hx-target="#content-grid"
+      hx-swap="outerHTML"
+      hx-trigger="keyup changed delay:400ms from:input, submit"
+      onsubmit="return false;">
+    {{ form.query }}
+    <input type="submit" value="Search">
+</form>

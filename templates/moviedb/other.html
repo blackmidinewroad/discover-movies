@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 {% load humanize %}
 {% block content %}
     <div class="list-nav" id="other-buttons">
@@ -11,6 +12,8 @@
             </div>
             {% if list_type == 'collections' or list_type == 'companies' %}
                 {% include 'moviedb/other/includes/search_form.html' with route_name=list_type %}
+            {% else %}
+                {% include 'moviedb/other/includes/active_search.html' with route_name=list_type %}
             {% endif %}
             <span class="total-results" id="total-results">{{ total_results|intcomma }} {{ list_type }}</span>
         </div>

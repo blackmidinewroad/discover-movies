@@ -1,0 +1,11 @@
+{% load humanize %}
+<div id="content-grid">
+    {% if total_results %}
+        {% if list_type == 'countries' %}
+            {% include 'moviedb/other/countries_list.html' %}
+        {% else %}
+            {% include 'moviedb/other/languages_list.html' %}
+        {% endif %}
+    {% endif %}
+</div>
+<span class="total-results" id="total-results" hx-swap-oob="true">{{ total_results|intcomma }} {{ list_type }}</span>
