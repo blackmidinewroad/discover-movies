@@ -829,7 +829,7 @@ footer {
 
 .detail-header {
     margin-top: 2.5rem;
-    margin-bottom: 1rem;
+    margin-bottom: 2rem;
     margin-left: 0;
     margin-right: 0;
 }
@@ -1025,13 +1025,13 @@ footer {
 }
 
 .external-link img {
-    height: 30px;
-    width: auto;
+    height: auto;
+    width: 35px;
     transition: transform 0.2s ease;
 }
 
 .external-link:hover img {
-    transform: scale(1.1);
+    transform: scale(1.07);
 }
 
 
@@ -1079,10 +1079,96 @@ footer {
 
 .collection-link {
     text-decoration: none;
-    font-size: 1.35rem;
+    font-size: 1.25rem;
     margin-left: 0.25rem;
 }
 
 .detail-info-table #runtime {
     margin-top: 1rem;
+}
+
+.person-link {
+    font-size: 1rem;
+}
+
+.credits-text {
+    color: #9cafce;
+    font-size: 1.4rem;
+    display: block;
+}
+
+.character {
+    color: #9cafce;
+    font-size: 0.9rem;
+}
+
+
+.credits-wrapper {
+    display: flex;
+    align-items: flex-start;
+}
+
+.credits-info {
+    flex-grow: 1;
+    overflow: hidden;
+}
+
+.credits-poster-wrapper {
+    width: 50px;
+    flex-shrink: 0;
+}
+
+.credits-poster-container {
+    padding-top: 120%;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.credits-poster-container:hover {
+    transform: none;
+}
+
+.credits-poster-container img {
+    position: absolute;
+    object-position: center top;
+}
+
+.movie-credits hr {
+    border: 0;
+    border-top: 1px solid #7594ce;
+    margin: 0 0 1rem 0;
+    opacity: 0.5;
+}
+
+hr.job-divider {
+    border-top: 1px solid #526a96;
+}
+
+.job-text {
+    color: #b8cef1;
+    font-size: 1rem;
+}
+
+@media (max-width: 768px) {
+    .movie-credits {
+        gap: 2rem;
+    }
+}
+
+.crew-column {
+    border-left: 1px solid rgb(117, 148, 206, 0.5);
+    padding-left: calc(var(--bs-gutter-x) * .5)
+}
+
+@media (max-width: 768px) {
+    .crew-column {
+        border-left: none;
+        padding-left: 0;
+    }
+}
+
+.credits-grid {
+  --cols-xs: 2;
+  --cols-sm: 2;
+  --cols-md: 2;
+  --cols-lg: 3;
 }

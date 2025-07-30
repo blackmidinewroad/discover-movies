@@ -88,9 +88,11 @@
         {% endif %}
     </div>
     <div class="detail-info-group">
-        <div class="detail-info-element" id='status'>
-            Status: <span class="detail-info-text">{{ movie.get_status_display }}</span>
-        </div>
+        {% if movie.status != 6 %}
+            <div class="detail-info-element" id='status'>
+                Status: <span class="detail-info-text">{{ movie.get_status_display }}</span>
+            </div>
+        {% endif %}
         {% if movie.release_date %}
             <div class="detail-info-element" id='release-date'>
                 Release Date: <span class="detail-info-text">{{ movie.release_date|date:"j F Y" }}</span>

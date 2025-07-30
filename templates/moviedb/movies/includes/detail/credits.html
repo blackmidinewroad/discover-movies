@@ -1,0 +1,72 @@
+{% load static %}
+{% if cast or crew %}
+    <div class="row movie-credits mb-4 mt-3">
+        {% if cast %}
+            <div class="col-12 col-md-6">
+                <span class="credits-text">Cast</span>
+                <hr />
+                <div class="poster-grid credits-grid">
+                    {% for cast_member in cast %}
+                        <div class="credits-wrapper d-flex align-items-start">
+                            <div class="poster-wrapper credits-poster-wrapper">
+                                <a href="{{ cast_member.person.get_absolute_url }}"
+                                   class="text-decoration-none">
+                                    <div class="poster-container credits-poster-container rounded">
+                                        <img src="{% if cast_member.person.profile_path %}https://image.tmdb.org/t/p/w185{{ cast_member.person.profile_path }}{% else %}{% static 'images/default_profile.svg' %}{% endif %}"
+                                             class="rounded"
+                                             alt="{{ cast_member.person.name }}"
+                                             loading="lazy">
+                                    </div>
+                                </a>
+                            </div>
+                            <div class="credits-info ms-2">
+                                <a class="dtail-link person-link"
+                                   href="{{ cast_member.person.get_absolute_url }}">{{ cast_member.person.name }}</a>
+                                {% if cast_member.character %}<span class="character d-block">{{ cast_member.character }}</span>{% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+        {% if crew %}
+            <div class="col-12 col-md-6 {% if cast %}crew-column{% endif %}">
+                <span class="credits-text">Crew</span>
+                <hr />
+                {% for job, job_dict in crew_map.items %}
+                    {% if job_dict.people %}
+                        <span class="job-text">
+                            {% if job_dict.pluralize %}
+                                {{ job }}{{ job_dict.people|pluralize }}
+                            {% else %}
+                                {{ job }}
+                            {% endif %}
+                        </span>
+                        <hr class="job-divider">
+                        <div class="poster-grid mb-4 credits-grid">
+                            {% for crew_member in job_dict.people %}
+                                <div class="credits-wrapper d-flex align-items-start">
+                                    <div class="poster-wrapper credits-poster-wrapper">
+                                        <a href="{{ crew_member.person.get_absolute_url }}"
+                                           class="text-decoration-none">
+                                            <div class="poster-container credits-poster-container rounded">
+                                                <img src="{% if crew_member.person.profile_path %}https://image.tmdb.org/t/p/w185{{ crew_member.person.profile_path }}{% else %}{% static 'images/default_profile.svg' %}{% endif %}"
+                                                     class="rounded"
+                                                     alt="{{ crew_member.person.name }}"
+                                                     loading="lazy">
+                                            </div>
+                                        </a>
+                                    </div>
+                                    <div class="credits-info ms-2">
+                                        <a class="dtail-link person-link"
+                                           href="{{ crew_member.person.get_absolute_url }}">{{ crew_member.person.name }}</a>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+{% endif %}

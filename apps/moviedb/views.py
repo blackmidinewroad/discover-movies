@@ -4,7 +4,7 @@ from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector
 from django.db.models import F, Q
 from django.views.generic import DetailView, ListView
 
-from apps.services.utils import GENRE_DICT, GenreIDs, get_base_query
+from apps.services.utils import GENRE_DICT, GenreIDs, get_base_query, get_crew_map
 
 from .forms import SearchForm
 from .models import Collection, Country, Genre, Language, Movie, Person, ProductionCompany
@@ -356,6 +356,10 @@ class MovieDetailView(DetailView):
             context['collection_movies'] = (
                 context['collection'].movies.exclude(Q(removed_from_tmdb=True) | Q(slug=self.object.slug)).order_by('release_date')
             )
+
+        context['cast'] = self.object.cast.prefetch_related('person').order_by('order')
+        context['crew'] = self.object.crew.prefetch_related('person')
+        context['crew_map'] = get_crew_map(context['crew'])
 
         return context
 

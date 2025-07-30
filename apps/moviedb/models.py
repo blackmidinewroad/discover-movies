@@ -387,3 +387,8 @@ class MovieCrew(models.Model):
 
     def __str__(self):
         return f'{self.person} as "{self.job}" in «{self.movie}»'
+
+    def __eq__(self, value):
+        if isinstance(value, MovieCrew):
+            return self.person.tmdb_id == value.person.tmdb_id and self.department == value.department
+        return NotImplemented
