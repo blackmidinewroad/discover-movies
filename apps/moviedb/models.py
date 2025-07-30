@@ -228,8 +228,6 @@ class Movie(SlugMixin):
 
     imdb_id = models.CharField(max_length=16, blank=True, default='')
 
-    directors = models.ManyToManyField(Person, blank=True, verbose_name='Directed by', related_name='directed_movies')
-
     release_date = models.DateField(null=True, blank=True)
 
     genres = models.ManyToManyField(Genre, blank=True, related_name='movies')

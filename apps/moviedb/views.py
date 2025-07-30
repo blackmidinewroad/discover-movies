@@ -81,11 +81,9 @@ class MovieListView(ListView):
                 queryset = (
                     queryset.annotate(
                         similarity=TrigramSimilarity('title', query),
-                        similarity_orig=TrigramSimilarity('original_title', query),
-                        rank=SearchRank(vector, search_query),
                     )
-                    .filter(Q(similarity__gt=0.2) | Q(similarity_orig__gt=0.2) | Q(rank__gt=0.2))
-                    .order_by('-rank')
+                    .filter(similarity__gt=0.2)
+                    .order_by('-similarity')
                 )
         else:
             if not self.filter_type or self.filter_type != 'company':
@@ -343,7 +341,6 @@ class MovieDetailView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['title'] = f'{self.object.title}{f" - {self.object.release_date.year}" if self.object.release_date else ""}'
-        context['directors'] = self.object.directors.all()
         context['genres'] = self.object.genres.all()
         context['countries'] = self.object.origin_country.all()
         context['production_countries'] = self.object.production_countries.all()
@@ -360,6 +357,8 @@ class MovieDetailView(DetailView):
         context['cast'] = self.object.cast.prefetch_related('person').order_by('order')
         context['crew'] = self.object.crew.prefetch_related('person')
         context['crew_map'] = get_crew_map(context['crew'])
+
+        context['directors'] = context['crew_map']['Director']['people']
 
         return context
 

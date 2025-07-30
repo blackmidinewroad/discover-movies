@@ -61,7 +61,6 @@ class MovieAdmin(admin.ModelAdmin):
         'production_countries',
         'original_language',
         'collection',
-        'directors',
     ]
     ordering = ['-tmdb_popularity']
 

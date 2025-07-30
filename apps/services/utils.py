@@ -557,10 +557,4 @@ def get_crew_map(crew: dict) -> dict:
                     if person not in job_map['people']:
                         job_map['people'].append(person)
 
-    for dep in whole_crew:
-        print(dep)
-        for job in whole_crew[dep]:
-            print(f'{job}: {", ".join([cst.person.name for cst in whole_crew[dep][job]])}')
-        print()
-
     return crew_map

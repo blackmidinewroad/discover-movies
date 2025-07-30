@@ -5,15 +5,17 @@
             <div class="detail-info-element" id='countries'>
                 Countr{{ countries|pluralize:"y,ies" }}:
                 {% for country in countries %}
-                    <a class="dtail-link info-table-link"
-                       href="{{ country.get_absolute_url }}">
-                        {% if country.alias_name %}
-                            {{ country.alias_name }}
-                        {% else %}
-                            {{ country }}
-                        {% endif %}
-                    </a>
-                    {% if not forloop.last %}<span class="links-list-comma info-comma">,</span>{% endif %}
+                    <span class="list-element-wrapper">
+                        <a class="dtail-link info-table-link"
+                           href="{{ country.get_absolute_url }}">
+                            {% if country.alias_name %}
+                                {{ country.alias_name }}
+                            {% else %}
+                                {{ country }}
+                            {% endif %}
+                        </a>
+                        {% if not forloop.last %}<span class="links-list-comma info-comma">,</span>{% endif %}
+                    </span>
                 {% endfor %}
             </div>
         {% endif %}
@@ -21,15 +23,17 @@
             <div class="detail-info-element" id='production-countries'>
                 Production Countr{{ production_countries|pluralize:"y,ies" }}:
                 {% for prod_country in production_countries %}
-                    <a class="dtail-link info-table-link"
-                       href="{{ prod_country.get_absolute_url }}">
-                        {% if prod_country.alias_name %}
-                            {{ prod_country.alias_name }}
-                        {% else %}
-                            {{ prod_country }}
-                        {% endif %}
-                    </a>
-                    {% if not forloop.last %}<span class="links-list-comma info-comma">,</span>{% endif %}
+                    <span class="list-element-wrapper">
+                        <a class="dtail-link info-table-link"
+                           href="{{ prod_country.get_absolute_url }}">
+                            {% if prod_country.alias_name %}
+                                {{ prod_country.alias_name }}
+                            {% else %}
+                                {{ prod_country }}
+                            {% endif %}
+                        </a>
+                        {% if not forloop.last %}<span class="links-list-comma info-comma">,</span>{% endif %}
+                    </span>
                 {% endfor %}
             </div>
         {% endif %}
@@ -46,9 +50,11 @@
             <div class="detail-info-element" id='spoken-languages'>
                 Spoken Language{{ spoken_languages|pluralize }}:
                 {% for spoken_language in spoken_languages %}
-                    <a class="dtail-link info-table-link"
-                       href="{{ spoken_language.get_absolute_url }}">{{ spoken_language }}</a>
-                    {% if not forloop.last %}<span class="links-list-comma info-comma">,</span>{% endif %}
+                    <span class="list-element-wrapper">
+                        <a class="dtail-link info-table-link"
+                           href="{{ spoken_language.get_absolute_url }}">{{ spoken_language }}</a>
+                        {% if not forloop.last %}<span class="links-list-comma info-comma">,</span>{% endif %}
+                    </span>
                 {% endfor %}
             </div>
         {% endif %}
@@ -58,9 +64,11 @@
             <div class="detail-info-element" id='genres'>
                 Gnere{{ genres|pluralize }}:
                 {% for genre in genres %}
-                    <a class="dtail-link info-table-link"
-                       href="{{ genre.get_absolute_url }}">{{ genre }}</a>
-                    {% if not forloop.last %}<span class="links-list-comma info-comma">,</span>{% endif %}
+                    <span class="list-element-wrapper">
+                        <a class="dtail-link info-table-link"
+                           href="{{ genre.get_absolute_url }}">{{ genre }}</a>
+                        {% if not forloop.last %}<span class="links-list-comma info-comma">,</span>{% endif %}
+                    </span>
                 {% endfor %}
             </div>
         {% endif %}
@@ -68,9 +76,11 @@
             <div class="detail-info-element" id='companies'>
                 Production Compan{{ companies|pluralize:"y,ies" }}:
                 {% for company in companies %}
-                    <a class="dtail-link info-table-link"
-                       href="{{ company.get_absolute_url }}">{{ company }}</a>
-                    {% if not forloop.last %}<span class="links-list-comma info-comma">,</span>{% endif %}
+                    <span class="list-element-wrapper">
+                        <a class="dtail-link info-table-link"
+                           href="{{ company.get_absolute_url }}">{{ company }}</a>
+                        {% if not forloop.last %}<span class="links-list-comma info-comma">,</span>{% endif %}
+                    </span>
                 {% endfor %}
             </div>
         {% endif %}

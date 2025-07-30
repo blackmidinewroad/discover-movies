@@ -938,15 +938,19 @@ footer {
     font-size: 1.35rem;
 }
 
-.directed-by-wrapper,
-.director-wrapper {
-    white-space: nowrap;
-}
-
 .directed-by {
     color: #9cafce;
     font-size: 1.3rem;
     font-weight: normal;
+}
+
+.directed-by-wrapper {
+    white-space: nowrap;
+}
+
+.list-element-wrapper {
+    display: inline-table;
+    white-space: nowrap;
 }
 
 .toggle-directors-btn {
@@ -971,31 +975,11 @@ footer {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-.show-more {
-    margin-left: 0.5rem;
-}
-
-.show-less {
-    margin-left: 0;
-}
-
-.directors-list {
-    margin-left: 0.5rem;
-}
-
 .links-list-comma {
     color: #9cafce;
-    font-size: 1.2rem;
+    font-size: 1.35rem;
     font-weight: normal;
-    margin-left: -0.4rem;
-    margin-right: 0.1rem;
 }
-
-.optional-comma {
-    margin-left: 0.18rem;
-    margin-right: -0.35rem;
-}
-
 
 .original-title {
     color: #9cafce;
@@ -1004,6 +988,25 @@ footer {
     font-weight: normal;
     display: block;
     margin-top: 0.3rem;
+}
+
+@media (max-width: 768px) {
+
+    .detail-title .year-link,
+    .detail-title .directed-by-wrapper {
+        display: block;
+        margin: 0.2rem 0;
+        text-align: center;
+    }
+
+    .directed-by-wrapper {
+        white-space: normal;
+    }
+
+    .director-link,
+    .info-table-link {
+        white-space: normal;
+    }
 }
 
 
@@ -1055,7 +1058,6 @@ footer {
 .info-comma {
     color: #cadcfb;
     font-size: 1.1rem;
-    margin-left: -0.2rem;
 }
 
 .detail-info-group {
@@ -1167,8 +1169,8 @@ hr.job-divider {
 }
 
 .credits-grid {
-  --cols-xs: 2;
-  --cols-sm: 2;
-  --cols-md: 2;
-  --cols-lg: 3;
+    --cols-xs: 2;
+    --cols-sm: 2;
+    --cols-md: 2;
+    --cols-lg: 3;
 }
