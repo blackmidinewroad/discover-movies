@@ -3,7 +3,7 @@
     <div class="detail-info-group">
         {% if countries %}
             <div class="detail-info-element" id='countries'>
-                Countr{{ countries|pluralize:"y,ies" }}:
+                <span class="list-element-category">Countr{{ countries|pluralize:"y,ies" }}</span>
                 {% for country in countries %}
                     <span class="list-element-wrapper">
                         <a class="dtail-link info-table-link"
@@ -21,7 +21,7 @@
         {% endif %}
         {% if production_countries %}
             <div class="detail-info-element" id='production-countries'>
-                Production Countr{{ production_countries|pluralize:"y,ies" }}:
+                <span class="list-element-category">Production Countr{{ production_countries|pluralize:"y,ies" }}</span>
                 {% for prod_country in production_countries %}
                     <span class="list-element-wrapper">
                         <a class="dtail-link info-table-link"
@@ -41,14 +41,14 @@
     <div class="detail-info-group">
         {% if language %}
             <div class="detail-info-element" id='language'>
-                Language:
+                <span class="list-element-category">Language</span>
                 <a class="dtail-link info-table-link"
                    href="{{ language.get_absolute_url }}">{{ language }}</a>
             </div>
         {% endif %}
         {% if spoken_languages %}
             <div class="detail-info-element" id='spoken-languages'>
-                Spoken Language{{ spoken_languages|pluralize }}:
+                <span class="list-element-category">Spoken Language{{ spoken_languages|pluralize }}</span>
                 {% for spoken_language in spoken_languages %}
                     <span class="list-element-wrapper">
                         <a class="dtail-link info-table-link"
@@ -62,7 +62,7 @@
     <div class="detail-info-group">
         {% if genres %}
             <div class="detail-info-element" id='genres'>
-                Gnere{{ genres|pluralize }}:
+                <span class="list-element-category">Gnere{{ genres|pluralize }}</span>
                 {% for genre in genres %}
                     <span class="list-element-wrapper">
                         <a class="dtail-link info-table-link"
@@ -74,7 +74,7 @@
         {% endif %}
         {% if companies %}
             <div class="detail-info-element" id='companies'>
-                Production Compan{{ companies|pluralize:"y,ies" }}:
+                <span class="list-element-category">Production Compan{{ companies|pluralize:"y,ies" }}</span>
                 {% for company in companies %}
                     <span class="list-element-wrapper">
                         <a class="dtail-link info-table-link"
@@ -88,24 +88,24 @@
     <div class="detail-info-group">
         {% if movie.budget %}
             <div class="detail-info-element" id='budget'>
-                Budget: <span class="detail-info-text">${{ movie.budget|intcomma }}</span>
+                <span class="list-element-category">Budget</span> <span class="detail-info-text">${{ movie.budget|intcomma }}</span>
             </div>
         {% endif %}
         {% if movie.revenue %}
             <div class="detail-info-element" id='revenue'>
-                Revenue: <span class="detail-info-text">${{ movie.revenue|intcomma }}</span>
+                <span class="list-element-category">Revenue</span> <span class="detail-info-text">${{ movie.revenue|intcomma }}</span>
             </div>
         {% endif %}
     </div>
     <div class="detail-info-group">
         {% if movie.status != 6 %}
             <div class="detail-info-element" id='status'>
-                Status: <span class="detail-info-text">{{ movie.get_status_display }}</span>
+                <span class="list-element-category">Status</span> <span class="detail-info-text">{{ movie.get_status_display }}</span>
             </div>
         {% endif %}
         {% if movie.release_date %}
             <div class="detail-info-element" id='release-date'>
-                Release Date: <span class="detail-info-text">{{ movie.release_date|date:"j F Y" }}</span>
+                <span class="list-element-category">Release Date</span> <span class="detail-info-text">{{ movie.release_date|date:"j F Y" }}</span>
             </div>
         {% endif %}
     </div>

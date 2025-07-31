@@ -4,22 +4,20 @@
     <div class="detail person container">
         <div class="row detail-header person-header">
             <div class="col-12 col-md-4 col-lg-3">
-                {% if person.profile_path %}
-                    <img src="https://image.tmdb.org/t/p/h632{{ person.profile_path }}"
-                         class="detail-poster person-poster rounded"
-                         alt="{{ person.name }}">
-                {% else %}
-                    <div class="poster-container">
-                        <div class="missing-poster rounded">
-                            <span>No Poster Available</span>
-                        </div>
-                    </div>
-                {% endif %}
+                {% include 'moviedb/people/includes/detail/poster.html' %}
+                {% include 'moviedb/people/includes/detail/external_links.html' %}
             </div>
             <div class="col-12 col-md-8 col-lg-9 detail-info person-info">
-                <h3 class="detail-title person-title">{{ person.name }} {{ person.tmdb_id }}</h3>
+                <h3 class="detail-title person-title {% if known_for %}includes-known-for{% endif %}">{{ person.name }}</h3>
+                {% if known_for %}
+                    <span class="known-for"><span class="known-for-text">Known for</span> {{ known_for }}</span>
+                {% endif %}
                 {% if person.biography %}<p class="detail-overview person-overview">{{ person.biography }}</p>{% endif %}
             </div>
         </div>
+        {% include 'moviedb/people/includes/detail/roles.html' %}
     </div>
+{% endblock %}
+{% block script %}
+    <script src="{% static 'js/dropdown_delay.js' %}"></script>
 {% endblock %}

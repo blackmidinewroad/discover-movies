@@ -74,4 +74,6 @@ urlpatterns = [
     path('people/by/<str:sort_by>/', PeopleListView.as_view(), name='people_sort'),
     path('people/department/<str:department>/by/<str:sort_by>/', PeopleListView.as_view(), name='people_department_sort'),
     path('person/<slug:slug>/', PersonDetailView.as_view(), name='person_detail'),
+    path('person/<slug:slug>/<str:job>', PersonDetailView.as_view(), name='person_job'),
+    path('person/<slug:slug>/<str:job>/by/<str:sort_by>', PersonDetailView.as_view(), name='person_sort'),
 ]

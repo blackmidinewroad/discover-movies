@@ -1,10 +1,12 @@
 import logging
+from datetime import date
+from random import shuffle
 
 from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector, TrigramSimilarity
 from django.db.models import F, Q
 from django.views.generic import DetailView, ListView
 
-from apps.services.utils import GENRE_DICT, GenreIDs, get_base_query, get_crew_map
+from apps.services.utils import GENRE_DICT, VERBOSE_SORT_BY_MOVIES, GenreIDs, get_base_query, get_crew_map
 
 from .forms import SearchForm
 from .models import Collection, Country, Genre, Language, Movie, Person, ProductionCompany
@@ -17,20 +19,6 @@ class MovieListView(ListView):
     context_object_name = 'movies'
     form = SearchForm()
     paginate_by = 24
-
-    VERBOSE_SORT_BY = {
-        '-tmdb_popularity': 'Popularity ↓',
-        'tmdb_popularity': 'Popularity ↑',
-        '-release_date': 'Realease date ↓',
-        'release_date': 'Realease date ↑',
-        '-budget': 'Budget ↓',
-        'budget': 'Budget ↑',
-        '-revenue': 'Revenue ↓',
-        'revenue': 'Revenue ↑',
-        '-runtime': 'Runtime ↓',
-        'runtime': 'Runtime ↑',
-        'shuffle': 'Shuffle',
-    }
 
     FILTER_DICT = {
         'show_documentary': 'Show Documentary',
@@ -165,8 +153,8 @@ class MovieListView(ListView):
         context['list_type'] = 'movies'
 
         context['sort_by'] = self.sort_by
-        context['verbose_sort_by'] = self.VERBOSE_SORT_BY.get(self.sort_by, 'Popularity ↓')
-        context['sort_by_dict'] = self.VERBOSE_SORT_BY
+        context['verbose_sort_by'] = VERBOSE_SORT_BY_MOVIES.get(self.sort_by, 'Popularity ↓')
+        context['sort_by_dict'] = VERBOSE_SORT_BY_MOVIES
 
         context['year'] = self.year
         context['decade'] = self.decade
@@ -355,10 +343,12 @@ class MovieDetailView(DetailView):
             )
 
         context['cast'] = self.object.cast.prefetch_related('person').order_by('order')
-        context['crew'] = self.object.crew.prefetch_related('person')
+        context['crew'] = [
+            {'id': moview_crew.person.tmdb_id, 'obj': moview_crew} for moview_crew in self.object.crew.prefetch_related('person')
+        ]
         context['crew_map'] = get_crew_map(context['crew'])
 
-        context['directors'] = context['crew_map']['Director']['people']
+        context['directors'] = [director for _, director in context['crew_map']['Director']['objs'].items()]
 
         return context
 
@@ -371,6 +361,73 @@ class PersonDetailView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['title'] = f'{self.object.name}'
+
+        if self.object.known_for_department not in ('', 'Creator', 'Crew'):
+            if self.object.known_for_department == 'Actors':
+                context['known_for'] = 'Acting'
+            else:
+                context['known_for'] = self.object.known_for_department
+        else:
+            context['known_for'] = ''
+
+        crew_roles = [
+            {'id': moview_crew.movie.tmdb_id, 'obj': moview_crew} for moview_crew in self.object.crew_roles.prefetch_related('movie')
+        ]
+        context['roles_map'] = get_crew_map(crew_roles)
+        context['roles_map']['Actor'] = {
+            'objs': {movie_cast.movie.tmdb_id: movie_cast for movie_cast in self.object.cast_roles.prefetch_related('movie')},
+            'department': 'Acting',
+        }
+        context['roles_map'] = dict(
+            sorted(
+                [(job, job_map) for job, job_map in context['roles_map'].items() if job_map['objs']],
+                key=lambda x: -len(x[1]['objs']),
+            )
+        )
+
+        if context['roles_map']:
+            context['role_type'] = self.kwargs.get('job', '').replace('-', ' ').title()
+            if context['role_type'] not in context['roles_map']:
+                for job, job_dict in context['roles_map'].items():
+                    if job_dict['department'] == context['known_for']:
+                        context['role_type'] = job
+                        break
+                else:
+                    context['role_type'] = next(iter(context['roles_map']))
+        else:
+            context['role_type'] = None
+
+        # Sort
+        context['sort_by'] = self.kwargs.get('sort_by', '-tmdb_popularity')
+        sort_by_field = context['sort_by'][1:] if context['sort_by'].startswith('-') else context['sort_by']
+        is_desc = context['sort_by'].startswith('-')
+        shuffle_movies = False
+        match sort_by_field:
+            case 'tmdb_popularity':
+                sort_func = lambda movie: movie.tmdb_popularity
+            case 'release_date':
+                sort_func = lambda movie: movie.release_date if movie.release_date else date(9999, 12, 31)
+            case 'budget':
+                sort_func = lambda movie: movie.budget
+            case 'revenue':
+                sort_func = lambda movie: movie.revenue
+            case 'runtime':
+                sort_func = lambda movie: movie.runtime
+            case 'shuffle':
+                sort_func = None
+                shuffle_movies = True
+            case _:
+                sort_func = lambda movie: movie.tmdb_popularity
+
+        context['movies'] = [movie_cast.movie for movie_cast in context['roles_map'].get(context['role_type'], {}).get('objs', {}).values()]
+        if shuffle_movies:
+            shuffle(context['movies'])
+        else:
+            context['movies'].sort(key=sort_func, reverse=is_desc)
+
+        context['verbose_sort_by'] = VERBOSE_SORT_BY_MOVIES.get(context['sort_by'], 'Popularity ↓')
+        context['sort_by_dict'] = VERBOSE_SORT_BY_MOVIES
+
         return context
 
 

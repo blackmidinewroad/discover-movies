@@ -78,6 +78,20 @@ STATUS_MAP = {
     'Released': 6,
 }
 
+VERBOSE_SORT_BY_MOVIES = {
+    '-tmdb_popularity': 'Popularity ↓',
+    'tmdb_popularity': 'Popularity ↑',
+    '-release_date': 'Realease date ↓',
+    'release_date': 'Realease date ↑',
+    '-budget': 'Budget ↓',
+    'budget': 'Budget ↑',
+    '-revenue': 'Revenue ↓',
+    'revenue': 'Revenue ↑',
+    '-runtime': 'Runtime ↓',
+    'runtime': 'Runtime ↑',
+    'shuffle': 'Shuffle',
+}
+
 
 def unique_slugify(instance, value: str, cur_bulk_slugs: set[str] = None) -> str:
     """Generate unique slug for a model.
@@ -153,22 +167,22 @@ def get_base_query(request):
     return base_query
 
 
-def get_crew_map(crew: dict) -> dict:
+def get_crew_map(crew_dicts: list[dict]) -> dict:
     crew_map = {
         'Director': {
-            'people': [],
+            'objs': {},
             'alias': {'Co-Director'},
             'pluralize': True,
             'department': 'Directing',
         },
         'Writer': {
-            'people': [],
+            'objs': {},
             'alias': {'Screenplay', 'Co-Writer'},
             'pluralize': True,
             'department': 'Writing',
         },
         'Producer': {
-            'people': [],
+            'objs': {},
             'alias': {
                 'Production Supervisor',
                 'Production Director',
@@ -180,31 +194,31 @@ def get_crew_map(crew: dict) -> dict:
             'department': 'Production',
         },
         'Executive Producer': {
-            'people': [],
+            'objs': {},
             'alias': {'Co-Executive Producer'},
             'pluralize': True,
             'department': 'Production',
         },
         'Cinematography': {
-            'people': [],
+            'objs': {},
             'alias': {'Director of Photography', 'Camera Supervisor'},
             'pluralize': False,
             'department': 'Camera',
         },
         'Composer': {
-            'people': [],
+            'objs': {},
             'alias': {'Original Music Composer'},
             'pluralize': True,
             'department': 'Sound',
         },
         'Editor': {
-            'people': [],
+            'objs': {},
             'alias': {'Co-Editor', 'Lead Editor'},
             'pluralize': True,
             'department': 'Editing',
         },
         'Animation': {
-            'people': [],
+            'objs': {},
             'alias': {
                 'Animation Director',
                 'Animation Supervisor',
@@ -221,13 +235,13 @@ def get_crew_map(crew: dict) -> dict:
             'department': 'Visual Effects',
         },
         'Production Design': {
-            'people': [],
+            'objs': {},
             'alias': set(),
             'pluralize': False,
             'department': 'Art',
         },
         'Sound': {
-            'people': [],
+            'objs': {},
             'alias': {
                 'Sound Designer',
                 'Sound Editor',
@@ -248,7 +262,7 @@ def get_crew_map(crew: dict) -> dict:
             'department': 'Sound',
         },
         'Visual Effects': {
-            'people': [],
+            'objs': {},
             'alias': {
                 'Creature Design',
                 'Shading',
@@ -298,7 +312,7 @@ def get_crew_map(crew: dict) -> dict:
             'department': 'Visual Effects',
         },
         'Original Writer': {
-            'people': [],
+            'objs': {},
             'alias': {
                 'Author',
                 'Novel',
@@ -321,31 +335,31 @@ def get_crew_map(crew: dict) -> dict:
             'department': 'Writing',
         },
         'Story': {
-            'people': [],
+            'objs': {},
             'alias': {'Story Supervisor'},
             'pluralize': False,
             'department': 'Writing',
         },
         'Art Direction': {
-            'people': [],
+            'objs': {},
             'alias': {'Supervising Art Director'},
             'pluralize': False,
             'department': 'Art',
         },
         'Set Decoration': {
-            'people': [],
+            'objs': {},
             'alias': {'Set Supervisor'},
             'pluralize': False,
             'department': 'Art',
         },
         'Set Designer': {
-            'people': [],
+            'objs': {},
             'alias': {'Set Supervisor'},
             'pluralize': True,
             'department': 'Art',
         },
         'Costume Design': {
-            'people': [],
+            'objs': {},
             'alias': {
                 'Shoe Design',
                 'Co-Costume Designer',
@@ -367,7 +381,7 @@ def get_crew_map(crew: dict) -> dict:
             'department': 'Costume & Make-Up',
         },
         'Makeup Artist': {
-            'people': [],
+            'objs': {},
             'alias': {
                 'Makeup Designer',
                 'Key Makeup Artist',
@@ -389,7 +403,7 @@ def get_crew_map(crew: dict) -> dict:
             'department': 'Costume & Make-Up',
         },
         'Hairstylist': {
-            'people': [],
+            'objs': {},
             'alias': {
                 'Wigmaker',
                 'Hair Designer',
@@ -404,7 +418,7 @@ def get_crew_map(crew: dict) -> dict:
             'department': 'Costume & Make-Up',
         },
         'Music': {
-            'people': [],
+            'objs': {},
             'alias': {
                 'Additional Soundtrack',
                 'Songs',
@@ -423,7 +437,7 @@ def get_crew_map(crew: dict) -> dict:
             'department': 'Sound',
         },
         'Camera Operator': {
-            'people': [],
+            'objs': {},
             'alias': {
                 'Steadicam Operator',
                 'Epk Camera Operator',
@@ -438,25 +452,25 @@ def get_crew_map(crew: dict) -> dict:
             'department': 'Camera',
         },
         'Casting': {
-            'people': [],
+            'objs': {},
             'alias': {'Casting Director', 'Street Casting'},
             'pluralize': False,
             'department': 'Production',
         },
         'Stunts': {
-            'people': [],
+            'objs': {},
             'alias': {'Stunt Coordinator'},
             'pluralize': False,
             'department': 'Crew',
         },
         'Script Supervisor': {
-            'people': [],
+            'objs': {},
             'alias': set(),
             'pluralize': True,
             'department': 'Directing',
         },
         'Lighting': {
-            'people': [],
+            'objs': {},
             'alias': {
                 'Lighting Technician',
                 'Best Boy Electric',
@@ -495,7 +509,7 @@ def get_crew_map(crew: dict) -> dict:
             'department': 'Lighting',
         },
         'Assistant Director': {
-            'people': [],
+            'objs': {},
             'alias': {
                 'First Assistant Director',
                 'Second Assistant Director',
@@ -505,7 +519,7 @@ def get_crew_map(crew: dict) -> dict:
             'department': 'Directing',
         },
         'Additional Director': {
-            'people': [],
+            'objs': {},
             'alias': {
                 'Action Director',
                 'Additional Second Assistant Director',
@@ -516,7 +530,7 @@ def get_crew_map(crew: dict) -> dict:
             'department': 'Directing',
         },
         'Additional Photography': {
-            'people': [],
+            'objs': {},
             'alias': {
                 'Underwater Camera',
                 'Still Photographer',
@@ -537,24 +551,24 @@ def get_crew_map(crew: dict) -> dict:
         },
     }
 
-    whole_crew = {}
-    for crew_member in crew:
-        whole_crew.setdefault(crew_member.department, {}).setdefault(crew_member.job, []).append(crew_member)
+    all_crew_objs = {}
+    for crew_dict in crew_dicts:
+        all_crew_objs.setdefault(crew_dict['obj'].department, {}).setdefault(crew_dict['obj'].job, []).append(
+            {crew_dict['id']: crew_dict['obj']}
+        )
 
     for job, job_map in crew_map.items():
         department = job_map['department']
-        if department not in whole_crew:
+        if department not in all_crew_objs:
             continue
 
-        if job in whole_crew[department]:
-            for person in whole_crew[department][job]:
-                if person not in job_map['people']:
-                    job_map['people'].append(person)
+        if job in all_crew_objs[department]:
+            for obj in all_crew_objs[department][job]:
+                job_map['objs'].update(obj)
 
-        if job_aliases := job_map['alias'] & set(whole_crew[department]):
+        if job_aliases := job_map['alias'] & set(all_crew_objs[department]):
             for job_alias in job_aliases:
-                for person in whole_crew[department][job_alias]:
-                    if person not in job_map['people']:
-                        job_map['people'].append(person)
+                for obj in all_crew_objs[department][job_alias]:
+                    job_map['objs'].update(obj)
 
     return crew_map

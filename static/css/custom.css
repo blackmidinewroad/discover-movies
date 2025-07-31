@@ -983,7 +983,7 @@ footer {
 
 .original-title {
     color: #9cafce;
-    font-size: 1.5rem;
+    font-size: 1.3rem;
     font-style: italic;
     font-weight: normal;
     display: block;
@@ -1067,10 +1067,23 @@ footer {
     align-items: start;
 }
 
+.list-element-category {
+    text-decoration: underline;
+    text-underline-offset: 0.2rem;
+    text-decoration-thickness: 1px;
+    text-decoration-color: rgb(117, 148, 206, 0.5);
+    margin-right: 0.3rem;
+}
+
 @media (max-width: 768px) {
     .detail-info-group {
         grid-template-columns: repeat(2, 1fr);
         text-align: left;
+    }
+
+    .list-element-category {
+        display: block;
+        margin-bottom: 0.1rem;
     }
 }
 
@@ -1173,4 +1186,38 @@ hr.job-divider {
     --cols-sm: 2;
     --cols-md: 2;
     --cols-lg: 3;
+}
+
+
+/* Person detail */
+.person-title.includes-known-for {
+    margin-bottom: 0.5rem;
+}
+
+.known-for {
+    margin-bottom: 0.8rem;
+    font-size: 1.15rem;
+    color: #cadaf7;
+}
+
+.known-for-text {
+    color: #b8c7e2;
+}
+
+.roles-count {
+    color: #8196bf;
+}
+
+.dropdown .dropdown-toggle:hover .roles-count,
+.dropdown.show .dropdown-toggle .roles-count,
+.dropdown:hover .dropdown-toggle .roles-count,
+.dropdown .dropdown-item:hover .roles-count,
+.dropdown .dropdown-item:focus .roles-count,
+.dropdown .dropdown-item.active .roles-count {
+    color: #344564;
+}
+
+.roles-dropdown .dropdown-toggle,
+.roles-dropdown .dropdown-menu {
+    min-width: 180px;
 }

@@ -34,17 +34,17 @@
                 <span class="credits-text">Crew</span>
                 <hr />
                 {% for job, job_dict in crew_map.items %}
-                    {% if job_dict.people %}
+                    {% if job_dict.objs %}
                         <span class="job-text">
                             {% if job_dict.pluralize %}
-                                {{ job }}{{ job_dict.people|pluralize }}
+                                {{ job }}{{ job_dict.objs|pluralize }}
                             {% else %}
                                 {{ job }}
                             {% endif %}
                         </span>
                         <hr class="job-divider">
                         <div class="poster-grid mb-4 credits-grid">
-                            {% for crew_member in job_dict.people %}
+                            {% for _, crew_member in job_dict.objs.items %}
                                 <div class="credits-wrapper d-flex align-items-start">
                                     <div class="poster-wrapper credits-poster-wrapper">
                                         <a href="{{ crew_member.person.get_absolute_url }}"

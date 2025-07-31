@@ -1,0 +1,16 @@
+<div class="dropdown roles-dropdown">
+    <button class="toggle-btn dropdown-toggle"
+            type="button"
+            aria-expanded="false">
+        {{ role_type }} <span class="roles-count">{{ movies|length }}</span>
+    </button>
+    <ul class="dropdown-menu">
+        {% for job, job_dict in roles_map.items %}
+            {% if not forloop.first %}<div class="dropdown-divider"></div>{% endif %}
+            <li>
+                <a class="dropdown-item {% if forloop.first %}first-item{% endif %} {% if forloop.last %}last-item{% endif %} {% if role_type == job %}active{% endif %}"
+                   href="{% url 'person_sort' slug=person.slug job=job|slugify sort_by=sort_by %}">{{ job }} <span class="roles-count">{{ job_dict.objs|length }}</span></a>
+            </li>
+        {% endfor %}
+    </ul>
+</div>

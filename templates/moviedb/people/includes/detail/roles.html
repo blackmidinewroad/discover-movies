@@ -1,0 +1,13 @@
+{% if roles_map %}
+    <div class="row person-roles">
+        <div class="col-12">
+            <div class="nav-controls roles">
+                <div class="nav-top-row roles">
+                    {% include 'moviedb/people/includes/detail/roles_dropdown.html' %}
+                    {% include 'moviedb/people/includes/detail/sort_dropdown.html' %}
+                </div>
+            </div>
+            <div id="content-grid" class="movie-list">{% include 'moviedb/movies/movie_list.html' %}</div>
+        </div>
+    </div>
+{% endif %}

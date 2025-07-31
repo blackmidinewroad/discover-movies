@@ -1,0 +1,11 @@
+{% if person.profile_path %}
+    <img src="https://image.tmdb.org/t/p/h632{{ person.profile_path }}"
+         class="detail-poster person-poster rounded"
+         alt="{{ person.name }}">
+{% else %}
+    <div class="poster-container">
+        <div class="missing-poster rounded">
+            <span>No Poster Available</span>
+        </div>
+    </div>
+{% endif %}
