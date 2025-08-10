@@ -221,7 +221,7 @@ class Person(SlugMixin):
 
 class Movie(SlugMixin):
     tmdb_id = models.PositiveIntegerField(primary_key=True)
-    title = models.CharField(max_length=512)
+    title = models.CharField(max_length=1024)
 
     # Use title to create slug
     slug_source_field = 'title'
@@ -238,7 +238,7 @@ class Movie(SlugMixin):
     # Is this a TV movie
     tv_movie = models.BooleanField(blank=True, default=False)
 
-    original_title = models.CharField(max_length=512, blank=True, default='')
+    original_title = models.CharField(max_length=1024, blank=True, default='')
     original_language = models.ForeignKey(
         Language,
         on_delete=models.SET_NULL,
@@ -250,7 +250,7 @@ class Movie(SlugMixin):
     origin_country = models.ManyToManyField(Country, blank=True, related_name='movies_originating_from')
 
     overview = models.TextField(blank=True, default='')
-    tagline = models.CharField(max_length=512, blank=True, default='')
+    tagline = models.CharField(max_length=1024, blank=True, default='')
 
     collection = models.ForeignKey(Collection, on_delete=models.SET_NULL, null=True, blank=True, related_name='movies')
 
