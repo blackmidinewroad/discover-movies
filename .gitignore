@@ -1,0 +1,8 @@
+# bytecode 
+__pycache__/
+
+# environment variables
+.env
+
+test.py
+moviedb.log

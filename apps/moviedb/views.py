@@ -2,7 +2,7 @@ import logging
 from datetime import date
 from random import shuffle
 
-from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector, TrigramSimilarity
+from django.contrib.postgres.search import TrigramSimilarity
 from django.db.models import F, Q
 from django.views.generic import DetailView, ListView
 
@@ -62,13 +62,11 @@ class MovieListView(ListView):
         if 'query' in self.request.GET and self.request.GET.get('query'):
             self.form = SearchForm(self.request.GET)
             if self.form.is_valid():
-                vector = SearchVector('title', weight='A') + SearchVector('original_title', weight='B')
                 query = self.form.cleaned_data['query']
-                search_query = SearchQuery(query)
 
                 queryset = (
                     queryset.annotate(
-                        similarity=TrigramSimilarity('title', query),
+                        similarity=TrigramSimilarity('title', query) + TrigramSimilarity('original_title', query),
                     )
                     .filter(similarity__gt=0.2)
                     .order_by('-similarity')
@@ -139,6 +137,8 @@ class MovieListView(ListView):
                     queryset = queryset.order_by('?')
                 case _:
                     queryset = queryset.order_by('-tmdb_popularity')
+
+        print(queryset[:21].explain(analyze=True))
 
         return queryset
 
