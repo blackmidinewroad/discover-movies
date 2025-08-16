@@ -138,8 +138,6 @@ class MovieListView(ListView):
                 case _:
                     queryset = queryset.order_by('-tmdb_popularity')
 
-        print(queryset[:21].explain(analyze=True))
-
         return queryset
 
     def get_context_data(self, **kwargs):
