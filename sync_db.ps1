@@ -57,11 +57,11 @@ python manage.py update_collections movies_released
 Write-Host ""
 
 Write-Host "Starting: update_popularity movie"
-python manage.py update_popularity movie --limit 100000
+python manage.py update_popularity movie --limit 10000
 Write-Host ""
 
 Write-Host "Starting: update_popularity person"
-python manage.py update_popularity person --limit 100000
+python manage.py update_popularity person --limit 10000
 Write-Host ""
 
 Write-Host "Starting: update_collections avg_popularity"
