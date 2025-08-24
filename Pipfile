@@ -6,7 +6,6 @@ name = "pypi"
 [packages]
 django = "*"
 psycopg2-binary = "*"
-pillow = "*"
 dotenv = "*"
 ratelimit = "*"
 unidecode = "*"
@@ -17,6 +16,7 @@ django-debug-toolbar = "*"
 tenacity = "*"
 colorlog = "*"
 requests = "*"
+urllib3 = "*"
 
 [dev-packages]
 
