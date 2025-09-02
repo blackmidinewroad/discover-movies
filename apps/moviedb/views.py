@@ -429,7 +429,7 @@ class PersonDetailView(DetailView):
         return context
 
 
-class CountryListViews(ListView):
+class CountryListView(ListView):
     template_name = 'moviedb/other.html'
     context_object_name = 'countries'
     form = SearchForm()
@@ -464,7 +464,7 @@ class CountryListViews(ListView):
         return super().get(request, *args, **kwargs)
 
 
-class LanguageListViews(ListView):
+class LanguageListView(ListView):
     template_name = 'moviedb/other.html'
     context_object_name = 'languages'
     form = SearchForm()
