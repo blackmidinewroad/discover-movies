@@ -7,8 +7,7 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
@@ -47,7 +46,20 @@ class Migration(migrations.Migration):
                 ('poster_path', models.URLField(blank=True, default='')),
                 ('backdrop_path', models.URLField(blank=True, default='')),
                 ('production_countries', models.CharField(blank=True, default='')),
-                ('status', models.CharField(choices=[('Rumored', 'Rumored'), ('Planned', 'Planned'), ('In Production', 'In Production'), ('Post Production', 'Post Production'), ('Released', 'Released'), ('Canceled', 'Canceled'), ('undefined', 'undefined')])),
+                (
+                    'status',
+                    models.CharField(
+                        choices=[
+                            ('Rumored', 'Rumored'),
+                            ('Planned', 'Planned'),
+                            ('In Production', 'In Production'),
+                            ('Post Production', 'Post Production'),
+                            ('Released', 'Released'),
+                            ('Canceled', 'Canceled'),
+                            ('undefined', 'undefined'),
+                        ]
+                    ),
+                ),
                 ('budget', models.PositiveIntegerField()),
                 ('revenue', models.PositiveIntegerField()),
                 ('runtime', models.PositiveIntegerField()),
@@ -68,7 +80,23 @@ class Migration(migrations.Migration):
                 ('production_company_id', models.ManyToManyField(blank=True, null=True, to='moviedb.productioncompany')),
             ],
             options={
-                'indexes': [models.Index(fields=['-release_date', '-budget', '-tmdb_popularity', '-immdb_popularity', '-lb_rating', '-lb_watched', '-imdb_rating', '-kp_rating'], name='moviedb_mov_release_6d9272_idx')],
+                'indexes': [
+                    models.Index(
+                        fields=[
+                            '-release_date',
+                            '-budget',
+                            '-tmdb_popularity',
+                            '-immdb_popularity',
+                            '-lb_rating',
+                            '-lb_watched',
+                            '-imdb_rating',
+                            '-kp_rating',
+                        ],
+                        name='moviedb_mov_release_6d9272_idx',
+                    )
+                ],
             },
         ),
+        migrations.RunSQL(sql='CREATE EXTENSION IF NOT EXISTS btree_gin;', reverse_sql='DROP EXTENSION IF EXISTS btree_gin;'),
+        migrations.RunSQL(sql='CREATE EXTENSION IF NOT EXISTS pg_trgm;', reverse_sql='DROP EXTENSION IF EXISTS pg_trgm;'),
     ]
