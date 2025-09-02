@@ -44,12 +44,7 @@ Discover Movies is a Django-based web application for exploring movies and relat
    1. Download [PostgreSQL](https://www.postgresql.org/download/) if you don't have it yet.
    2. In **SQL Shell (psql)** create new user.
    3. Create database with the name `moviedb` and give ownership to the created user.
-   4. Connect to the created db and install `pg_trgm` module:
-
-        ```psql
-        CREATE EXTENSION pg_trgm;
-        ```
-
+   
 
 4. **Set Up Environment Variables**
 
