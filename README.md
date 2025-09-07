@@ -3,7 +3,7 @@ Discover Movies is a Django-based web application for exploring movies and relat
 
 
 ## Technologies Used
-- **Backend**: Django.
+- **Backend**: Django, Redis.
 - **Database**: PostgreSQL.
 - **Frontend**: Django Templates, Bootstrap, HTMX, minimal JavaScript.
 
@@ -39,14 +39,20 @@ Discover Movies is a Django-based web application for exploring movies and relat
       pip install -r requirements.txt
       ```
 
-3. **Create Database**
+3. **Install Redis**
+
+   This project uses Redis as the cache backend. You can install it from the official [Redis installation guide](https://redis.io/docs/latest/operate/oss_and_stack/install/install-stack/).
+
+   After installation, make sure Redis is running.
+
+4. **Create Database**
 
    1. Download [PostgreSQL](https://www.postgresql.org/download/) if you don't have it yet.
    2. In **SQL Shell (psql)** create new user.
    3. Create database with the name `moviedb` and give ownership to the created user.
    
 
-4. **Set Up Environment Variables**
+5. **Set Up Environment Variables**
 
    Create a `.env` file in the project root with the following:
    ```env
@@ -58,6 +64,8 @@ Discover Movies is a Django-based web application for exploring movies and relat
     DB_PORT='your-db-port'
     ALLOWED_HOSTS='localhost,127.0.0.1'
     TMDB_ACCESS_TOKEN='your-tmdb-access-token'
+    CACHES_BACKEND='caches-backend'
+    CACHES_LOCATION='caches-location'
    ```
 
    - Generate a secure `SECRET_KEY` using:
@@ -65,8 +73,9 @@ Discover Movies is a Django-based web application for exploring movies and relat
    python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
    ```
    - Replace `your-tmdb-access-token` with your actual access token. If you don't have it yet, sign up at [TMDB](https://www.themoviedb.org/), then go to [API settings](https://www.themoviedb.org/settings/api) to register for an API access. After API registration you will have `API Read Access Token` in your profile settings.
+   - Reaplce `caches-backend` and `caches-location` with your cache configuration (e.g. `CACHES_BACKEND='django.core.cache.backends.redis.RedisCache'`, `CACHES_LOCATION='redis://127.0.0.1:6379'`).
 
-5. **Database Setup**:
+6. **Database Setup**:
    ```shell
    python manage.py migrate
    ```
