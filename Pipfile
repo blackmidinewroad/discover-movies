@@ -17,6 +17,7 @@ tenacity = "*"
 colorlog = "*"
 requests = "*"
 urllib3 = "*"
+redis = "*"
 
 [dev-packages]
 
