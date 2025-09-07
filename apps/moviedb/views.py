@@ -3,6 +3,7 @@ from datetime import date
 from random import shuffle
 
 from django.contrib.postgres.search import TrigramSimilarity
+from django.core.cache import cache
 from django.db.models import F, Q
 from django.views.generic import DetailView, ListView
 
@@ -324,29 +325,63 @@ class MovieDetailView(DetailView):
     template_name = 'moviedb/movies/movie_detail.html'
     context_object_name = 'movie'
 
+    def get_object(self, queryset=None):
+        slug = self.kwargs['slug']
+        cache_key = f'cached_movie:{slug}'
+        obj = cache.get(cache_key)
+        if obj is None:
+            obj = super().get_object(queryset)
+            cache.set(cache_key, obj, 60 * 60)
+
+        return obj
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['title'] = f'{self.object.title}{f" - {self.object.release_date.year}" if self.object.release_date else ""}'
-        context['genres'] = self.object.genres.all()
-        context['countries'] = self.object.origin_country.all()
-        context['production_countries'] = self.object.production_countries.all()
-        context['language'] = self.object.original_language
-        context['spoken_languages'] = self.object.spoken_languages.all()
-        context['companies'] = self.object.production_companies.all()
 
-        context['collection'] = self.object.collection
-        if context['collection'] and not context['collection'].removed_from_tmdb:
-            context['collection_movies'] = (
-                context['collection'].movies.exclude(Q(removed_from_tmdb=True) | Q(slug=self.object.slug)).order_by('release_date')
-            )
+        slug = self.kwargs['slug']
+        cache_key = f'cached_movie_context:{slug}'
+        cached_context = cache.get(cache_key)
+        if cached_context is None:
+            context['title'] = f'{self.object.title}{f" - {self.object.release_date.year}" if self.object.release_date else ""}'
+            context['language'] = self.object.original_language
+            context['collection'] = self.object.collection
+            context['genres'] = self.object.genres.all()
+            context['countries'] = self.object.origin_country.all()
+            context['production_countries'] = self.object.production_countries.all()
+            context['spoken_languages'] = self.object.spoken_languages.all()
+            context['companies'] = self.object.production_companies.all()
 
-        context['cast'] = self.object.cast.prefetch_related('person').order_by('order')
-        context['crew'] = [
-            {'id': moview_crew.person.tmdb_id, 'obj': moview_crew} for moview_crew in self.object.crew.prefetch_related('person')
-        ]
-        context['crew_map'] = get_crew_map(context['crew'])
+            context['collection_movies'] = None
+            if context['collection'] and not context['collection'].removed_from_tmdb:
+                context['collection_movies'] = (
+                    context['collection'].movies.exclude(Q(removed_from_tmdb=True) | Q(slug=self.object.slug)).order_by('release_date')
+                )
 
-        context['directors'] = [director for _, director in context['crew_map']['Director']['objs'].items()]
+            context['cast'] = self.object.cast.prefetch_related('person').order_by('order')
+            context['crew'] = [
+                {'id': moview_crew.person.tmdb_id, 'obj': moview_crew} for moview_crew in self.object.crew.prefetch_related('person')
+            ]
+            context['crew_map'] = get_crew_map(context['crew'])
+            context['directors'] = [director for _, director in context['crew_map']['Director']['objs'].items()]
+
+            cached_context = {
+                'title': context['title'],
+                'language': context['language'],
+                'collection': context['collection'],
+                'genres': context['genres'],
+                'countries': context['countries'],
+                'production_countries': context['production_countries'],
+                'spoken_languages': context['spoken_languages'],
+                'companies': context['companies'],
+                'collection_movies': context['collection_movies'],
+                'cast': context['cast'],
+                'crew': context['crew'],
+                'crew_map': context['crew_map'],
+                'directors': context['directors'],
+            }
+            cache.set(cache_key, cached_context, 60 * 60)
+        else:
+            context.update(cached_context)
 
         return context
 
@@ -435,15 +470,22 @@ class CountryListView(ListView):
     form = SearchForm()
 
     def get_queryset(self):
-        queryset = Country.objects.exclude(name='unknown')
+        cache_key = f'cached_countries:{self.request.GET.urlencode()}'
+        queryset = cache.get(cache_key)
 
-        # Search
-        if 'query' in self.request.GET:
-            self.template_name = 'moviedb/other/partials/content_grid.html'
-            self.form = SearchForm(self.request.GET)
+        if queryset is None:
+            queryset = Country.objects.exclude(name='unknown')
 
-            if self.form.is_valid() and (query := self.form.cleaned_data['query']):
-                queryset = queryset.annotate(similarity=TrigramSimilarity('name', query)).filter(similarity__gt=0.2).order_by('-similarity')
+            # Search
+            if 'query' in self.request.GET:
+                self.form = SearchForm(self.request.GET)
+
+                if self.form.is_valid() and (query := self.form.cleaned_data['query']):
+                    queryset = (
+                        queryset.annotate(similarity=TrigramSimilarity('name', query)).filter(similarity__gt=0.2).order_by('-similarity')
+                    )
+
+            cache.set(cache_key, queryset, 60 * 60 * 24)
 
         return queryset
 
@@ -461,6 +503,9 @@ class CountryListView(ListView):
             for key in ('filter', 'genres'):
                 request.session.pop(key, None)
 
+        if 'query' in self.request.GET:
+            self.template_name = 'moviedb/other/partials/content_grid.html'
+
         return super().get(request, *args, **kwargs)
 
 
@@ -470,15 +515,22 @@ class LanguageListView(ListView):
     form = SearchForm()
 
     def get_queryset(self):
-        queryset = Language.objects.all()
+        cache_key = f'cached_languages:{self.request.GET.urlencode()}'
+        queryset = cache.get(cache_key)
 
-        # Search
-        if 'query' in self.request.GET:
-            self.template_name = 'moviedb/other/partials/content_grid.html'
-            self.form = SearchForm(self.request.GET)
+        if queryset is None:
+            queryset = Language.objects.all()
 
-            if self.form.is_valid() and (query := self.form.cleaned_data['query']):
-                queryset = queryset.annotate(similarity=TrigramSimilarity('name', query)).filter(similarity__gt=0.2).order_by('-similarity')
+            # Search
+            if 'query' in self.request.GET:
+                self.form = SearchForm(self.request.GET)
+
+                if self.form.is_valid() and (query := self.form.cleaned_data['query']):
+                    queryset = (
+                        queryset.annotate(similarity=TrigramSimilarity('name', query)).filter(similarity__gt=0.2).order_by('-similarity')
+                    )
+
+            cache.set(cache_key, queryset, 60 * 60 * 24)
 
         return queryset
 
@@ -489,6 +541,12 @@ class LanguageListView(ListView):
         context['total_results'] = self.object_list.count
         context['form'] = self.form
         return context
+
+    def get(self, request, *args, **kwargs):
+        if 'query' in self.request.GET:
+            self.template_name = 'moviedb/other/partials/content_grid.html'
+
+        return super().get(request, *args, **kwargs)
 
 
 class CollectionsListView(ListView):
@@ -536,11 +594,35 @@ class CollectionDetailView(DetailView):
     template_name = 'moviedb/other/collection_detail.html'
     context_object_name = 'collection'
 
+    def get_object(self, queryset=None):
+        slug = self.kwargs['slug']
+        cache_key = f'cached_collection:{slug}'
+        obj = cache.get(cache_key)
+        if obj is None:
+            obj = super().get_object(queryset)
+            cache.set(cache_key, obj, 60 * 60)
+
+        return obj
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['title'] = f'{self.object.name}'
-        context['movies'] = self.object.movies.filter(removed_from_tmdb=False).order_by('release_date')
-        context['total_movies'] = context['movies'].count()
+
+        cache_key = f'cached_collection_context:{self.object.slug}'
+        cached_context = cache.get(cache_key)
+        if cached_context is None:
+            context['title'] = f'{self.object.name}'
+            context['movies'] = self.object.movies.filter(removed_from_tmdb=False).order_by('release_date')
+            context['total_movies'] = context['movies'].count()
+
+            cached_context = {
+                'title': context['title'],
+                'movies': context['movies'],
+                'total_movies': context['total_movies'],
+            }
+            cache.set(cache_key, cached_context, 60 * 60)
+        else:
+            context.update(cached_context)
+
         return context
 
 
