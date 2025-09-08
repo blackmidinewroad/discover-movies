@@ -64,6 +64,7 @@ Discover Movies is a Django-based web application for exploring movies and relat
     DB_HOST='your-db-host'
     DB_PORT='your-db-port'
     ALLOWED_HOSTS='localhost,127.0.0.1'
+    CSRF_TRUSTED_ORIGINS='http://127.0.0.1,https://127.0.0.1,http://localhost,https://localhost'
     INTERNAL_IPS='127.0.0.1'
     TMDB_ACCESS_TOKEN='your-tmdb-access-token'
     CACHES_BACKEND='caches-backend'
