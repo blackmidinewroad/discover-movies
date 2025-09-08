@@ -48,5 +48,7 @@ RUN chown -R app:app .
 # Run the application with the created user
 USER app
 
+RUN chmod +x sync_db.sh
+
 RUN chmod +x entrypoint.sh
 ENTRYPOINT ["./entrypoint.sh"]
