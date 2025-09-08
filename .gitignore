@@ -2,7 +2,8 @@
 __pycache__/
 
 # environment variables
-.env
+.env*
 
 test.py
 *.log
+*.dump
