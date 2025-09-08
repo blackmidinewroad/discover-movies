@@ -21,6 +21,7 @@ django-debug-toolbar==5.2.0; python_version >= '3.9'
 django-extensions==4.1; python_version >= '3.9'
 dotenv==0.9.9
 frozenlist==1.7.0; python_version >= '3.9'
+gunicorn==23.0.0; python_version >= '3.7'
 idna==3.10; python_version >= '3.6'
 kombu[redis]==5.5.4; python_version >= '3.8'
 multidict==6.6.3; python_version >= '3.9'

@@ -19,6 +19,7 @@ requests = "*"
 urllib3 = "*"
 redis = "*"
 celery = {extras = ["redis"], version = "*"}
+gunicorn = "*"
 
 [dev-packages]
 
