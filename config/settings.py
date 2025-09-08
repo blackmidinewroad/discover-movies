@@ -186,7 +186,9 @@ LOGGING = {
     },
 }
 
-INTERNAL_IPS = os.getenv('INTERNAL_IPS').split(' ')
+INTERNAL_IPS = os.getenv('INTERNAL_IPS').split(',')
+
+CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',')
 
 CACHES = {
     'default': {
