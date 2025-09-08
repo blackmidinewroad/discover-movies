@@ -1,0 +1,52 @@
+###########
+# BUILDER #
+###########
+
+FROM python:3.12.0-alpine AS builder
+
+WORKDIR /usr/src/app
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+RUN apk update \
+    && apk add postgresql-dev gcc python3-dev musl-dev
+RUN pip install --upgrade pip
+
+COPY requirements.txt .
+RUN pip wheel --no-cache-dir --no-deps --wheel-dir /usr/src/app/wheels -r requirements.txt
+
+
+#########
+# FINAL #
+#########
+
+FROM python:3.12.0-alpine
+
+ENV HOME=/home/app
+ENV APP_HOME=/home/app/web
+
+# Create home dir for the user (/home/app) and for the project (/home/app/web)
+# Create group 'app' and user 'app'
+RUN mkdir -p $APP_HOME \
+    && addgroup -S app \
+    && adduser -S app -G app \
+    && apk update \
+    && apk add libpq
+
+# Copy from builder and install requirements
+COPY --from=builder /usr/src/app/wheels /wheels
+RUN pip install --no-cache /wheels/*
+
+WORKDIR $APP_HOME
+
+COPY . .
+
+# Give our user ownership over the app directory
+RUN chown -R app:app .
+
+# Run the application with the created user
+USER app
+
+RUN chmod +x entrypoint.sh
+ENTRYPOINT ["./entrypoint.sh"]

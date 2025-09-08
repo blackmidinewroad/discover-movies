@@ -3,6 +3,7 @@
 __pycache__
 *.pyc
 *.log
-Dockerfile
+Dockerfile.*
 .gitignore
 *.md
+*.dump
