@@ -56,6 +56,7 @@ Discover Movies is a Django-based web application for exploring movies and relat
 
    Create a `.env` file in the project root with the following:
    ```env
+    DEBUG='True'
     SECRET_KEY='your-secret-key'
     DB_NAME='moviedb'
     DB_USER='your-db-user'
@@ -63,6 +64,7 @@ Discover Movies is a Django-based web application for exploring movies and relat
     DB_HOST='your-db-host'
     DB_PORT='your-db-port'
     ALLOWED_HOSTS='localhost,127.0.0.1'
+    INTERNAL_IPS='127.0.0.1'
     TMDB_ACCESS_TOKEN='your-tmdb-access-token'
     CACHES_BACKEND='caches-backend'
     CACHES_LOCATION='caches-location'
@@ -73,7 +75,7 @@ Discover Movies is a Django-based web application for exploring movies and relat
    python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
    ```
    - Replace `your-tmdb-access-token` with your actual access token. If you don't have it yet, sign up at [TMDB](https://www.themoviedb.org/), then go to [API settings](https://www.themoviedb.org/settings/api) to register for an API access. After API registration you will have `API Read Access Token` in your profile settings.
-   - Reaplce `caches-backend` and `caches-location` with your cache configuration (e.g. `CACHES_BACKEND='django.core.cache.backends.redis.RedisCache'`, `CACHES_LOCATION='redis://127.0.0.1:6379'`).
+   - Reaplce `caches-backend` and `caches-location` with your cache configuration (e.g. `CACHES_BACKEND='django.core.cache.backends.redis.RedisCache'`, `CACHES_LOCATION='redis://127.0.0.1:6379/1'`).
 
 6. **Database Setup**:
    ```shell
