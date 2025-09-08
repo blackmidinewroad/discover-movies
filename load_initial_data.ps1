@@ -12,8 +12,8 @@ Write-Host "Loading genres"
 python manage.py update_genres
 Write-Host ""
 
-Write-Host "Loading 1000 most popular movies"
-python manage.py update_movies daily_export --batch_size 1000 --sort_by_popularity --limit 1000
+Write-Host "Loading 50 most popular movies"
+python manage.py update_movies daily_export --batch_size 50 --sort_by_popularity --limit 50
 Write-Host ""
 
 $endTime = Get-Date
