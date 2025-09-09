@@ -1,15 +1,17 @@
 name: discover-movies
 
+x-extra-hosts: &tmdb_hosts
+  - "api.themoviedb.org:18.161.6.19"
+  - "image.tmdb.org:143.244.49.177"
+  - "files.tmdb.org:108.157.254.49"
+
 services:
   web:
     build:
       context: .
       dockerfile: Dockerfile.prod
     command: gunicorn config.wsgi:application --bind 0.0.0.0:8000
-    extra_hosts:
-      - "api.themoviedb.org:18.161.6.19"
-      - "image.tmdb.org:143.244.49.177"
-      - "files.tmdb.org:108.157.254.49"
+    extra_hosts: *tmdb_hosts
     volumes:
       - static-data:/home/app/web/static
     ports:
@@ -54,6 +56,34 @@ services:
     command: certonly --webroot --webroot-path=/var/www/certbot/ --email ${EMAIL} --agree-tos --no-eff-email --non-interactive -d discovermovies.ru -d www.discovermovies.ru
     depends_on:
       - nginx
+
+  celery:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    entrypoint: ""
+    command: celery -A config worker -l info
+    extra_hosts: *tmdb_hosts
+    env_file:
+      - .env.prod
+    depends_on:
+      - db
+      - redis
+    restart: always
+
+  celery-beat:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    entrypoint: ""
+    command: celery -A config beat -l info
+    extra_hosts: *tmdb_hosts
+    env_file:
+      - .env.prod
+    depends_on:
+      - db
+      - redis
+    restart: always
 
 volumes:
   postgres-data:
