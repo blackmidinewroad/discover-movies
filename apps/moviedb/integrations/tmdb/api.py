@@ -91,6 +91,8 @@ class TMDB(BaseTMDB):
                 logger.error('Unauthorized or Forbidden: %s, status: %s.', e.__class__.__name__, e.response.status_code)
                 raise
 
+            return {}
+
     def fetch_genres(self, language: str = 'en') -> list[dict]:
         """Fetch the list of official genres for movies.
 
