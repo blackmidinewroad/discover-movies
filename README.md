@@ -3,7 +3,7 @@ Discover Movies is a Django-based web application for exploring movies and relat
 
 
 ## Technologies Used
-- **Backend**: Django, Redis.
+- **Backend**: Django, Redis, Celery.
 - **Database**: PostgreSQL.
 - **Frontend**: Django Templates, Bootstrap, HTMX, minimal JavaScript.
 
@@ -18,6 +18,8 @@ Discover Movies is a Django-based web application for exploring movies and relat
 - **Search**: Each page includes a search feature powered by PostgreSQL's trigram similarity for fuzzy matching.
 - **Data Synchronization**: Uses TMDB API to fetch and update all relevant movie data.
 - **Custom Management Commands**: Uses several custom Django management commands to sync and update database content.
+- **Caching**: Uses Redis to cache queries and improve performance.
+- **Periodic Updates**: Runs scheduled background tasks with Celery Beat to keep the database in sync with TMDB automatically.
 
 
 ## Installation
