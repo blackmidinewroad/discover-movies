@@ -191,12 +191,11 @@ class Command(BaseCommand):
             'short',
             'last_update',
             'tmdb_popularity',
-            'adult',
         ]
 
-        # Also add slug and created_at fields if not updating changes
+        # Add fields that should be set only when entry is created
         if not is_update:
-            update_fields.extend(['slug', 'created_at'])
+            update_fields.extend(['slug', 'created_at', 'adult'])
 
         # Links to update many to many fields
         genre_links = []

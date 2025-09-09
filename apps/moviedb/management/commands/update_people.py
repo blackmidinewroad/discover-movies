@@ -151,12 +151,11 @@ class Command(BaseCommand):
             'profile_path',
             'tmdb_popularity',
             'last_update',
-            'adult',
         ]
 
-        # Also add slug and created_at fields if not updating changes
+        # Add fields that should be set only when entry is created
         if not is_update:
-            update_fields.extend(['slug', 'created_at'])
+            update_fields.extend(['slug', 'created_at', 'adult'])
 
         logger.info('Starting to process people...')
 
