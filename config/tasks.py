@@ -4,6 +4,10 @@ from django.core.management import call_command
 
 @shared_task
 def daily_db_update():
+    call_command('update_genres')
+    call_command('update_countries')
+    call_command('update_languages')
+
     call_command('update_collections', 'daily_export', batch_size=1000)
     call_command('update_companies', 'daily_export', batch_size=1000)
     call_command('update_people', 'daily_export', batch_size=1000)
