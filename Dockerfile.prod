@@ -50,5 +50,5 @@ USER app
 
 RUN chmod +x sync_db.sh
 
-RUN chmod +x entrypoint.sh
-ENTRYPOINT ["./entrypoint.sh"]
+RUN chmod +x entrypoint.prod.sh
+ENTRYPOINT ["./entrypoint.prod.sh"]

@@ -26,5 +26,23 @@ services:
   redis:
     image: redis:alpine
 
+  celery:
+    build: .
+    entrypoint: ""
+    command: celery -A config worker -l info
+    volumes:
+      - .:/usr/src/app/
+    depends_on:
+      - redis
+
+  celery-beat:
+    build: .
+    entrypoint: ""
+    command: celery -A config beat -l info
+    volumes:
+      - .:/usr/src/app/
+    depends_on:
+      - redis
+
 volumes:
   postgres-data:

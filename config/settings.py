@@ -14,7 +14,10 @@ import os
 import sys
 from pathlib import Path
 
+from celery.schedules import crontab
 from dotenv import load_dotenv
+
+import config.tasks
 
 load_dotenv()
 
@@ -195,4 +198,14 @@ CACHES = {
         'BACKEND': os.getenv('CACHES_BACKEND'),
         'LOCATION': os.getenv('CACHES_LOCATION'),
     }
+}
+
+CELERY_BROKER_URL = os.getenv('CELERY_REDIS_LOCATION')
+CELERY_RESULT_BACKEND = os.getenv('CELERY_REDIS_LOCATION')
+
+CELERY_BEAT_SCHEDULE = {
+    'daily_db_update': {
+        'task': 'config.tasks.daily_db_update',
+        'schedule': crontab(hour=15, minute=0),
+    },
 }
