@@ -16,7 +16,7 @@ echo "Starting: update_people daily_export"
 python manage.py update_people daily_export --batch_size 1000
 echo
 
-for i in {1..4}; do
+for i in $(seq 1 4); do
     echo "Starting: update_people update_changed days $i"
     python manage.py update_people update_changed --batch_size 1000 --days $i
     echo
@@ -26,7 +26,7 @@ echo "Starting: update_movies daily_export"
 python manage.py update_movies daily_export --batch_size 1000
 echo
 
-for i in {1..4}; do
+for i in $(seq 1 4); do
     echo "Starting: update_movies update_changed days $i"
     python manage.py update_movies update_changed --batch_size 1000 --days $i
     echo
