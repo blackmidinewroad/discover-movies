@@ -206,6 +206,6 @@ CELERY_RESULT_BACKEND = os.getenv('CELERY_REDIS_LOCATION')
 CELERY_BEAT_SCHEDULE = {
     'daily_db_update': {
         'task': 'config.tasks.daily_db_update',
-        'schedule': crontab(hour=15, minute=0),
+        'schedule': crontab(hour=9, minute=0),
     },
 }
