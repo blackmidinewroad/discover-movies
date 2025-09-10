@@ -185,6 +185,7 @@ LOGGING = {
         'moviedb': {
             'handlers': ['console', 'file'],
             'level': 'DEBUG',
+            'propagate': False,
         },
     },
 }
